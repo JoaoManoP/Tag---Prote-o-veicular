@@ -1,33 +1,157 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#061321"><title>Rastro Demo — Viagem Inteligente</title><link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><link rel="stylesheet" href="/css/style.css"></head>
-<body><header class="topbar"><div><span class="brand-mark">R</span><div><h1>Rastro Demo</h1><p>Central inteligente de rastreamento</p></div></div><nav class="top-nav"><button class="nav-pill active" data-view="tracking">Mapa ao vivo</button><button class="nav-pill" data-view="timeline">Linha do tempo</button><button class="nav-pill" data-view="plans">Planos</button></nav><div class="account-menu"><div><b id="accountName">Conta demo</b><span id="accountEmail">Carregando…</span></div><span id="panelStatus" class="badge online">● Painel conectado</span><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button></div></header>
-<main class="app-shell">
- <section id="trackingView" class="view active">
-  <div class="workspace">
-   <aside class="control-panel">
-    <section class="card wizard"><span class="eyebrow">VIAGEM INTELIGENTE</span><h2>Planeje sua viagem</h2>
-     <div class="step-label"><b>1</b> Perfil do veículo <button id="editVehicleBtn" class="text-btn">Editar</button></div>
-     <div id="vehicleSummary" class="vehicle-summary empty">Nenhum veículo configurado</div>
-     <div class="step-label"><b>2</b> Origem e destino</div>
-     <label class="field">Origem<div class="search-box"><input id="originInput" autocomplete="off" placeholder="Ex.: Santa Maria, Timóteo"><button id="originMapBtn" title="Selecionar no mapa">⌖</button></div><div id="originResults" class="search-results hidden"></div></label>
-     <label class="field">Destino<div class="search-box"><input id="destinationInput" autocomplete="off" placeholder="Ex.: Canaã, Ipatinga"><button id="destinationMapBtn" title="Selecionar no mapa">⌖</button></div><div id="destinationResults" class="search-results hidden"></div></label>
-     <div id="mapPickHint" class="pick-hint hidden">Clique no mapa para marcar o ponto.</div>
-     <button id="calculateBtn" class="wide">Calcular rota rodoviária</button>
-     <div id="routeSummary" class="route-summary hidden"><div><span>Distância</span><strong id="plannedDistance">—</strong></div><div><span>Duração prevista</span><strong id="plannedDuration">—</strong></div><div><span>Chegada prevista</span><strong id="plannedArrival">—</strong></div><div><span>Alternativas</span><strong id="alternativeCount">—</strong></div><small>Calculada sobre a malha viária por OSRM/OpenStreetMap.</small></div>
-     <div class="step-label"><b>3</b> Rastreamento</div><div id="sessionEmpty"><p class="muted-copy">O celular representará o veículo selecionado durante este teste.</p><button id="createBtn" class="wide secondary">Criar sessão e QR Code</button></div>
-     <div id="sessionActive" class="hidden"><div class="connect-row"><img id="qrImage" alt="QR Code"><div><span id="phoneStatus" class="badge offline">● Desconectado</span><p>Sessão <code id="sessionCode">—</code></p><button id="copyBtn" class="text-btn">Copiar link</button></div></div><button id="startTripBtn" class="wide">Iniciar viagem</button></div>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090909">
+  <script src="/js/theme-init.js"></script>
+  <title>RastroTack — Rastreamento e Proteção Veicular</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="app-page">
+  <a class="skip-link" href="#mainContent">Ir para o conteúdo</a>
+  <div id="drawerOverlay" class="drawer-overlay" hidden></div>
+  <aside id="appSidebar" class="app-sidebar" aria-label="Navegação principal">
+    <div class="sidebar-brand">
+      <span class="brand-mark" aria-hidden="true">RT</span>
+      <div class="brand-copy"><strong>RastroTack</strong><small>Rastreamento e Proteção Veicular</small></div>
+      <button id="closeDrawerBtn" class="icon-btn mobile-only" aria-label="Fechar menu">×</button>
+    </div>
+    <section class="session-card" aria-label="Status da sessão">
+      <div class="session-card-head"><span class="status-dot online"></span><span class="nav-label">Central operacional</span></div>
+      <strong class="nav-label">Sessão demonstrativa</strong>
+      <small class="nav-label">Dados identificados como teste</small>
     </section>
-   </aside>
-   <section class="map-column"><div class="map-card smart-map"><div class="map-toolbar"><div><span class="eyebrow">ROTA PLANEJADA × PERCURSO REALIZADO</span><h2 id="mapTitle">Mapa da viagem</h2></div><div class="actions"><button id="centerBtn" class="secondary">Centralizar</button><button id="simulateBtn">Simular percurso</button></div></div><div id="map"></div><div class="map-legend"><span><i class="legend-line planned"></i>Planejada</span><span><i class="legend-line confirmed"></i>GPS confirmado</span><span><i class="legend-line rebuilt"></i>Reconstruído</span><span><i class="legend-line alternative"></i>Alternativa</span></div></div></section>
-   <aside class="telemetry-panel">
-    <section class="card"><div class="section-head"><div><span class="eyebrow">AGORA</span><h2>Telemetria</h2></div><span id="dataSource" class="badge offline">Aguardando</span></div><div class="hero-speed"><strong id="speed">0,0</strong><span>km/h</span></div><div class="metric-grid compact"><div class="metric"><span>Latitude</span><strong id="latitude">—</strong></div><div class="metric"><span>Longitude</span><strong id="longitude">—</strong></div><div class="metric"><span>Precisão</span><strong id="accuracy">—</strong><small id="accuracyClass">Sem dados</small></div><div class="metric"><span>Direção</span><strong id="heading">—</strong></div></div><p class="notice">Seis casas decimais exibem o dado recebido, mas não significam precisão física garantida.</p></section>
-    <section class="card journey-stats"><span class="eyebrow">PERCURSO REALIZADO</span><dl class="stat-list"><div><dt>Confirmado</dt><dd id="confirmedDistance">0 m</dd></div><div><dt>Reconstruído</dt><dd id="rebuiltDistance">0 m</dd></div><div><dt>Total estimado</dt><dd id="totalDistance">0 m</dd></div><div><dt>Duração confirmada</dt><dd id="confirmedDuration">0 min</dd></div><div><dt>Tempo sem conexão</dt><dd id="offlineTime">0 min</dd></div><div><dt>Confiança</dt><dd id="confidence">Sem lacunas</dd></div><div><dt>Desvio da rota</dt><dd id="routeDelta">—</dd></div></dl></section>
-    <section class="card consumption"><span class="eyebrow">CONSUMO ESTIMADO</span><div class="range"><strong><span id="fuelMin">0,00</span>–<span id="fuelMax">0,00</span> L</strong><small>R$ <span id="costMin">0,00</span>–<span id="costMax">0,00</span></small></div><div class="tank-bar"><i id="tankUse"></i></div><p id="tankText">0% do tanque</p><p class="notice">Os valores são estimativas. O consumo real somente poderá ser conhecido por integração autorizada com o veículo, dispositivo OBD-II, abastecimentos ou computador de bordo.</p></section>
-    <section class="card utility-actions"><button id="clearBtn" class="secondary" disabled>Apagar histórico</button><button id="closeBtn" class="danger" disabled>Encerrar sessão</button></section>
-   </aside>
+    <nav class="side-nav" aria-label="Seções do produto">
+      <button class="nav-item active" data-view="tracking" title="Rastreio"><span class="nav-icon">RT</span><span class="nav-label">Rastreio</span></button>
+      <button class="nav-item" data-view="trips" title="Viagens"><span class="nav-icon">VI</span><span class="nav-label">Viagens</span></button>
+      <button class="nav-item" data-view="vehicles" title="Veículos"><span class="nav-icon">VE</span><span class="nav-label">Veículos</span></button>
+      <button class="nav-item" data-view="timeline" title="Histórico"><span class="nav-icon">HI</span><span class="nav-label">Histórico</span></button>
+      <button class="nav-item" data-view="privacy" title="Privacidade"><span class="nav-icon">PR</span><span class="nav-label">Privacidade</span></button>
+    </nav>
+    <div class="nav-divider nav-label">DESENVOLVIMENTO</div>
+    <nav class="side-nav" aria-label="Recursos de desenvolvimento">
+      <button id="adminNav" class="nav-item hidden" title="Administração"><span class="nav-icon">AD</span><span class="nav-label">Administração</span></button>
+      <button id="labNav" class="nav-item lab-nav hidden" title="Laboratório"><span class="nav-icon">LA</span><span class="nav-label">Laboratório</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile"><span class="avatar" aria-hidden="true">RT</span><div class="nav-label"><strong id="accountName">Conta demo</strong><small id="accountEmail">Carregando…</small></div></div>
+      <button id="logoutBtn" class="nav-item subtle" title="Sair"><span class="nav-icon">↗</span><span class="nav-label">Sair</span></button>
+      <button id="sidebarToggle" class="collapse-btn" aria-label="Recolher barra lateral" aria-expanded="true"><span aria-hidden="true">‹</span><span class="nav-label">Recolher</span></button>
+    </div>
+  </aside>
+
+  <div class="app-frame">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn mobile-only" aria-label="Abrir menu" aria-controls="appSidebar" aria-expanded="false">☰</button>
+      <div class="topbar-context"><span id="pageEyebrow">OPERAÇÃO EM TEMPO REAL</span><h1 id="pageTitle">Painel de rastreio</h1></div>
+      <div class="topbar-actions">
+        <span id="panelStatus" class="badge online"><i></i>Painel conectado</span>
+        <label class="theme-control" for="themeSelect"><span class="sr-only">Tema</span><select id="themeSelect" aria-label="Escolher tema"><option value="system">Tema do sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
+      </div>
+    </header>
+
+    <main id="mainContent" class="main-content">
+      <section id="trackingView" class="view active" aria-labelledby="trackingHeading">
+        <div class="tracking-heading">
+          <div><p class="kicker">VISÃO OPERACIONAL</p><h2 id="trackingHeading">Onde seu veículo está, agora</h2><p>Acompanhe o sinal recebido e compare o trajeto planejado com o percurso realizado.</p></div>
+          <div class="selected-vehicle"><span>Veículo selecionado</span><div id="vehicleSummary" class="vehicle-summary empty">Configure um veículo para começar</div><button id="editVehicleBtn" class="text-btn">Editar perfil</button></div>
+        </div>
+
+        <div class="quick-strip" aria-label="Indicadores rápidos">
+          <div class="connection-metric"><span class="status-dot"></span><small>CONEXÃO</small><strong id="quickConnection">Aguardando celular</strong></div>
+          <div><small>DISTÂNCIA</small><strong id="quickDistance">0 m</strong></div>
+          <div class="speed-metric"><small>VELOCIDADE</small><strong><span id="quickSpeed">0,0</span> <em>km/h</em></strong></div>
+          <div><small>PRECISÃO</small><strong id="quickAccuracy">—</strong></div>
+          <div><small>POSIÇÕES</small><strong id="quickPositions">0</strong></div>
+          <div><small>EM MOVIMENTO</small><strong id="quickMoving">0 min</strong></div>
+        </div>
+
+        <div class="tracking-grid">
+          <section class="map-stage" aria-label="Mapa de rastreamento">
+            <div class="map-toolbar">
+              <div><span class="live-label"><i></i> MAPA OPERACIONAL</span><h3 id="mapTitle">Posição e percurso</h3></div>
+              <div class="actions"><button id="centerBtn" class="secondary">Centralizar</button><button id="simulateBtn">Simular percurso</button></div>
+            </div>
+            <div id="map"></div>
+            <div class="map-meta"><span>Origem: GPS autorizado ou simulação identificada</span><span id="mapUpdated">Sem posição recebida</span></div>
+            <div class="map-legend"><span><i class="legend-line planned"></i>Planejado</span><span><i class="legend-line confirmed"></i>GPS confirmado</span><span><i class="legend-line rebuilt"></i>Estimado</span><span><i class="legend-circle"></i>Precisão</span></div>
+          </section>
+
+          <aside class="telemetry-rail" aria-label="Telemetria do veículo">
+            <header class="vehicle-profile"><div class="vehicle-symbol" aria-hidden="true">RT</div><div><span>PERFIL DO VEÍCULO</span><h3 id="railVehicle">Não configurado</h3><small id="railVehicleMeta">Selecione um modelo</small></div></header>
+            <div class="telemetry-status"><span id="dataSource" class="badge offline"><i></i>Aguardando</span><small>FONTE DA POSIÇÃO</small></div>
+            <div class="hero-speed"><strong id="speed">0,0</strong><span>km/h</span></div>
+            <div class="coordinate-block"><div><span>Latitude</span><strong id="latitude">—</strong></div><div><span>Longitude</span><strong id="longitude">—</strong></div></div>
+            <dl class="telemetry-list">
+              <div><dt>Precisão</dt><dd><strong id="accuracy">—</strong><small id="accuracyClass">Sem dados</small></dd></div>
+              <div><dt>Direção</dt><dd id="heading">—</dd></div>
+              <div><dt>Altitude</dt><dd id="altitude">Indisponível</dd></div>
+              <div><dt>Precisão da altitude</dt><dd id="altitudeAccuracy">Indisponível</dd></div>
+              <div><dt>Distância</dt><dd id="totalDistance">0 m</dd></div>
+              <div><dt>Duração</dt><dd id="confirmedDuration">0 min</dd></div>
+              <div><dt>Última comunicação</dt><dd id="lastCommunication">Sem dados</dd></div>
+              <div><dt>Idade da posição</dt><dd id="positionAge">Indisponível</dd></div>
+              <div><dt>Conexão</dt><dd id="railConnection">Sem celular</dd></div>
+            </dl>
+            <p class="notice">As casas decimais exibem o dado recebido, sem garantir precisão física equivalente.</p>
+          </aside>
+        </div>
+
+        <div class="operation-lower">
+          <section class="connection-panel">
+            <div><p class="kicker">CELULAR COMO TAG</p><h3>Conecte um celular à sessão</h3><p>O aparelho só envia a localização após consentimento explícito.</p></div>
+            <div id="sessionEmpty"><button id="createBtn" class="wide secondary">Criar sessão e QR Code</button></div>
+            <div id="sessionActive" class="connect-row hidden"><img id="qrImage" alt="QR Code para conectar o celular"><div><span id="phoneStatus" class="badge offline"><i></i>Desconectado</span><p>Sessão <code id="sessionCode">—</code></p><button id="copyBtn" class="text-btn">Copiar link seguro</button></div><button id="startTripBtn">Iniciar viagem</button></div>
+          </section>
+          <section class="journey-stats">
+            <div><span>Confirmado</span><strong id="confirmedDistance">0 m</strong></div><div><span>Reconstruído</span><strong id="rebuiltDistance">0 m</strong></div><div><span>Sem conexão</span><strong id="offlineTime">0 min</strong></div><div><span>Confiança</span><strong id="confidence">Sem lacunas</strong></div><div><span>Desvio da rota</span><strong id="routeDelta">—</strong></div>
+          </section>
+          <section class="consumption-row">
+            <div><span>Consumo estimado</span><strong><span id="fuelMin">0,00</span>–<span id="fuelMax">0,00</span> L</strong></div><div><span>Custo estimado</span><strong>R$ <span id="costMin">0,00</span>–<span id="costMax">0,00</span></strong></div><div class="tank"><span id="tankText">0% do tanque</span><div class="tank-bar"><i id="tankUse"></i></div></div><p>Estimativa baseada no perfil do veículo e na distância calculada.</p>
+          </section>
+          <section class="utility-actions"><button id="clearBtn" class="secondary" disabled>Apagar histórico</button><button id="closeBtn" class="danger" disabled>Encerrar sessão</button></section>
+        </div>
+      </section>
+
+      <section id="tripsView" class="view page-view">
+        <div class="page-heading"><div><p class="kicker">PLANEJAMENTO</p><h2>Planeje a próxima viagem</h2><p>Defina os pontos e compare alternativas da malha rodoviária.</p></div></div>
+        <div class="trip-planner">
+          <section class="planner-form">
+            <div class="step-label"><b>01</b><span>Perfil do veículo</span><button class="text-btn edit-vehicle-alias">Editar</button></div>
+            <div id="vehicleSummaryTrip" class="vehicle-summary empty">Use o perfil selecionado no painel</div>
+            <div class="step-label"><b>02</b><span>Origem e destino</span></div>
+            <label class="field">Origem<div class="search-box"><input id="originInput" autocomplete="off" placeholder="Ex.: Santa Maria, Timóteo"><button id="originMapBtn" title="Selecionar no mapa">Marcar</button></div><div id="originResults" class="search-results hidden"></div></label>
+            <label class="field">Destino<div class="search-box"><input id="destinationInput" autocomplete="off" placeholder="Ex.: Canaã, Ipatinga"><button id="destinationMapBtn" title="Selecionar no mapa">Marcar</button></div><div id="destinationResults" class="search-results hidden"></div></label>
+            <div id="mapPickHint" class="pick-hint hidden">Volte ao Rastreio e clique no mapa para marcar este ponto.</div>
+            <button id="calculateBtn" class="wide">Calcular rota rodoviária</button>
+          </section>
+          <section class="route-preview"><div><p class="kicker">RESUMO DA ROTA</p><h3>Comparativo planejado</h3></div><div id="routeSummary" class="route-summary"><div><span>Distância</span><strong id="plannedDistance">—</strong></div><div><span>Duração prevista</span><strong id="plannedDuration">—</strong></div><div><span>Chegada prevista</span><strong id="plannedArrival">—</strong></div><div><span>Alternativas</span><strong id="alternativeCount">—</strong></div><small>Calculada pela malha viária OSRM/OpenStreetMap.</small></div><div class="route-empty">A rota calculada aparecerá no mapa principal da tela Rastreio.</div></section>
+        </div>
+      </section>
+
+      <section id="vehiclesView" class="view page-view">
+        <div class="page-heading"><div><p class="kicker">GARAGEM</p><h2>Veículos</h2><p>Perfis usados para estimar consumo e identificar as sessões.</p></div><button class="edit-vehicle-alias">Configurar veículo</button></div>
+        <div class="garage-grid"><article class="vehicle-card active-vehicle"><div class="vehicle-card-top"><span class="vehicle-symbol">RT</span><span class="badge online"><i></i>Selecionado</span></div><h3 id="garageVehicle">Meu veículo</h3><p id="garageVehicleMeta">Configure marca, modelo e consumo.</p><dl><div><dt>Combustível</dt><dd id="garageFuel">—</dd></div><div><dt>Ano</dt><dd id="garageYear">—</dd></div><div><dt>Placa</dt><dd id="garagePlate">—</dd></div></dl><button class="secondary wide edit-vehicle-alias">Editar perfil</button></article><div id="savedVehicles" class="saved-vehicles"></div><button class="add-vehicle edit-vehicle-alias"><span>+</span><strong>Novo veículo</strong><small>Cadastre carro ou moto</small></button></div>
+      </section>
+
+      <section id="timelineView" class="view page-view">
+        <div class="page-heading"><div><p class="kicker">HISTÓRICO OPERACIONAL</p><h2>Linha do tempo</h2><p>Eventos e medições da sessão atual.</p></div><div class="filters"><select id="dateFilter"><option>Hoje</option><option>Ontem</option><option>Data específica</option><option>Intervalo</option></select><input id="timeFrom" type="time" value="00:00"><span>até</span><input id="timeTo" type="time" value="23:59"><button id="applyFilter">Aplicar</button></div></div>
+        <div class="summary-grid"><div><span>Início</span><strong id="tripStarted">—</strong></div><div><span>Chegada</span><strong id="tripEnded">—</strong></div><div><span>Duração total</span><strong id="tripDuration">0 min</strong></div><div><span>Em movimento</span><strong id="movingTime">0 min</strong></div><div><span>Tempo parado</span><strong id="stoppedTime">0 min</strong></div><div><span>Média / máxima</span><strong id="speedStats">0 / 0 km/h</strong></div></div>
+        <div class="timeline-layout"><section><div class="section-head"><div><p class="kicker">EVENTOS</p><h3>Atividade da viagem</h3></div></div><div id="eventTimeline" class="event-timeline"><div class="empty-state">Inicie uma viagem para registrar eventos por hora.</div></div></section><section class="schedule-panel"><p class="kicker">HORÁRIOS AUTORIZADOS</p><h3>Regra de utilização</h3><label class="toggle-row"><input id="scheduleEnabled" type="checkbox" checked> Segunda a sexta</label><div class="schedule-row"><input id="allowedFrom" type="time" value="07:00"><span>às</span><input id="allowedTo" type="time" value="19:00"></div><button id="saveSchedule" class="wide secondary">Salvar regra</button><div id="scheduleAlert" class="alert-box hidden">Movimentação detectada fora do horário permitido.</div></section></div>
+      </section>
+
+      <section id="privacyView" class="view page-view reading-page">
+        <div class="page-heading"><div><p class="kicker">PRIVACIDADE E SEGURANÇA</p><h2>Controle claro dos seus dados</h2><p>Esta demonstração coleta somente o necessário para a sessão autorizada.</p></div></div>
+        <div class="policy-layout"><article><h3>Como a localização é usada</h3><p>O celular só começa a transmitir depois de uma ação explícita e da autorização do navegador. Cada posição fica vinculada à sessão criada no painel.</p><h3>Durante uma perda de conexão</h3><p>Os pontos podem ser mantidos temporariamente no próprio aparelho e enviados em ordem quando a conexão voltar. Trechos estimados são sempre identificados.</p><h3>Precisão responsável</h3><p>A quantidade de casas decimais não representa garantia de precisão física. O painel mantém a classificação informada pelo sensor.</p></article><aside><h3>Controles disponíveis</h3><ul><li>Encerrar o compartilhamento no celular.</li><li>Encerrar a sessão pelo painel.</li><li>Apagar o histórico da sessão atual.</li><li>Distinguir GPS autorizado de dados simulados.</li></ul><h3>Segurança da conta</h3><p>Senhas são armazenadas com hash e o acesso ao painel exige sessão autenticada.</p></aside></div>
+      </section>
+
+    </main>
   </div>
- </section>
- <section id="timelineView" class="view"><div class="page-content"><div class="page-heading"><div><span class="eyebrow">RELATÓRIO OPERACIONAL</span><h2>Linha do tempo por horas</h2></div><div class="filters"><select id="dateFilter"><option>Hoje</option><option>Ontem</option><option>Data específica</option><option>Intervalo de datas</option></select><input id="timeFrom" type="time" value="00:00"><span>até</span><input id="timeTo" type="time" value="23:59"><button id="applyFilter">Aplicar</button></div></div><div class="summary-grid"><div class="summary-card"><span>Início</span><strong id="tripStarted">—</strong></div><div class="summary-card"><span>Chegada</span><strong id="tripEnded">—</strong></div><div class="summary-card"><span>Duração total</span><strong id="tripDuration">0 min</strong></div><div class="summary-card"><span>Em movimento</span><strong id="movingTime">0 min</strong></div><div class="summary-card"><span>Tempo parado</span><strong id="stoppedTime">0 min</strong></div><div class="summary-card"><span>Velocidade média / máxima</span><strong id="speedStats">0 / 0 km/h</strong></div></div><div class="timeline-layout"><section class="card"><div class="section-head"><div><span class="eyebrow">EVENTOS</span><h2>Atividade da viagem</h2></div></div><div id="eventTimeline" class="event-timeline"><div class="empty-state">Inicie uma viagem para registrar eventos por hora.</div></div></section><section class="card"><span class="eyebrow">HORÁRIOS AUTORIZADOS</span><h2>Regras de utilização</h2><label class="toggle-row"><input id="scheduleEnabled" type="checkbox" checked> Segunda a sexta</label><div class="schedule-row"><input id="allowedFrom" type="time" value="07:00"><span>às</span><input id="allowedTo" type="time" value="19:00"></div><button id="saveSchedule" class="wide secondary">Salvar regra</button><div id="scheduleAlert" class="alert-box hidden">Movimentação detectada fora do horário permitido.</div></section></div></div></section>
- <section id="plansView" class="view"><div class="page-content"><div class="page-heading"><div><span class="eyebrow">PLANOS DEMONSTRATIVOS</span><h2>Escolha a operação ideal</h2><p>Apresentação visual. Nenhuma cobrança será realizada.</p></div></div><div class="plans-grid"><article class="plan-card"><span>ESSENCIAL</span><h3>Plano Essencial</h3><p>Para acompanhar um veículo.</p><ul><li>Um veículo</li><li>Rastreamento ao vivo</li><li>Histórico de 7 dias</li><li>Distância e velocidade</li><li>Horários de utilização</li></ul><button class="secondary wide">Plano demonstrativo</button></article><article class="plan-card featured-plan"><span>MAIS COMPLETO</span><h3>Plano Inteligente</h3><p>Para uma operação conectada.</p><ul><li>Até cinco veículos</li><li>Histórico de 90 dias</li><li>Consumo estimado por modelo</li><li>Reconstrução offline</li><li>Rota planejada × realizada</li><li>Relatórios por hora, dia e mês</li></ul><button class="wide">Plano demonstrativo</button></article><article class="plan-card"><span>ESCALÁVEL</span><h3>Plano Frota</h3><p>Para operações personalizadas.</p><ul><li>Veículos e usuários sob contrato</li><li>Relatórios avançados</li><li>Gestão de horários</li><li>Alertas fora de rota</li><li>Exportação de relatórios</li><li>Integrações futuras</li></ul><button class="secondary wide">Falar com especialista</button></article></div></div></section>
-</main>
-<dialog id="vehicleDialog"><form id="vehicleForm" method="dialog"><div class="modal-head"><div><span class="eyebrow">PERFIL DO VEÍCULO</span><h2>Configure o veículo da viagem</h2></div><button type="button" id="closeVehicle" class="icon-btn">×</button></div><label class="field">Modelo de referência<select id="referenceModel"></select></label><div class="form-grid"><label>Apelido<input id="vNickname" required value="Meu veículo"></label><label>Placa<input id="vPlate" maxlength="7" placeholder="ABC1D23"></label><label>Marca<input id="vBrand" required></label><label>Modelo<input id="vModel" required></label><label>Ano<input id="vYear" type="number" min="1950" max="2030" value="2024"></label><label>Versão<input id="vVersion"></label><label>Motorização<input id="vEngine"></label><label>Câmbio<input id="vTransmission"></label><label>Combustível<input id="vFuel"></label><label>Consumo urbano (km/L)<input id="vCity" type="number" min="1" step="0.1" required></label><label>Consumo rodoviário (km/L)<input id="vRoad" type="number" min="1" step="0.1" required></label><label>Tanque aproximado (L)<input id="vTank" type="number" min="1" step="0.1" required></label><label>Preço do combustível (R$/L)<input id="vPrice" type="number" min="0" step="0.01" value="6.19" required></label></div><p id="pbeSource" class="source-note"></p><p class="privacy-line">A placa identifica apenas o veículo nesta demonstração. Não há consulta de proprietário.</p><button type="submit" class="wide">Salvar perfil do veículo</button></form></dialog>
-<div id="toast" class="toast" role="status"></div><script src="/socket.io/socket.io.js"></script><script src="/vendor/leaflet/leaflet.js"></script><script src="/js/dashboard.js"></script></body></html>
+
+  <dialog id="vehicleDialog"><form id="vehicleForm" method="dialog"><div class="modal-head"><div><p class="kicker">PERFIL DO VEÍCULO</p><h2>Configure o veículo</h2></div><button type="button" id="closeVehicle" class="icon-btn" aria-label="Fechar">×</button></div><label class="field">Modelo de referência<select id="referenceModel"></select></label><div class="form-grid"><label>Tipo<select id="vType"><option value="car">Carro</option><option value="motorcycle">Moto</option></select></label><label>Apelido<input id="vNickname" required value="Meu veículo"></label><label>Placa opcional<input id="vPlate" maxlength="7" placeholder="ABC1D23"></label><label>Marca<input id="vBrand" required></label><label>Modelo<input id="vModel" required></label><label>Ano<input id="vYear" type="number" min="1950" max="2030" value="2024"></label><label>Versão<input id="vVersion"></label><label>Motorização<input id="vEngine"></label><label>Câmbio<input id="vTransmission"></label><label>Combustível<input id="vFuel"></label><label>Consumo urbano (km/L)<input id="vCity" type="number" min="1" step="0.1" required></label><label>Consumo rodoviário (km/L)<input id="vRoad" type="number" min="1" step="0.1" required></label><label>Tanque aproximado (L)<input id="vTank" type="number" min="1" step="0.1" required></label><label>Preço do combustível (R$/L)<input id="vPrice" type="number" min="0" step="0.01" value="6.19" required></label></div><p id="pbeSource" class="source-note"></p><p class="privacy-line">A placa identifica somente o veículo nesta demonstração. Não há consulta de proprietário.</p><button type="submit" class="wide">Salvar perfil do veículo</button></form></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/socket.io/socket.io.js"></script><script src="/vendor/leaflet/leaflet.js"></script><script src="/js/dashboard.js"></script>
+</body>
+</html>
