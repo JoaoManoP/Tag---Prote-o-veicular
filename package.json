@@ -1,13 +1,16 @@
 {
   "name": "rastro-demo-simulador",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Central demonstrativa de rastreamento veicular em tempo real",
+  "description": "RastroTack — plataforma demonstrativa de rastreamento e proteção veicular",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
+    "lint": "node --check server/server.js && node --check server/auth.js && node --check server/authorization.js && node --check server/database.js && node --check server/migrations.js && node --check server/telemetry.js && node --check server/providers/route-provider.js && node --check server/providers/tracker-device-provider.js && node --check server/set-role.js && node --check public/js/dashboard.js && node --check public/js/auth.js && node --check public/js/mobile.js && node --check public/js/theme-init.js && node --check public/js/restricted-area.js",
+    "build": "npm run lint",
     "db:init": "node server/init-database.js",
+    "role:set": "node server/set-role.js",
     "test": "node --test"
   },
   "engines": {
