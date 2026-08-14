@@ -4,7 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Database = require('better-sqlite3');
 
-function createDatabase(databasePath = process.env.DATABASE_PATH || path.join(__dirname, '..', 'data', 'rastreon.sqlite')) {
+function defaultDatabasePath() {
+  const dataDirectory = path.join(__dirname, '..', 'data');
+  const legacyPath = path.join(dataDirectory, 'rastro-demo.sqlite');
+  return process.env.DATABASE_PATH || (fs.existsSync(legacyPath) ? legacyPath : path.join(dataDirectory, 'rastreon.sqlite'));
+}
+
+function createDatabase(databasePath = defaultDatabasePath()) {
   if (databasePath !== ':memory:') fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = new Database(databasePath);
   database.pragma('journal_mode = WAL');
