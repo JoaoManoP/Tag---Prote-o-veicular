@@ -1,7 +1,10 @@
 /* global L, io */
 'use strict';
 const $=id=>document.getElementById(id),socket=io({reconnection:true}),map=L.map('map').setView([-19.47,-42.54],10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+const baseMap=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap',crossOrigin:true}).addTo(map);
+let tileFailures=0;
+baseMap.on('tileload',()=>{tileFailures=0});
+baseMap.on('tileerror',()=>{if(++tileFailures===3)toast('Não foi possível carregar o mapa. Verifique a conexão com tile.openstreetmap.org.')});
 const layers={planned:L.layerGroup().addTo(map),alternatives:L.layerGroup().addTo(map),confirmed:L.layerGroup().addTo(map),rebuilt:L.layerGroup().addTo(map),points:L.layerGroup().addTo(map),geofences:L.layerGroup().addTo(map)};
 let vehicle=null,models=[],savedVehicles=[],editingVehicleId=null,origin=null,destination=null,pickMode=null,plannedRoutes=[],selectedRoute=0,sessionId=null,mobileUrl=null,positions=[],confirmedMeters=0,rebuiltMeters=0,simulationTimer=null,simIndex=0,tripId=null,tripStart=null,tripEnd=null,movingMs=0,stoppedMs=0,lastTimestamp=null,speeds=[],offlineMs=0,pendingGap=null,events=[];
 const icon=L.divIcon({className:'vehicle-icon',html:'➤'});let vehicleMarker,accuracyCircle,originMarker,destinationMarker;
