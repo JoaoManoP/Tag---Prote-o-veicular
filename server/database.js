@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const Database = require('better-sqlite3');
+const { runMigrations } = require('./migrations');
 
 function defaultDatabasePath() {
   const dataDirectory = path.join(__dirname, '..', 'data');
@@ -22,6 +23,7 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       email TEXT NOT NULL UNIQUE COLLATE NOCASE,
       phone TEXT,
       password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'USER',
       created_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS auth_sessions (
@@ -36,6 +38,7 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       vehicle_json TEXT,
       trip_json TEXT,
       created_at INTEGER NOT NULL,
+      expires_at INTEGER,
       closed_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_tracking_owner ON tracking_sessions(user_id, created_at);
@@ -157,16 +160,22 @@ function createDatabase(databasePath = defaultDatabasePath()) {
     CREATE TABLE IF NOT EXISTS positions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tracking_session_id TEXT NOT NULL REFERENCES tracking_sessions(id) ON DELETE CASCADE,
+      device_id TEXT NOT NULL,
       latitude REAL NOT NULL,
       longitude REAL NOT NULL,
       accuracy REAL NOT NULL,
       speed REAL,
       heading REAL,
       altitude REAL,
+      altitude_accuracy REAL,
       captured_at INTEGER NOT NULL,
-      source TEXT NOT NULL CHECK(source IN ('gps', 'simulation')),
+      received_at INTEGER NOT NULL,
+      source TEXT NOT NULL CHECK(source IN ('mobile-gps', 'simulation')),
       captured_offline INTEGER NOT NULL DEFAULT 0,
-      sequence_number INTEGER
+      sequence_number INTEGER NOT NULL,
+      accuracy_class TEXT NOT NULL,
+      suspicious INTEGER NOT NULL DEFAULT 0,
+      suspicion_reason TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_positions_session_time ON positions(tracking_session_id, captured_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_session_sequence ON positions(tracking_session_id, sequence_number) WHERE sequence_number IS NOT NULL;
@@ -180,6 +189,7 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       classification TEXT NOT NULL
     );
   `);
+  runMigrations(database);
   return database;
 }
 

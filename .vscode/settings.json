@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Get-CimInstance Win32_Process -Filter \"ProcessId = 1836\" \\| Select-Object CommandLine -ExpandProperty CommandLine$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

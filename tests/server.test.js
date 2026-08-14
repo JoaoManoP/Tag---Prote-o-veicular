@@ -136,8 +136,8 @@ test('viagem persiste rota planejada separada do percurso GPS e calcula compara�
   const tracking = await agent.post('/api/sessions').send({ vehicleId: savedVehicle.body.vehicle.id }).expect(201);
   const plannedRoute = { routeId: 'principal', distanceMeters: 2000, durationSeconds: 600, geometry: [[-19.5, -42.6], [-19.49, -42.59]], provider: 'osrm' };
   const trip = await agent.post('/api/trips').send({ trackingSessionId: tracking.body.id, vehicleId: savedVehicle.body.vehicle.id, plannedRoute, startedAt: 1000 }).expect(201);
-  database.prepare('INSERT INTO positions (tracking_session_id, latitude, longitude, accuracy, captured_at, source) VALUES (?, ?, ?, ?, ?, ?)').run(tracking.body.id, -19.5, -42.6, 8, 1000, 'gps');
-  database.prepare('INSERT INTO positions (tracking_session_id, latitude, longitude, accuracy, captured_at, source) VALUES (?, ?, ?, ?, ?, ?)').run(tracking.body.id, -19.49, -42.59, 8, 2000, 'gps');
+  database.prepare('INSERT INTO positions (tracking_session_id, device_id, latitude, longitude, accuracy, captured_at, received_at, source, sequence_number, accuracy_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(tracking.body.id, 'test-device', -19.5, -42.6, 8, 1000, 1000, 'mobile-gps', 1, 'Excelente');
+  database.prepare('INSERT INTO positions (tracking_session_id, device_id, latitude, longitude, accuracy, captured_at, received_at, source, sequence_number, accuracy_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(tracking.body.id, 'test-device', -19.49, -42.59, 8, 2000, 2000, 'mobile-gps', 2, 'Excelente');
   const detail = await agent.get(`/api/trips/${trip.body.trip.id}`).expect(200);
   assert.deepEqual(detail.body.trip.plannedRoute.geometry, plannedRoute.geometry);
   assert.equal(detail.body.trip.actualTrack.length, 2);
@@ -215,7 +215,7 @@ test('API persiste lacuna e alternativas sem alterar posições GPS originais', 
   const savedVehicle = await agent.post('/api/vehicles').send({ ...vehicle, type: 'car', dataSource: 'manual' }).expect(201);
   const tracking = await agent.post('/api/sessions').send({ vehicleId: savedVehicle.body.vehicle.id }).expect(201);
   const trip = await agent.post('/api/trips').send({ trackingSessionId: tracking.body.id, vehicleId: savedVehicle.body.vehicle.id, plannedRoute: { distanceMeters: 1000, durationSeconds: 100, geometry: [[-19.5, -42.6], [-19.49, -42.59]] } }).expect(201);
-  database.prepare('INSERT INTO positions (tracking_session_id, latitude, longitude, accuracy, captured_at, source, sequence_number) VALUES (?, ?, ?, ?, ?, ?, ?)').run(tracking.body.id, -19.5, -42.6, 8, 1000, 'gps', 1);
+  database.prepare('INSERT INTO positions (tracking_session_id, device_id, latitude, longitude, accuracy, captured_at, received_at, source, sequence_number, accuracy_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(tracking.body.id, 'test-device', -19.5, -42.6, 8, 1000, 1000, 'mobile-gps', 1, 'Excelente');
   const beforeCount = database.prepare('SELECT COUNT(*) AS total FROM positions').get().total;
   const response = await agent.post(`/api/trips/${trip.body.trip.id}/reconstruct`).send({ before: { latitude: -19.5, longitude: -42.6, accuracy: 8, timestamp: 1000, speed: 10, heading: 45 }, after: { latitude: -19.49, longitude: -42.59, accuracy: 8, timestamp: 101000, speed: 10, heading: 45 }, lostAt: 1000, reconnectedAt: 101000, duration: 100000 }).expect(201);
   assert.match(response.body.disclaimer, /não representa confirmação/);
