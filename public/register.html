@@ -1,1 +1,39 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#061321"><title>Criar conta — Rastro Demo</title><link rel="stylesheet" href="/css/style.css"></head><body class="auth-page"><main class="auth-layout"><section class="auth-showcase"><div class="auth-brand"><span class="brand-mark">R</span><div><h1>Rastro Demo</h1><p>Viagem Inteligente</p></div></div><div class="showcase-copy"><span class="eyebrow">CADASTRO DEMONSTRATIVO</span><h2>Comece a acompanhar suas viagens.</h2><p>Seus veículos, trajetos e posições ficam vinculados exclusivamente à sua conta local.</p><div class="showcase-points"><span>✓ Banco SQLite local</span><span>✓ Senha protegida com hash</span><span>✓ Sessão segura no navegador</span></div></div></section><section class="auth-form-panel"><form id="registerForm" class="auth-form"><span class="eyebrow">NOVA CONTA</span><h2>Crie seu acesso demo</h2><p>Preencha os dados para acessar a central.</p><label>Nome completo<input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" required placeholder="Seu nome"></label><label>E-mail<input id="email" name="email" type="email" autocomplete="email" maxlength="160" required placeholder="voce@exemplo.com"></label><label>Telefone <small>(opcional)</small><input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="24" placeholder="(31) 99999-9999"></label><label>Senha<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="Mínimo de 8 caracteres"></label><label>Confirmar senha<input id="confirmPassword" type="password" autocomplete="new-password" maxlength="72" required placeholder="Repita a senha"></label><p class="password-hint">Use pelo menos uma letra e um número. Não reutilize uma senha real neste ambiente demo.</p><div id="formError" class="form-error hidden" role="alert"></div><button type="submit" class="wide">Criar conta e entrar</button><p class="auth-switch">Já possui uma conta? <a href="/login.html">Entrar</a></p></form></section></main><script src="/js/auth.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#091725">
+  <title>Criar conta — Rastreon</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="register-page">
+  <main class="register-shell">
+    <section class="register-hero" aria-label="Apresentação da Rastreon">
+      <img class="register-logo" src="/images/rastreon-logo.png" alt="Rastreon">
+      <div class="register-hero-copy">
+        <span class="register-kicker">CADASTRO SEGURO</span>
+        <h1>Comece a<br>acompanhar suas<br><em>viagens.</em></h1>
+        <p>Seus veículos, trajetos e posições ficam<br>vinculados exclusivamente à sua conta.</p>
+        <div class="register-benefits"><span>♢&nbsp; Dados protegidos</span><span>▣&nbsp; Sessão segura</span><span>◎&nbsp; Controle em tempo real</span></div>
+      </div>
+    </section>
+    <section class="register-form-panel">
+      <form id="registerForm" class="register-form">
+        <header><span class="register-kicker">NOVA CONTA</span><h2>Crie sua conta</h2><p>Preencha os dados para acessar a central.</p></header>
+        <label>Nome completo<input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" required placeholder="Seu nome"></label>
+        <label>E-mail<input id="email" name="email" type="email" autocomplete="email" maxlength="160" required placeholder="voce@exemplo.com"></label>
+        <label>Telefone <small>(opcional)</small><input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="24" placeholder="(31) 99999-9999"></label>
+        <label>Senha<span class="register-input"><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="Mínimo de 8 caracteres"><button type="button" class="register-password-toggle" data-password-toggle="password" aria-label="Mostrar senha">◉</button></span></label>
+        <label>Confirmar senha<span class="register-input"><input id="confirmPassword" type="password" autocomplete="new-password" maxlength="72" required placeholder="Repita a senha"><button type="button" class="register-password-toggle" data-password-toggle="confirmPassword" aria-label="Mostrar senha">◉</button></span></label>
+        <p class="register-hint">Use pelo menos uma letra e um número. Não reutilize uma senha real neste ambiente.</p>
+        <div id="formError" class="form-error hidden" role="alert"></div>
+        <button type="submit" class="register-submit">Criar conta e entrar</button>
+        <p class="register-switch">Já possui uma conta? <a href="/login.html">Entrar</a></p>
+        <p class="register-security">♢ <span>Seus dados estão protegidos</span></p>
+      </form>
+    </section>
+  </main>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

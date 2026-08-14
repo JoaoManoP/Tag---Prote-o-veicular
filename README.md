@@ -1,4 +1,4 @@
-# Rastro Demo — Simulador de Rastreamento Veicular
+# Rastreon — Plataforma de Rastreamento Veicular
 
 Demonstração web de uma central de rastreamento com autenticação, banco SQLite, planejamento rodoviário, alternativas, comparação entre rota planejada e realizada, reconstrução explícita de lacunas offline e compartilhamento consentido da localização de um celular.
 
@@ -22,7 +22,7 @@ Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, us
 - Ao abrir o site, crie uma conta demo ou entre com uma conta existente.
 - Senhas são armazenadas como hash bcrypt; nunca em texto puro.
 - A sessão utiliza cookie `HttpOnly`, `SameSite=Lax` e expira após 24 horas. Em produção/HTTPS, o cookie também usa `Secure`.
-- Usuários, sessões, veículos, viagens, posições e interrupções ficam no SQLite em `data/rastro-demo.sqlite` por padrão.
+- Usuários, sessões, veículos, viagens, posições e interrupções ficam no SQLite em `data/rastreon.sqlite` por padrão.
 - Cada sessão de rastreamento pertence ao usuário autenticado. Outro usuário recebe resposta de recurso inexistente.
 - O endpoint `GET /api/health` confirma o estado da API e do banco.
 - `npm run db:init` cria ou atualiza as tabelas sem apagar dados.
@@ -57,8 +57,18 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 - A busca de cidades, bairros e endereços usa Nominatim/OpenStreetMap através do servidor.
 - Distância e duração planejadas vêm de rotas rodoviárias do OSRM; não são calculadas em linha reta.
 - Clique em uma alternativa cinza no mapa para promovê-la a rota principal.
-- O celular mantém pontos GPS em `localStorage` durante uma queda e os envia em ordem quando a conexão volta.
+- O celular mantém pontos GPS em uma fila estruturada no `IndexedDB` durante uma queda. A reconexão envia lotes em ordem e remove somente as sequências confirmadas pelo servidor.
+- A combinação de sessão e número de sequência é idempotente: reenviar o mesmo ponto não duplica a posição persistida.
 - Três ou mais pontos GPS locais formam um trecho confirmado. Sem pontos suficientes, o painel consulta rotas possíveis e apresenta a mais plausível como reconstrução estimada, com alternativas visíveis.
+- Reconstruções são guardadas separadamente em `route_gaps` e `reconstruction_candidates`; nunca substituem os pontos GPS originais.
+- Cada candidato registra confiança, classificação e os componentes usados na pontuação: tempo, direção, velocidade, proximidade da rota planejada e plausibilidade de distância.
+- A interface identifica o resultado como **rota provável**, com alternativas e percentual de confiança. Map matching permanece uma abstração indisponível por padrão e não modifica a telemetria bruta.
+- Horários autorizados são persistidos por veículo com dias da semana, intervalo e timezone, incluindo regras que atravessam a meia-noite.
+- Movimento fora da regra cria alerta interno `OUTSIDE_ALLOWED_TIME` somente com velocidade e precisão aceitáveis. Um cooldown evita alertas repetidos; não há envio real de SMS, WhatsApp ou push.
+- Áreas de cobertura circulares são escolhidas pelo usuário. Precisão ruim gera estado pendente; saída exige leituras consecutivas e usa histerese/cooldown.
+- O painel oferece cenários demonstrativos de percurso, queda offline, saída da área e movimento fora do horário.
+- Ranking e conquistas são opcionais. A pontuação considera viagens concluídas, continuidade, configurações de proteção e qualidade do GPS; velocidade não gera pontos.
+- A referência de endpoints está em `docs/API.md` e a preparação para aplicativo/tag física em `docs/MOBILE_ROADMAP.md`.
 - Os modelos pré-carregados são referências demonstrativas baseadas no PBE Veicular/Inmetro e devem ser conferidos para ano e versão. A opção manual permanece disponível.
 - Não é realizada consulta de proprietário por placa.
 - Os planos são apenas visuais e não contêm pagamento.
@@ -66,3 +76,12 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 ## Estrutura
 
 O Express serve os arquivos de `public/`, faz proxy controlado para geocodificação/roteamento e mantém sessões temporárias. O dashboard usa Haversine apenas entre coordenadas GPS para medir o percurso realizado; a distância rodoviária planejada sempre vem do roteador. `mobile.js` controla `watchPosition()`, consentimento e fila offline.
+
+## Provedores de geocodificação e rotas
+
+- A geocodificação usa um adaptador do Nominatim. A consulta é enviada somente quando o usuário pressiona Enter, sem autocomplete contínuo.
+- `ROUTE_PROVIDER=osrm` é o padrão e não exige chave.
+- `ROUTE_PROVIDER=google` usa a Google Routes API pelo backend e exige `GOOGLE_MAPS_API_KEY` no `.env`.
+- A chave do Google nunca é enviada ao HTML, ao JavaScript público ou a um iframe.
+- Rotas do Google podem considerar trânsito e `TWO_WHEELER`; disponibilidade, cobrança e cobertura dependem da configuração da conta Google Maps Platform.
+- Pedágios e campos não oferecidos pelo provider são apresentados como indisponíveis, nunca estimados silenciosamente.

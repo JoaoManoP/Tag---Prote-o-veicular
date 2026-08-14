@@ -1,8 +1,8 @@
-# CONTEXTO DO PROJETO — RASTRO DEMO
+# CONTEXTO DO PROJETO — RASTREON
 
 ## 1. Identificação
 
-- Nome: Rastro Demo — Simulador de Rastreamento Veicular.
+- Nome: Rastreon — Plataforma de Rastreamento Veicular.
 - Objetivo: demonstração de planejamento, rastreamento consentido por celular e análise de viagens.
 - Público: usuários avaliando uma central de proteção/rastreamento veicular.
 - Criticidade: demonstração; localização e credenciais exigem proteção elevada.
@@ -61,7 +61,7 @@
 
 ## 8. Ambientes e segredos
 
-- Desenvolvimento: localhost ou rede local, banco em `data/rastro-demo.sqlite`.
+- Desenvolvimento: localhost ou rede local, banco em `data/rastreon.sqlite`.
 - Produção: não definida; exige HTTPS, proxy reverso e `SESSION_SECRET` obrigatório.
 - Segredos: somente variáveis de ambiente; `.env` ignorado pelo Git.
 

@@ -1,7 +1,21 @@
 'use strict';
 const form = document.querySelector('form');
 const errorBox = document.getElementById('formError');
+const passwordToggle = document.getElementById('togglePassword');
 function showError(message) { errorBox.textContent = message; errorBox.classList.remove('hidden'); }
+if (passwordToggle) passwordToggle.addEventListener('click', () => {
+  const passwordInput = document.getElementById('password');
+  const show = passwordInput.type === 'password';
+  passwordInput.type = show ? 'text' : 'password';
+  passwordToggle.setAttribute('aria-pressed', String(show));
+  passwordToggle.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+});
+document.querySelectorAll('[data-password-toggle]').forEach((toggle) => toggle.addEventListener('click', () => {
+  const input = document.getElementById(toggle.dataset.passwordToggle);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  toggle.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+}));
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   errorBox.classList.add('hidden');
@@ -20,6 +34,6 @@ form.addEventListener('submit', async (event) => {
   } catch (error) {
     showError(error.message);
     button.disabled = false;
-    button.textContent = isRegister ? 'Criar conta e entrar' : 'Entrar na central';
+    button.textContent = isRegister ? 'Criar conta e entrar' : 'Entrar';
   }
 });
