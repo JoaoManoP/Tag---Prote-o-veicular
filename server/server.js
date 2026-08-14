@@ -59,6 +59,7 @@ function createApplication(options = {}) {
   const routeProvider = options.routeProvider || createRouteProvider();
   const mapMatchingProvider = options.mapMatchingProvider || new MapMatchingProvider();
   const app = express();
+  app.set('trust proxy', 1);
   const server = http.createServer(app);
   const io = new Server(server, { cors: { origin: false } });
   const publicDir = path.join(__dirname, '..', 'public');
