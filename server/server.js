@@ -69,7 +69,11 @@ function createApplication(options = {}) {
   const ownedSession = (id, userId) => { const tracking = sessions.get(id); return tracking && tracking.ownerId === userId && !tracking.closed ? tracking : null; };
 
   app.disable('x-powered-by');
-  app.use(helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org'], styleSrc: ["'self'", "'unsafe-inline'"], scriptSrc: ["'self'"], connectSrc: ["'self'", 'ws:', 'wss:'] } }, crossOriginEmbedderPolicy: false }));
+  app.use(helmet({
+    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org'], styleSrc: ["'self'", "'unsafe-inline'"], scriptSrc: ["'self'"], connectSrc: ["'self'", 'ws:', 'wss:'] } },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'origin-when-cross-origin' }
+  }));
   app.use(express.json({ limit: '50kb', strict: true }));
   app.use(sessionMiddleware);
   app.use('/css', express.static(path.join(publicDir, 'css')));
