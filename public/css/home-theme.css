@@ -1,0 +1,175 @@
+/* Contraste da marca: a arte da logo usa tipografia branca. */
+.site-header {
+  background: var(--navy);
+  color: #fff;
+  border-bottom-color: #203541;
+  box-shadow: 0 8px 30px #020a0f33;
+}
+
+.site-header nav {
+  color: #dce5e9;
+}
+
+.site-header .link-login {
+  color: #fff;
+}
+
+.site-header nav a:hover,
+.site-header .link-login:hover {
+  color: var(--orange);
+}
+
+.footer-logo img {
+  filter: none;
+}
+
+/* Hero mais limpo, sem fotografia ou cartões decorativos. */
+.hero {
+  min-height: 640px;
+  display: block;
+  background: var(--navy);
+}
+
+.hero::before {
+  background:
+    radial-gradient(circle at 76% 24%, #17465d55 0, transparent 28%),
+    radial-gradient(circle at 15% 85%, #ff5a1612 0, transparent 25%);
+}
+
+.hero-content {
+  width: min(1120px, calc(100% - 48px));
+  max-width: none;
+  margin: 0 auto;
+  padding: 120px 0 105px;
+}
+
+.hero h1 {
+  max-width: 920px;
+}
+
+.hero-content > p {
+  max-width: 720px;
+}
+
+.home-help {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1500;
+}
+
+.home-help-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px 10px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+  box-shadow: 0 12px 34px #07152140;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.home-help-toggle span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--orange);
+  font-size: 17px;
+}
+
+.home-help-panel {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(650px, calc(100vh - 110px));
+  overflow: auto;
+  padding: 21px;
+  border: 1px solid #dfe4e6;
+  border-radius: 17px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 22px 65px #07152142;
+}
+
+.home-help-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+
+.home-help-panel header small {
+  color: var(--orange);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.home-help-panel h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.home-help-panel header button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f3f3;
+  color: #53616b;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.home-help-questions details {
+  border-top: 1px solid #e7eaeb;
+  padding: 12px 1px;
+}
+
+.home-help-questions summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.home-help-questions details[open] summary {
+  color: var(--orange);
+}
+
+.home-help-questions p {
+  margin: 9px 0 0;
+  color: #64717b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.home-help-panel > a {
+  display: block;
+  margin-top: 10px;
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+@media (max-width: 560px) {
+  .hero-content {
+    width: calc(100% - 44px);
+    padding: 90px 0 80px;
+  }
+
+  .home-help {
+    right: 14px;
+    bottom: 14px;
+  }
+}

@@ -30,7 +30,7 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch(`/api/auth/${isRegister ? 'register' : 'login'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Não foi possível continuar.');
-    location.replace('/');
+    location.replace('/dashboard');
   } catch (error) {
     showError(error.message);
     button.disabled = false;

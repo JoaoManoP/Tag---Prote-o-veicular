@@ -98,10 +98,11 @@ function createApplication(options = {}) {
   app.use('/js', express.static(path.join(publicDir, 'js')));
   app.use('/images', express.static(path.join(publicDir, 'images')));
   app.use('/vendor/leaflet', express.static(path.join(__dirname, '..', 'node_modules', 'leaflet', 'dist')));
-  app.get('/login.html', (req, res) => req.session.userId ? res.redirect('/') : res.sendFile(path.join(publicDir, 'login.html')));
-  app.get('/register.html', (req, res) => req.session.userId ? res.redirect('/') : res.sendFile(path.join(publicDir, 'register.html')));
+  app.get('/login.html', (req, res) => req.session.userId ? res.redirect('/dashboard') : res.sendFile(path.join(publicDir, 'login.html')));
+  app.get('/register.html', (req, res) => req.session.userId ? res.redirect('/dashboard') : res.sendFile(path.join(publicDir, 'register.html')));
   app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
-  app.get('/', (req, res) => req.session.userId ? res.sendFile(path.join(publicDir, 'index.html')) : res.redirect('/login.html'));
+  app.get('/', (_req, res) => res.redirect(process.env.HOME_URL || 'http://localhost:3001'));
+  app.get('/dashboard', (req, res) => req.session.userId ? res.sendFile(path.join(publicDir, 'index.html')) : res.redirect('/login.html'));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, database: 'connected', sessions: sessions.size }));
   app.get('/api/pois', requireAuth, async (req, res, next) => {
