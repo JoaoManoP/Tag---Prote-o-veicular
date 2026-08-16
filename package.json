@@ -6,9 +6,7 @@
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "start:home": "node server/home-server.js",
     "dev": "node --watch server/server.js",
-    "dev:home": "node --watch server/home-server.js",
     "lint": "node --check server/server.js && node --check server/auth.js && node --check server/authorization.js && node --check server/database.js && node --check server/gamification.js && node --check server/geofence.js && node --check server/init-database.js && node --check server/migrations.js && node --check server/providers.js && node --check server/providers/route-provider.js && node --check server/providers/tracker-device-provider.js && node --check server/reconstruction.js && node --check server/schedule.js && node --check server/set-role.js && node --check server/telemetry.js && node --check server/vehicle-diagnostics.js && node --check server/vehicle-efficiency.js && node --check public/js/auth.js && node --check public/js/dashboard.js && node --check public/js/mobile.js && node --check public/js/offline-queue.js && node --check public/js/restricted-area.js && node --check public/js/theme-init.js && node --check public/js/ux.js",
     "build": "npm run lint",
     "db:init": "node server/init-database.js",

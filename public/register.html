@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#091725">
   <title>Criar conta — Rastreon</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/identity-onboarding.css">
 </head>
 <body class="register-page">
   <main class="register-shell">
@@ -27,6 +28,20 @@
         <label>Senha<span class="register-input"><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="Mínimo de 8 caracteres"><button type="button" class="register-password-toggle" data-password-toggle="password" aria-label="Mostrar senha">◉</button></span></label>
         <label>Confirmar senha<span class="register-input"><input id="confirmPassword" type="password" autocomplete="new-password" maxlength="72" required placeholder="Repita a senha"><button type="button" class="register-password-toggle" data-password-toggle="confirmPassword" aria-label="Mostrar senha">◉</button></span></label>
         <p class="register-hint">Use pelo menos uma letra e um número. Não reutilize uma senha real neste ambiente.</p>
+        <section class="identity-step" aria-labelledby="identityTitle">
+          <div class="identity-heading"><span>ETAPA 2 DE 2</span><h3 id="identityTitle">Confirme sua identidade</h3><p>Adicione uma imagem legível da CNH e faça uma captura facial.</p></div>
+          <div class="identity-notice"><strong>Ambiente demonstrativo</strong><p>As imagens permanecem somente neste navegador e são descartadas ao sair. Não há consulta governamental nem validação biométrica real.</p></div>
+          <label class="document-upload" for="cnhImage"><input id="cnhImage" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" required><span class="identity-icon">▤</span><span><b id="cnhLabel">Fotografar ou escolher a CNH</b><small>Imagem nítida em JPG, PNG ou WebP</small></span></label>
+          <div id="cnhPreview" class="identity-preview hidden"><img alt="Prévia local da CNH"><span>CNH adicionada neste dispositivo</span><button id="removeCnh" type="button">Remover</button></div>
+          <div class="face-capture">
+            <div id="cameraPlaceholder" class="camera-placeholder"><span class="face-outline">◯</span><b>Captura facial</b><small>Posicione o rosto em um ambiente iluminado.</small></div>
+            <video id="faceVideo" class="hidden" autoplay muted playsinline aria-label="Visualização da câmera"></video><canvas id="faceCanvas" class="hidden"></canvas><img id="facePreview" class="hidden" alt="Prévia local da captura facial">
+            <div class="camera-actions"><button id="startCamera" type="button" class="secondary">Abrir câmera</button><button id="captureFace" type="button" class="hidden">Fazer captura</button><button id="retakeFace" type="button" class="secondary hidden">Capturar novamente</button></div>
+            <p id="cameraStatus" class="camera-status" role="status">A câmera só será ativada após sua autorização.</p>
+          </div>
+          <label class="identity-consent"><input id="identityConsent" type="checkbox" required><span>Autorizo o uso temporário da câmera e das imagens exclusivamente para esta demonstração de cadastro.</span></label>
+          <input id="cnhCaptured" type="hidden" value="false"><input id="faceCaptured" type="hidden" value="false">
+        </section>
         <div id="formError" class="form-error hidden" role="alert"></div>
         <button type="submit" class="register-submit">Criar conta e entrar</button>
         <p class="register-switch">Já possui uma conta? <a href="/login.html">Entrar</a></p>
@@ -34,6 +49,7 @@
       </form>
     </section>
   </main>
+  <script src="/js/identity-onboarding.js"></script>
   <script src="/js/auth.js"></script>
 </body>
 </html>

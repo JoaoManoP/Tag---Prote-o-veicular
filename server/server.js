@@ -101,7 +101,7 @@ function createApplication(options = {}) {
   app.get('/login.html', (req, res) => req.session.userId ? res.redirect('/dashboard') : res.sendFile(path.join(publicDir, 'login.html')));
   app.get('/register.html', (req, res) => req.session.userId ? res.redirect('/dashboard') : res.sendFile(path.join(publicDir, 'register.html')));
   app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
-  app.get('/', (_req, res) => res.redirect(process.env.HOME_URL || 'http://localhost:3001'));
+  app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
   app.get('/dashboard', (req, res) => req.session.userId ? res.sendFile(path.join(publicDir, 'index.html')) : res.redirect('/login.html'));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, database: 'connected', sessions: sessions.size }));

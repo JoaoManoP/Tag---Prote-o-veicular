@@ -2,11 +2,13 @@
 
 ## Arquitetura preparada
 
-- Home institucional: `127.0.0.1:3001`
-- Aplicativo, autenticação, API e Socket.IO: `127.0.0.1:3000`
-- Nginx/HTTPS: única entrada pública, encaminhando `/` e `/home-assets/` para a home e as demais rotas para o aplicativo.
+- Um único serviço Node.js em `127.0.0.1:3000`.
+- Home institucional em `/`.
+- Login em `/login.html` e painel autenticado em `/dashboard`.
+- API e Socket.IO no mesmo serviço, evitando problemas de origem, cookies e inicialização.
+- Nginx/HTTPS como única entrada pública.
 
-As portas 3000 e 3001 não devem ficar expostas diretamente na internet. Somente 80/443 devem ser públicos.
+A porta 3000 não deve ficar exposta diretamente na internet. Somente 80/443 devem ser públicos.
 
 ## Acessos necessários
 
@@ -25,10 +27,6 @@ Um endereço de painel que retorna `404`, sem usuário e senha, não permite env
 NODE_ENV=production
 PORT=3000
 HOST=127.0.0.1
-HOME_PORT=3001
-HOME_HOST=127.0.0.1
-HOME_URL=https://SEU_DOMINIO
-APP_URL=https://SEU_DOMINIO
 PUBLIC_URL=https://SEU_DOMINIO
 DATABASE_PATH=./data/rastreon.sqlite
 SESSION_SECRET=SEGREDO_LONGO_ALEATORIO
@@ -45,10 +43,9 @@ Depois de enviar o repositório e instalar as dependências:
 npm ci --omit=dev
 npm run db:init
 npm start
-npm run start:home
 ```
 
-Em uma VPS, os dois comandos devem ser mantidos por systemd ou PM2. Em hospedagem gerenciada, devem ser criadas duas aplicações/processos Node.js, uma para cada script.
+Em uma VPS, o comando deve ser mantido por systemd ou PM2. Em hospedagem gerenciada, basta uma aplicação Node.js.
 
 ## Proxy reverso
 

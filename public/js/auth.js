@@ -23,6 +23,9 @@ form.addEventListener('submit', async (event) => {
   const isRegister = form.id === 'registerForm';
   const password = document.getElementById('password').value;
   if (isRegister && password !== document.getElementById('confirmPassword').value) return showError('As senhas não coincidem.');
+  if (isRegister && document.getElementById('cnhCaptured')?.value !== 'true') return showError('Adicione uma foto legível da CNH para continuar.');
+  if (isRegister && document.getElementById('faceCaptured')?.value !== 'true') return showError('Faça a captura facial para continuar.');
+  if (isRegister && !document.getElementById('identityConsent')?.checked) return showError('Autorize o uso temporário das imagens para continuar.');
   const payload = isRegister ? { name: document.getElementById('name').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, password } : { email: document.getElementById('email').value, password };
   button.disabled = true;
   button.textContent = isRegister ? 'Criando conta…' : 'Entrando…';
