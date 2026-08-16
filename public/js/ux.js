@@ -76,11 +76,6 @@
       actions?.insertBefore(automotive, byId('simulateBtn'));
       mapCard.insertAdjacentHTML('beforeend', fenceMarkup());
     }
-    document.querySelector('main')?.insertAdjacentHTML('beforeend', developerMarkup());
-    const nav = document.querySelector('.top-nav');
-    const button = document.createElement('button');
-    button.className = 'nav-pill nav-more'; button.dataset.view = 'developer'; button.textContent = 'Developer';
-    nav?.appendChild(button);
     const tripHelp = helpByPage.tracking;
     helpByPage.tracking = [['Como criar uma viagem?', 'Informe origem e destino, calcule a rota e toque em Iniciar viagem.'], ['Posso usar apenas o CEP?', 'Sim. Se faltar o número, o Rastreon pedirá somente esse complemento.'], ['Como escolher no mapa?', 'Use o botão de mapa ao lado do campo.'], ['O que é rota estimada?', 'É uma previsão calculada sobre a malha viária.'], ['Por que a rota mudou?', 'Trânsito, desvios ou nova posição podem alterar a previsão.'], ...tripHelp.slice(1)];
     helpByPage.trip=helpByPage.tracking;
@@ -125,7 +120,7 @@
       target.innerHTML = '';
       for (const place of places.slice(0,4)) { const button = document.createElement('button'); button.type='button'; button.textContent=place.label; button.onclick=()=>{ target.classList.add('hidden'); onSelect(place); }; target.appendChild(button); }
       if (!target.children.length) target.innerHTML = '<span class="searching">Nenhum endereço encontrado.</span>';
-    } catch (error) { target.innerHTML = `<span class="searching">${error.message || 'Não conseguimos buscar agora.'}</span>`; }
+    } catch (error) { target.replaceChildren(); const message=document.createElement('span'); message.className='searching'; message.textContent=error.message || 'Não conseguimos buscar agora.'; target.appendChild(message); }
   }
 
   function chooseFencePoint(point, label) {
@@ -154,7 +149,7 @@
 
   function reviewFence(){if(!fencePoint)return;const size=customPolygon?'Área personalizada':document.querySelector('[name="fenceSize"]:checked')?.closest('label')?.querySelector('b')?.textContent||`${byId('fenceCustomSize').value} m`;byId('fenceConfirmName').textContent=byId('fenceName').value||'Área protegida';byId('fenceConfirmDetail').textContent=`${fencePoint.label} · ${size}`;byId('fenceConfirmation').classList.remove('hidden');byId('activateFence').classList.add('hidden');}
 
-  async function loadManagedFences(){if(!selectedVehicleId)return;try{const data=await fetch(`/api/vehicles/${selectedVehicleId}/geofences`).then(r=>r.json()),target=byId('managedFenceList');target.innerHTML='';for(const fence of data.geofences||[]){const row=document.createElement('div');row.innerHTML=`<span><b>${fence.name}</b><small>${fence.enabled?'Proteção ativa':'Pausada'}</small></span><div><button class="secondary" data-toggle>${fence.enabled?'Pausar':'Ativar'}</button><button class="danger" data-delete>Excluir</button></div>`;row.querySelector('[data-toggle]').onclick=async()=>{await fetch(`/api/geofences/${fence.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!fence.enabled})});loadManagedFences();};row.querySelector('[data-delete]').onclick=async()=>{await fetch(`/api/geofences/${fence.id}`,{method:'DELETE'});loadManagedFences();};target.appendChild(row);}if(!target.children.length)target.innerHTML='<small>Nenhuma área ativa.</small>';}catch(_){}}
+  async function loadManagedFences(){if(!selectedVehicleId)return;try{const data=await fetch(`/api/vehicles/${selectedVehicleId}/geofences`).then(r=>r.json()),target=byId('managedFenceList');target.replaceChildren();for(const fence of data.geofences||[]){const row=document.createElement('div'),summary=document.createElement('span'),name=document.createElement('b'),state=document.createElement('small'),actions=document.createElement('div'),toggle=document.createElement('button'),remove=document.createElement('button');name.textContent=fence.name;state.textContent=fence.enabled?'Proteção ativa':'Pausada';summary.append(name,state);toggle.className='secondary';toggle.textContent=fence.enabled?'Pausar':'Ativar';remove.className='danger';remove.textContent='Excluir';actions.append(toggle,remove);row.append(summary,actions);toggle.onclick=async()=>{await fetch(`/api/geofences/${fence.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!fence.enabled})});loadManagedFences();};remove.onclick=async()=>{await fetch(`/api/geofences/${fence.id}`,{method:'DELETE'});loadManagedFences();};target.appendChild(row);}if(!target.children.length){const empty=document.createElement('small');empty.textContent='Nenhuma área ativa.';target.appendChild(empty);}}catch(_){}}
 
   function drawCustomArea(){const api=window.rastreonMap;if(!api)return;customPolygon=[];if(polygonPreview)api.map.removeLayer(polygonPreview);byId('fencePanel').classList.add('picking');showNotice('Toque em pelo menos 3 pontos. Toque em “Concluir desenho” quando terminar.');byId('drawCustomArea').textContent='Concluir desenho';const handler=event=>{customPolygon.push({latitude:event.latlng.lat,longitude:event.latlng.lng});if(polygonPreview)api.map.removeLayer(polygonPreview);polygonPreview=api.L.polygon(customPolygon.map(p=>[p.latitude,p.longitude]),{color:'#ff5a0a',fillOpacity:.14}).addTo(api.map);};api.map.on('click',handler);byId('drawCustomArea').onclick=()=>{api.map.off('click',handler);byId('fencePanel').classList.remove('picking');byId('drawCustomArea').textContent='Desenhar área personalizada';byId('drawCustomArea').onclick=drawCustomArea;if(customPolygon.length<3){customPolygon=null;showNotice('Marque pelo menos 3 pontos.');return;}const latitude=customPolygon.reduce((n,p)=>n+p.latitude,0)/customPolygon.length,longitude=customPolygon.reduce((n,p)=>n+p.longitude,0)/customPolygon.length;chooseFencePoint({latitude,longitude},'Área personalizada desenhada no mapa');};}
 

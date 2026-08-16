@@ -4,7 +4,7 @@ Demonstração web de uma central de rastreamento com autenticação, banco SQLi
 
 ## Requisitos e execução
 
-- Node.js 20 ou mais recente
+- Node.js 22 ou mais recente
 - Visual Studio Code (recomendado)
 
 ```bash
@@ -47,6 +47,7 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 - Nenhuma localização é capturada antes do consentimento explícito no celular.
 - O botão de parar chama `clearWatch()` e interrompe o rastreamento.
 - Se o painel encerrar a sessão, o celular também interrompe o rastreamento.
+- O convite móvel usa um token exclusivo, não recebe o histórico do painel e expira junto com a sessão de rastreamento.
 - O Socket.IO tenta se reconectar automaticamente após uma queda de internet.
 - O círculo no mapa e a telemetria usam `coords.accuracy`; seis casas decimais não representam garantia de precisão física.
 - O consumo de combustível é somente uma estimativa: distância percorrida dividida pela eficiência em km/L configurada no painel. Não há leitura do veículo.

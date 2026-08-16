@@ -59,3 +59,19 @@ test('acabamentos do cerco e viagem permanecem progressivos',()=>{
   assert.match(ux,/rastreon-tour-trip/);
   assert.match(ux,/geofences\/\$\{fence\.id\}\/status/);
 });
+
+test('navegação usa ícones, separa Perfil e mantém cinco ações no celular', () => {
+  assert.match(html, /ui-icons\.svg#history/);
+  assert.match(html, /ui-icons\.svg#vehicle/);
+  assert.match(html, /ui-icons\.svg#profile/);
+  assert.match(html, /class="nav-pill nav-profile" data-view="profile"/);
+  assert.match(css, /grid-template-columns:minmax\(0,1fr\) 68px/);
+  assert.match(css, /\.nav-primary\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.top-nav \.nav-plans\{display:none!important\}/);
+});
+
+test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
+  assert.match(css, /\.timeline-layout,\.plans-grid,\.profile-layout,\.gamification-layout\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(css, /\.form-grid\{grid-template-columns:1fr\}/);
+  assert.match(css, /@media\(max-width:390px\)/);
+});

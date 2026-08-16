@@ -48,6 +48,7 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       vehicle_json TEXT,
       trip_json TEXT,
+      mobile_token_hash TEXT,
       created_at INTEGER NOT NULL,
       expires_at INTEGER,
       closed_at INTEGER
