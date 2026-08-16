@@ -7,8 +7,42 @@ const { VehicleEfficiencyProvider, estimateConsumption } = require('../server/ve
 const { NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
-const { validateGeofence, classifyCirclePosition, nextGeofenceState } = require('../server/geofence');
+const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
 const { calculateSafeScore } = require('../server/gamification');
+
+test('preferências de tour e diagnósticos simulados são persistidos separadamente', async (t) => {
+  const { app, database } = setup(t);
+  const agent = request.agent(app);
+  await register(agent).expect(201);
+  const saved = await agent.post('/api/vehicles').send({ ...vehicle, type: 'car', dataSource: 'manual' }).expect(201);
+  await agent.put('/api/tour-preferences/tracking').send({ completed: true }).expect(200);
+  const preferences = await agent.get('/api/tour-preferences').expect(200);
+  assert.equal(preferences.body.preferences[0].tourKey, 'tracking');
+  await agent.put('/api/vehicle-health/simulation').send({ vehicleId: saved.body.vehicle.id, events: [{ type: 'ABS_WARNING', severity: 'WARNING', detectedAt: 100 }] }).expect(200);
+  const health = await agent.get(`/api/vehicle-health?vehicleId=${saved.body.vehicle.id}`).expect(200);
+  assert.equal(health.body.events[0].source, 'SIMULATION');
+  assert.equal(database.prepare('SELECT COUNT(*) AS total FROM alerts').get().total, 0);
+});
+
+test('Casa e Trabalho são salvos sem expor coordenadas na resposta', async (t) => {
+  const { app } = setup(t);
+  const agent = request.agent(app);
+  await register(agent).expect(201);
+  const saved = await agent.put('/api/saved-places/home').send({ address: 'Rua das Flores, Timóteo - MG', latitude: -19.58, longitude: -42.64 }).expect(200);
+  assert.equal(saved.body.place.label, 'Casa');
+  assert.equal('latitude' in saved.body.place, false);
+  const listed = await agent.get('/api/saved-places').expect(200);
+  assert.equal(listed.body.places[0].placeKey, 'home');
+});
+
+test('cerco personalizado aceita polígono e pode ser pausado', async (t) => {
+  const { app }=setup(t),agent=request.agent(app);await register(agent).expect(201);const saved=await agent.post('/api/vehicles').send({...vehicle,type:'car',dataSource:'manual'}).expect(201);
+  const points=[{latitude:-19.58,longitude:-42.64},{latitude:-19.58,longitude:-42.63},{latitude:-19.57,longitude:-42.63}];
+  const created=await agent.post(`/api/vehicles/${saved.body.vehicle.id}/polygon-geofences`).send({name:'Área personalizada',points}).expect(201);assert.equal(created.body.geofence.type,'polygon');
+  await agent.patch(`/api/geofences/${created.body.geofence.id}/status`).send({enabled:false}).expect(200);
+  const listed=await agent.get(`/api/vehicles/${saved.body.vehicle.id}/geofences`).expect(200);assert.equal(listed.body.geofences[0].enabled,false);
+  assert.equal(classifyPolygonPosition({latitude:-19.579,longitude:-42.635,accuracy:5},{centerLat:-19.577,centerLng:-42.633,points}).state,'inside');
+});
 
 const vehicle = { nickname: 'Carro teste', plate: 'ABC1D23', brand: 'Marca', model: 'Modelo', year: 2024, version: '1.0', engine: '1.0', transmission: 'Manual', fuel: 'Gasolina', city: 10, road: 14, tank: 45, price: 6.19 };
 function setup(t, options = {}) { sessions.clear(); const context = createApplication({ databasePath: ':memory:', sessionSecret: 'test-secret-with-at-least-32-characters', silent: true, ...options }); t.after(() => { sessions.clear(); context.database.close(); }); return context; }

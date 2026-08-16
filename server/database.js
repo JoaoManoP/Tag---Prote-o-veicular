@@ -2,8 +2,19 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const { runMigrations } = require('./migrations');
+
+class Database extends DatabaseSync {
+  pragma(value) { return this.exec(`PRAGMA ${value}`); }
+  transaction(operation) {
+    return (...args) => {
+      this.exec('BEGIN IMMEDIATE');
+      try { const result = operation(...args); this.exec('COMMIT'); return result; }
+      catch (error) { try { this.exec('ROLLBACK'); } catch {} throw error; }
+    };
+  }
+}
 
 function defaultDatabasePath() {
   const dataDirectory = path.join(__dirname, '..', 'data');
@@ -135,10 +146,11 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('circle')),
+      type TEXT NOT NULL CHECK(type IN ('circle', 'polygon')),
       center_lat REAL NOT NULL,
       center_lng REAL NOT NULL,
       radius_meters REAL NOT NULL,
+      polygon_json TEXT,
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL

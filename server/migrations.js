@@ -94,6 +94,60 @@ const migrations = [
       database.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_device_sequence ON positions(tracking_session_id, device_id, sequence_number)');
       database.exec('PRAGMA optimize');
     }
+  },
+  {
+    version: 2,
+    name: 'vehicle-health-and-tour-preferences',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS vehicle_diagnostic_events (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          source TEXT NOT NULL,
+          estimated_value REAL,
+          metadata_json TEXT,
+          detected_at INTEGER NOT NULL,
+          cleared_at INTEGER,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_diagnostics_owner_vehicle ON vehicle_diagnostic_events(user_id, vehicle_id, detected_at DESC);
+        CREATE TABLE IF NOT EXISTS tour_preferences (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tour_key TEXT NOT NULL,
+          completed INTEGER NOT NULL DEFAULT 0,
+          dismissed INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(user_id, tour_key)
+        );
+      `);
+    }
+  },
+  {
+    version: 3,
+    name: 'saved-places',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS saved_places (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          place_key TEXT NOT NULL,
+          label TEXT NOT NULL,
+          address TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(user_id, place_key)
+        );
+      `);
+    }
+  },
+  {
+    version: 4,
+    name: 'advanced-geofence-shapes',
+    up(database) { const sql=database.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='geofences'").get()?.sql||''; if(sql.includes("'polygon'")){addColumn(database,'geofences','polygon_json TEXT');return;} database.exec(`CREATE TABLE geofences_next (id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,name TEXT NOT NULL,type TEXT NOT NULL CHECK(type IN ('circle','polygon')),center_lat REAL NOT NULL,center_lng REAL NOT NULL,radius_meters REAL NOT NULL,polygon_json TEXT,enabled INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);INSERT INTO geofences_next (id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at) SELECT id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at FROM geofences;DROP TABLE geofences;ALTER TABLE geofences_next RENAME TO geofences;CREATE INDEX idx_geofences_owner_vehicle ON geofences(user_id,vehicle_id);`); }
   }
 ];
 
