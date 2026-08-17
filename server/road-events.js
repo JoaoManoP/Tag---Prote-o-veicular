@@ -1,0 +1,10 @@
+'use strict';
+
+const ALLOWED_CATEGORIES=new Set(['speed_camera','mobile_camera','traffic_light_camera','speed_bump','toll','police']);
+function distanceBetween(a,b){const rad=value=>value*Math.PI/180,dLat=rad(b.latitude-a.latitude),dLng=rad(b.longitude-a.longitude),q=Math.sin(dLat/2)**2+Math.cos(rad(a.latitude))*Math.cos(rad(b.latitude))*Math.sin(dLng/2)**2;return 6371000*2*Math.asin(Math.sqrt(q))}
+function categoryFor(label=''){const value=label.toLowerCase();if(value.includes('lombada'))return'speed_bump';if(value.includes('pedagio')||value.includes('pedágio'))return'toll';if(value.includes('policia')||value.includes('polícia'))return'police';if(value.includes('semaforo')||value.includes('semáforo'))return'traffic_light_camera';if(value.includes('movel')||value.includes('móvel'))return'mobile_camera';return'speed_camera'}
+class RoadEventService{
+  constructor(database){this.database=database}
+  nearby({latitude,longitude,radiusMeters=5000,categories,limit=250}){const radius=Math.min(30000,Math.max(100,Number(radiusMeters)||5000)),latDelta=radius/111320,lngDelta=radius/(111320*Math.max(.2,Math.cos(latitude*Math.PI/180))),selected=(Array.isArray(categories)?categories:[]).filter(value=>ALLOWED_CATEGORIES.has(value)),params=[latitude-latDelta,latitude+latDelta,longitude-lngDelta,longitude+lngDelta],filter=selected.length?` AND category IN (${selected.map(()=>'?').join(',')})`:'';params.push(...selected,Math.min(500,Math.max(1,Number(limit)||250)));const rows=this.database.prepare(`SELECT id,category,label,longitude,latitude,speed_limit AS speedLimit,direction_type AS directionType,direction,source FROM road_events WHERE latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?${filter} LIMIT ?`).all(...params);return rows.map(row=>({...row,distanceMeters:Math.round(distanceBetween({latitude,longitude},row))})).filter(row=>row.distanceMeters<=radius).sort((a,b)=>a.distanceMeters-b.distanceMeters).slice(0,Math.min(500,limit))}
+}
+module.exports={RoadEventService,categoryFor,ALLOWED_CATEGORIES};

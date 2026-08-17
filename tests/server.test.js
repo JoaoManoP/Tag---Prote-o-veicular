@@ -4,11 +4,12 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair } = require('../server/server');
 const { VehicleEfficiencyProvider, estimateConsumption } = require('../server/vehicle-efficiency');
-const { NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
+const { PlateLookupProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
 const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
 const { calculateSafeScore } = require('../server/gamification');
+const { RoadEventService, categoryFor } = require('../server/road-events');
 
 test('preferências de tour e diagnósticos simulados são persistidos separadamente', async (t) => {
   const { app, database } = setup(t);
@@ -55,6 +56,7 @@ test('login rejeita senha incorreta e aceita credenciais corretas', async (t) =>
 test('logout revoga sessão', async (t) => { const { app } = setup(t); const agent = request.agent(app); await register(agent).expect(201); await agent.post('/api/auth/logout').expect(204); await agent.get('/api/auth/me').expect(401); });
 test('home é pública, mas painel e API negam usuário não autenticado', async (t) => { const { app } = setup(t); await request(app).get('/').expect(200); await request(app).get('/dashboard').expect(302).expect('Location', '/login.html'); await request(app).get('/api/vehicles/reference').expect(401); await request(app).post('/api/sessions').send({ vehicle }).expect(401); });
 test('sessão de rastreamento é persistida e isolada por proprietário', async (t) => { const { app, database } = setup(t); const owner = request.agent(app); const stranger = request.agent(app); await register(owner).expect(201); await register(stranger, { email: 'outro@example.com' }).expect(201); const created = await owner.post('/api/sessions').send({ vehicle }).expect(201); assert.match(created.body.qrCode, /^data:image\/png;base64,/); assert.equal(database.prepare('SELECT COUNT(*) AS total FROM tracking_sessions').get().total, 1); await owner.get(`/api/sessions/${created.body.id}`).expect(200); await stranger.get(`/api/sessions/${created.body.id}`).expect(404); });
+test('celular pode parear por código sem usar QR Code', async(t)=>{const{app}=setup(t);const owner=request.agent(app);await register(owner).expect(201);const created=await owner.post('/api/sessions').send({vehicle}).expect(201);assert.match(created.body.pairingCode,/^[A-F0-9]{8}$/);const paired=await request(app).post('/api/mobile/pair').send({code:created.body.pairingCode}).expect(200);assert.equal(paired.body.sessionId,created.body.id);assert.ok(paired.body.token);await request(app).post('/api/mobile/pair').send({code:created.body.pairingCode}).expect(404)});
 test('valida coordenadas, posições e perfil de veículo', () => { assert.equal(safePosition({ latitude: 91, longitude: 0 }), null); assert.equal(safePosition({ latitude: '-23.5', longitude: '-46.6', accuracy: 12 }).accuracy, 12); assert.deepEqual(validCoordPair('-42.5,-19.4'), [-42.5, -19.4]); assert.equal(validCoordPair('x,20'), null); });
 
 test('perfil apresenta resumo real da conta autenticada', async (t) => {
@@ -139,6 +141,34 @@ test('providers normalizam geocodificação e rota OSRM com mocks', async () => 
   const result = await router.calculateRoute({ origin: { latitude: -19.58, longitude: -42.64 }, destination: { latitude: -19.4, longitude: -42.5 } });
   assert.equal(result.routes[0].distanceMeters, 1234);
   assert.deepEqual(result.routes[0].geometry[0], [-19.58, -42.64]);
+});
+
+test('Photon normaliza resultados GeoJSON sem exigir chave', async () => {
+  let requestedUrl;
+  const geocoder = new PhotonGeocodingProvider({ fetchImpl: async url => { requestedUrl=url;return { ok:true,json:async()=>({features:[{geometry:{coordinates:[-42.64,-19.58]},properties:{name:'Timóteo',state:'Minas Gerais',country:'Brasil',type:'city'}}]}) }; } });
+  const places=await geocoder.search('Timóteo');
+  assert.equal(places[0].provider,'photon');
+  assert.equal(places[0].latitude,-19.58);
+  assert.match(places[0].label,/Timóteo, Minas Gerais, Brasil/);
+  assert.match(requestedUrl,/photon\.komoot\.io\/api/);
+});
+
+test('consulta por placa normaliza somente dados públicos do veículo', async () => {
+  let requestOptions;
+  const provider=new PlateLookupProvider({token:'token-teste',fetchImpl:async(_url,options)=>{requestOptions=options;return{ok:true,json:async()=>({marca:'Fiat',modelo:'Argo',anoModelo:'2024',combustivel:'Flex',renavam:'segredo',chassi:'segredo'})}}});
+  const result=await provider.lookup('ABC1D23');
+  assert.deepEqual({plate:result.plate,brand:result.brand,model:result.model,year:result.year,fuel:result.fuel},{plate:'ABC1D23',brand:'Fiat',model:'Argo',year:2024,fuel:'Flex'});
+  assert.equal('renavam' in result,false);assert.equal('chassis' in result,false);
+  assert.equal(requestOptions.headers.Authorization,'Bearer token-teste');
+  assert.deepEqual(JSON.parse(requestOptions.body),{placa:'ABC1D23'});
+});
+
+test('catálogo viário filtra por raio e categoria sem devolver a base inteira', (t) => {
+  const { database }=setup(t),now=Date.now();
+  database.prepare('INSERT INTO road_events (fingerprint,category,label,longitude,latitude,speed_limit,source,imported_at) VALUES (?,?,?,?,?,?,?,?)').run('near','speed_camera','Radar 60',-42.64,-19.58,60,'test',now);
+  database.prepare('INSERT INTO road_events (fingerprint,category,label,longitude,latitude,speed_limit,source,imported_at) VALUES (?,?,?,?,?,?,?,?)').run('far','speed_bump','Lombada',-43.64,-20.58,null,'test',now);
+  const events=new RoadEventService(database).nearby({latitude:-19.58,longitude:-42.64,radiusMeters:2000,categories:['speed_camera']});
+  assert.equal(events.length,1);assert.equal(events[0].speedLimit,60);assert.equal(categoryFor('Pedágio - 0 kmh'),'toll');
 });
 
 test('Google Routes mantém chave no header e normaliza ETA com trânsito', async () => {

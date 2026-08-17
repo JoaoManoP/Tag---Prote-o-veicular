@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071527"><title>Compartilhar localização — Rastreon</title><link rel="stylesheet" href="/css/style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071527"><title>Compartilhar localização — Rastreon</title><link rel="stylesheet" href="/css/style.css?v=4"></head>
 <body class="mobile-page">
   <main class="mobile-shell">
     <div class="mobile-brand"><span class="brand-mark">R</span><div><h1>Rastreon</h1><p>Celular rastreador</p></div></div>
     <section class="card consent-card">
+      <form id="pairingForm" class="mobile-pairing hidden"><label for="pairingCode">Código exibido no painel</label><div><input id="pairingCode" maxlength="8" autocomplete="one-time-code" placeholder="Ex.: A1B2C3D4"><button type="submit">Conectar</button></div><small>Digite o código de 8 caracteres criado no computador.</small></form>
       <span id="mobileStatus" class="badge offline">● Conectando ao painel…</span>
       <h2>Celular como rastreador</h2>
       <div id="mobileVehicle" class="vehicle-summary empty">Carregando veículo da sessão…</div>
@@ -27,5 +28,5 @@
     <p class="background-warning">O navegador pode limitar ou interromper o GPS quando a tela estiver bloqueada ou este site estiver em segundo plano.</p>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="/socket.io/socket.io.js"></script><script src="/js/offline-queue.js"></script><script src="/js/mobile.js"></script>
+  <script src="/socket.io/socket.io.js"></script><script src="/js/offline-queue.js"></script><script src="/js/mobile.js?v=2"></script>
 </body></html>

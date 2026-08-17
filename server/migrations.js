@@ -153,6 +153,27 @@ const migrations = [
     version: 5,
     name: 'scoped-mobile-access',
     up(database) { addColumn(database, 'tracking_sessions', 'mobile_token_hash TEXT'); }
+  },
+  {
+    version: 6,
+    name: 'road-events-catalog',
+    up(database) { database.exec(`
+      CREATE TABLE IF NOT EXISTS road_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fingerprint TEXT NOT NULL UNIQUE,
+        category TEXT NOT NULL,
+        label TEXT NOT NULL,
+        longitude REAL NOT NULL,
+        latitude REAL NOT NULL,
+        speed_limit INTEGER,
+        direction_type INTEGER,
+        direction INTEGER,
+        source TEXT NOT NULL,
+        imported_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_road_events_bounds ON road_events(latitude, longitude);
+      CREATE INDEX IF NOT EXISTS idx_road_events_category_bounds ON road_events(category, latitude, longitude);
+    `); }
   }
 ];
 

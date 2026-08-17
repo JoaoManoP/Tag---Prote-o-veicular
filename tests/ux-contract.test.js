@@ -10,6 +10,9 @@ const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
 const ux = fs.readFileSync(path.join(root, 'public', 'js', 'ux.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'public', 'css', 'style.css'), 'utf8');
 const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnostics.js'), 'utf8');
+const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
+const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
+const navigationState = fs.readFileSync(path.join(root, 'public', 'js', 'navigation-state.js'), 'utf8');
 
 test('ajuda e tour são pequenos, fecháveis e não navegam automaticamente', () => {
   assert.match(html, /id="helpCenter"/);
@@ -74,4 +77,37 @@ test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
   assert.match(css, /\.timeline-layout,\.plans-grid,\.profile-layout,\.gamification-layout\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(css, /\.form-grid\{grid-template-columns:1fr\}/);
   assert.match(css, /@media\(max-width:390px\)/);
+});
+
+test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
+  assert.match(html, /\/map-config\.js/);
+  assert.match(html, /\/js\/map-service\.js/);
+  assert.match(mapService, /provider==='maplibre'/);
+  assert.match(html, /maplibre-loader\.js/);
+  assert.match(mapService, /leaflet-fallback/);
+  assert.match(css, /width:min\(1180px,calc\(100vw - 44px\)\)/);
+  assert.match(css, /height:min\(690px,calc\(100vh - 128px\)\)/);
+});
+
+test('navegação possui manobra, ETA, interpolação, follow e camadas essenciais', () => {
+  assert.match(navigationState, /VehiclePositionInterpolator/);
+  assert.match(navigationState, /navManeuver/);
+  assert.match(navigationState, /navEta/);
+  assert.match(navigationState, /dragstart/);
+  assert.match(navigationState, /navPerspective/);
+  assert.doesNotMatch(navigationState, /navTraffic/);
+  assert.match(navigationState, /navRoadEvents/);
+  assert.match(css, /\.navigation-hud/);
+});
+
+test('cadastro do veículo oferece consulta por placa e não expõe dados pessoais', () => {
+  assert.match(dashboard, /lookupPlateBtn/);
+  assert.match(dashboard, /\/api\/vehicles\/lookup\?plate=/);
+  assert.match(dashboard, /Dados do veículo preenchidos pela placa/);
+});
+
+test('mapa mantém ferramentas na lateral e celular aceita pareamento sem QR', () => {
+  const mobile=fs.readFileSync(path.join(root,'public','mobile.html'),'utf8'),mobileScript=fs.readFileSync(path.join(root,'public','js','mobile.js'),'utf8');
+  assert.match(ux,/map-side-panel/);assert.match(css,/smart-map\.has-side-panel/);
+  assert.match(mobile,/pairingForm/);assert.match(mobileScript,/\/api\/mobile\/pair/);
 });
