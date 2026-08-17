@@ -111,3 +111,44 @@ test('mapa mantém ferramentas na lateral e celular aceita pareamento sem QR', (
   assert.match(ux,/map-side-panel/);assert.match(css,/smart-map\.has-side-panel/);
   assert.match(mobile,/pairingForm/);assert.match(mobileScript,/\/api\/mobile\/pair/);
 });
+
+test('GPS diário usa localização consentida sem exigir sessão de rastreamento', () => {
+  assert.match(html, /id="useMyLocationBtn"/);
+  assert.match(html, /id="startNavigationBtn"/);
+  assert.match(dashboard, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(dashboard, /navigator\.geolocation\.watchPosition/);
+  assert.match(dashboard, /Sua posição não é enviada ao rastreamento/);
+  assert.match(navigationState, /rastreon:route-deviation/);
+  assert.match(navigationState, /navVoice/);
+  assert.match(navigationState, /speechSynthesis/);
+  assert.match(dashboard, /rerouteFrom/);
+});
+
+test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
+  assert.match(ux, /rastreonLocation\?\.current/);
+  for (const category of ['Postos', 'Restaurantes', 'Hotéis', 'Hospitais', 'Farmácias', 'Mercados', 'Oficinas']) assert.match(ux, new RegExp(category));
+  assert.match(ux, /Adicionar como parada/);
+  assert.match(ux, /escapeHtml\(popupName\)/);
+});
+
+test('planejamento aceita paradas reordenáveis e preferência de pedágio', () => {
+  assert.match(html, /id="addStopBtn"/);
+  assert.match(html, /id="avoidTolls"/);
+  assert.match(dashboard, /data-stop-up/);
+  assert.match(dashboard, /data-stop-down/);
+  assert.match(dashboard, /waypoints=/);
+});
+
+test('perfil oferece troca de senha, exportação e exclusão protegida',()=>{assert.match(html,/id="changePasswordBtn"/);assert.match(html,/id="exportDataBtn"/);assert.match(html,/id="deleteAccountBtn"/);assert.match(dashboard,/\/api\/auth\/csrf/);assert.match(dashboard,/X-CSRF-Token/)});
+
+test('preço de combustível é separado do cadastro do veículo e mostra fonte',()=>{assert.doesNotMatch(html,/id="vPrice"/);assert.match(html,/id="fuelPriceInput"/);assert.match(html,/id="fuelPriceSource"/);assert.match(dashboard,/\/api\/fuel-price/);assert.match(dashboard,/user-provided/)});
+
+test('histórico possui reprodução explicitamente separada do GPS ao vivo',()=>{
+  assert.match(html,/id="replayBadge"/);
+  assert.match(html,/REPRODUÇÃO/);
+  assert.match(html,/id="replayTripBtn"/);
+  assert.match(dashboard,/function playTripHistory/);
+  assert.match(dashboard,/não é ao vivo/);
+  assert.match(dashboard,/function renderPosition\(p\).*stopTripReplay/s);
+  assert.match(css,/\.replay-badge/);
+});

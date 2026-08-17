@@ -20,3 +20,15 @@ O RastroTack oferece rastreamento veicular, planejamento de rotas, histórico, c
 6. 3D com fallback 2D.
 
 Funcionalidade e segurança têm prioridade sobre volume de recursos.
+
+## Fonte de acompanhamento
+
+Antes de alterar o projeto, consultar também:
+
+- `docs/AUDITORIA_INICIAL.md`
+- `docs/ESCOPO_RASTROTACK.md`
+- `docs/CHECKLIST_IMPLEMENTACAO.md`
+- `docs/ARQUITETURA.md`
+- `docs/PROBLEMAS_CONHECIDOS.md`
+
+Nenhuma fase é considerada concluída apenas por possuir interface. Backend, autorização, persistência, erros e testes precisam estar coerentes; integrações externas sem credencial permanecem explicitamente bloqueadas.

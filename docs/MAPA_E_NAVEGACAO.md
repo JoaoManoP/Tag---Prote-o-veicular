@@ -6,7 +6,10 @@
 MAP_PROVIDER=maplibre
 MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
 GEOCODING_PROVIDER=photon
+PHOTON_API_URL=https://photon.komoot.io
+NOMINATIM_BASE_URL=
 ROUTE_PROVIDER=osrm
+OVERPASS_API_URL=https://overpass-api.de/api/interpreter
 
 # Fallback opcional
 GOOGLE_MAPS_API_KEY=
@@ -17,7 +20,7 @@ MapLibre, OpenFreeMap, Photon e OSRM não exigem chave. Se `MAP_PROVIDER=google`
 
 ## Arquitetura atual
 
-`map-service.js` seleciona o provedor e oferece uma interface compatível às camadas existentes. O padrão é MapLibre com o estilo vetorial Liberty do OpenFreeMap. A geocodificação usa Photon com Nominatim como fallback. Rotas continuam isoladas no backend e usam OSRM por padrão; Google permanece opcional.
+`map-service.js` seleciona o provedor e oferece uma interface compatível às camadas existentes. O padrão é MapLibre com o estilo vetorial Liberty do OpenFreeMap. A geocodificação direta e reversa usa Photon; Google permanece opcional. Nominatim só é habilitado quando `NOMINATIM_BASE_URL` aponta para uma instância própria ou contratada, pois o serviço público proíbe autocomplete e aplicações cuja função principal seja rastreamento. Rotas continuam isoladas no backend e usam OSRM por padrão.
 
 ## Próximas etapas
 
@@ -25,6 +28,11 @@ MapLibre, OpenFreeMap, Photon e OSRM não exigem chave. Se `MAP_PROVIDER=google`
 
 ## Recursos implementados
 
+- Localização atual sob demanda com a Geolocation API do navegador.
+- Navegação diária em primeiro plano, sem exigir sessão de rastreamento e sem enviar a posição ao backend.
+- Origem da rota preenchida pela localização atual mediante consentimento.
+- POIs próximos da localização autorizada: postos, restaurantes, hotéis, hospitais, farmácias, mercados, oficinas, carregadores, estacionamentos e postos policiais.
+- POIs ao longo da rota em um corredor aproximado de 1,2 km, com amostragem limitada para proteger o serviço externo.
 - Instruções de manobra normalizadas de Google Routes ou OSRM.
 - HUD de navegação com próxima manobra, ETA, distância e velocidade.
 - Veículo 2D próprio com heading, interpolação e câmera de acompanhamento.

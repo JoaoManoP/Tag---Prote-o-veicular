@@ -30,13 +30,16 @@ function emit(socket, event, payload) {
   return new Promise(resolve => socket.emit(event, payload, resolve));
 }
 
+function mobileInvite(url) { return new URLSearchParams(new URL(url).hash.slice(1)); }
+
 test('convite móvel exige token e não expõe histórico nem placa', async (t) => {
   const { app, database, url } = await setup(t);
   const agent = request.agent(app);
   await agent.post('/api/auth/register').send({ name: 'Teste Socket', email: 'socket@example.com', password: 'Senha123' }).expect(201);
   const created = await agent.post('/api/sessions').send({ vehicle }).expect(201);
   const invite = new URL(created.body.mobileUrl);
-  const token = invite.searchParams.get('token');
+  assert.equal(invite.search, '');
+  const token = mobileInvite(created.body.mobileUrl).get('token');
   assert.ok(token);
   const stored = database.prepare('SELECT mobile_token_hash AS hash FROM tracking_sessions WHERE id = ?').get(created.body.id);
   assert.notEqual(stored.hash, token);
@@ -58,12 +61,15 @@ test('Socket.IO rejeita telemetria inválida e limita frequência ao vivo', asyn
   const agent = request.agent(app);
   await agent.post('/api/auth/register').send({ name: 'Teste GPS', email: 'gps@example.com', password: 'Senha123' }).expect(201);
   const created = await agent.post('/api/sessions').send({ vehicle }).expect(201);
-  const token = new URL(created.body.mobileUrl).searchParams.get('token');
+  const token = mobileInvite(created.body.mobileUrl).get('token');
   const socket = await connect(url);
   t.after(() => socket.close());
   assert.equal((await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token })).ok, true);
 
   const base = { deviceId: 'test-device', latitude: -19.58, longitude: -42.64, accuracy: 8, timestamp: Date.now(), source: 'mobile-gps', sequence: 1 };
+  const withoutConsent = await emit(socket, 'position:update', base);
+  assert.equal(withoutConsent.code, 'CONSENT_REQUIRED');
+  assert.equal((await emit(socket, 'consent:grant', { deviceId: base.deviceId, purpose: 'vehicle-tracking' })).ok, true);
   const invalid = await emit(socket, 'position:update', { ...base, accuracy: 20000 });
   assert.equal(invalid.ok, false);
   assert.equal(invalid.code, 'INVALID_ACCURACY');

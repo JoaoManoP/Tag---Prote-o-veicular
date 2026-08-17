@@ -23,7 +23,7 @@ async function loadLab() {
   document.getElementById('labEnvironment').textContent = data.environment;
   document.getElementById('labPhysicalTag').textContent = data.physicalTagEnabled ? 'Ativada' : 'Desativada';
   const sendPoint = async (invalid = false) => {
-    const point = { deviceId: 'LAB-VIRTUAL-TAG', timestamp: new Date().toISOString(), latitude: invalid ? 120 : -19.923456, longitude: -43.934567, accuracy: Number(document.getElementById('labAccuracy').value), altitude: 852.3, altitudeAccuracy: 12, speed: 11.5, heading: 180, source: 'simulation', sequence: Number(document.getElementById('labSequence').value) };
+    const point = { deviceId: 'LAB-VIRTUAL-TAG', timestamp: Date.now(), latitude: invalid ? 120 : -19.923456, longitude: -43.934567, accuracy: Number(document.getElementById('labAccuracy').value), altitude: 852.3, altitudeAccuracy: 12, speed: 11.5, heading: 180, source: 'simulation', sequence: Number(document.getElementById('labSequence').value) };
     const result = await fetch('/api/lab/telemetry/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(point) });
     const body = await result.json();
     document.getElementById('labResult').textContent = JSON.stringify(body, null, 2);

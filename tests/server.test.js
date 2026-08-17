@@ -2,9 +2,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
-const { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair } = require('../server/server');
+const { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair, parsePoiRoute, applyDataRetention, validateProductionConfig } = require('../server/server');
 const { VehicleEfficiencyProvider, estimateConsumption } = require('../server/vehicle-efficiency');
-const { PlateLookupProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
+const { VehicleRegistryError, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
 const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
@@ -50,14 +50,18 @@ function setup(t, options = {}) { sessions.clear(); const context = createApplic
 function register(agent, overrides = {}) { return agent.post('/api/auth/register').send({ name: 'Usuário Teste', email: 'teste@example.com', password: 'Senha123', ...overrides }); }
 
 test('health check confirma API e banco', async (t) => { const { app } = setup(t); const response = await request(app).get('/api/health').expect(200); assert.equal(response.body.database, 'connected'); });
+test('todas as respostas recebem identificador de requisição rastreável', async (t) => { const { app }=setup(t);const generated=await request(app).get('/api/health').expect(200);assert.match(generated.headers['x-request-id'],/^[0-9a-f-]{36}$/);const supplied=await request(app).get('/api/health').set('X-Request-Id','teste-request-123').expect(200);assert.equal(supplied.headers['x-request-id'],'teste-request-123'); });
+test('readiness e áreas restritas aplicam papéis no backend', async (t) => { const { app,database }=setup(t);await request(app).get('/api/ready').expect(200,{status:'ready'});const user=request.agent(app);await register(user).expect(201);await user.get('/api/admin/overview').expect(403);await user.get('/api/lab/info').expect(403);database.prepare("UPDATE users SET role='ADMIN' WHERE email=?").run('teste@example.com');await user.get('/api/admin/overview').expect(200);database.prepare("UPDATE users SET role='DEVELOPER' WHERE email=?").run('teste@example.com');await user.get('/api/lab/info').expect(200);await user.post('/api/lab/telemetry/validate').send({deviceId:'LAB-VIRTUAL-TAG',timestamp:Date.now(),latitude:-19.9,longitude:-43.9,accuracy:8,source:'simulation',sequence:1}).expect(200); });
 test('cadastro cria usuário, hash e sessão autenticada', async (t) => { const { app, database } = setup(t); const agent = request.agent(app); await register(agent).expect(201); const row = database.prepare('SELECT email, password_hash FROM users').get(); assert.equal(row.email, 'teste@example.com'); assert.notEqual(row.password_hash, 'Senha123'); assert.match(row.password_hash, /^\$2[aby]\$/); await agent.get('/api/auth/me').expect(200); });
 test('cadastro rejeita entrada inválida e e-mail duplicado', async (t) => { const { app } = setup(t); const agent = request.agent(app); await register(agent, { password: 'fraca' }).expect(400); await register(agent).expect(201); await request(app).post('/api/auth/register').send({ name: 'Outro', email: 'TESTE@example.com', password: 'Outra123' }).expect(409); });
 test('login rejeita senha incorreta e aceita credenciais corretas', async (t) => { const { app } = setup(t); await register(request.agent(app)).expect(201); await request(app).post('/api/auth/login').send({ email: 'teste@example.com', password: 'Errada123' }).expect(401); const agent = request.agent(app); await agent.post('/api/auth/login').send({ email: 'teste@example.com', password: 'Senha123' }).expect(200); await agent.get('/api/auth/me').expect(200); });
 test('logout revoga sessão', async (t) => { const { app } = setup(t); const agent = request.agent(app); await register(agent).expect(201); await agent.post('/api/auth/logout').expect(204); await agent.get('/api/auth/me').expect(401); });
+test('troca de senha exige CSRF e revoga as outras sessões',async(t)=>{const{app}=setup(t),primary=request.agent(app),other=request.agent(app);await register(primary).expect(201);await other.post('/api/auth/login').send({email:'teste@example.com',password:'Senha123'}).expect(200);await primary.put('/api/auth/password').send({currentPassword:'Senha123',newPassword:'NovaSenha456'}).expect(403);const csrf=(await primary.get('/api/auth/csrf').expect(200)).body.token;await primary.put('/api/auth/password').set('X-CSRF-Token',csrf).send({currentPassword:'Senha123',newPassword:'fraca'}).expect(400);await primary.put('/api/auth/password').set('X-CSRF-Token',csrf).send({currentPassword:'Senha123',newPassword:'NovaSenha456'}).expect(204);await primary.get('/api/auth/me').expect(200);await other.get('/api/auth/me').expect(401);await request(app).post('/api/auth/login').send({email:'teste@example.com',password:'Senha123'}).expect(401);await request(app).post('/api/auth/login').send({email:'teste@example.com',password:'NovaSenha456'}).expect(200)});
 test('home é pública, mas painel e API negam usuário não autenticado', async (t) => { const { app } = setup(t); await request(app).get('/').expect(200); await request(app).get('/dashboard').expect(302).expect('Location', '/login.html'); await request(app).get('/api/vehicles/reference').expect(401); await request(app).post('/api/sessions').send({ vehicle }).expect(401); });
 test('sessão de rastreamento é persistida e isolada por proprietário', async (t) => { const { app, database } = setup(t); const owner = request.agent(app); const stranger = request.agent(app); await register(owner).expect(201); await register(stranger, { email: 'outro@example.com' }).expect(201); const created = await owner.post('/api/sessions').send({ vehicle }).expect(201); assert.match(created.body.qrCode, /^data:image\/png;base64,/); assert.equal(database.prepare('SELECT COUNT(*) AS total FROM tracking_sessions').get().total, 1); await owner.get(`/api/sessions/${created.body.id}`).expect(200); await stranger.get(`/api/sessions/${created.body.id}`).expect(404); });
 test('celular pode parear por código sem usar QR Code', async(t)=>{const{app}=setup(t);const owner=request.agent(app);await register(owner).expect(201);const created=await owner.post('/api/sessions').send({vehicle}).expect(201);assert.match(created.body.pairingCode,/^[A-F0-9]{8}$/);const paired=await request(app).post('/api/mobile/pair').send({code:created.body.pairingCode}).expect(200);assert.equal(paired.body.sessionId,created.body.id);assert.ok(paired.body.token);await request(app).post('/api/mobile/pair').send({code:created.body.pairingCode}).expect(404)});
 test('valida coordenadas, posições e perfil de veículo', () => { assert.equal(safePosition({ latitude: 91, longitude: 0 }), null); assert.equal(safePosition({ latitude: '-23.5', longitude: '-46.6', accuracy: 12 }).accuracy, 12); assert.deepEqual(validCoordPair('-42.5,-19.4'), [-42.5, -19.4]); assert.equal(validCoordPair('x,20'), null); });
+test('corredor de POIs aceita até trinta coordenadas válidas',()=>{assert.deepEqual(parsePoiRoute('-42.5,-19.4;-43,-20'),[[-42.5,-19.4],[-43,-20]]);assert.equal(parsePoiRoute('x,-19'),null);assert.equal(parsePoiRoute(Array.from({length:31},()=>'-42,-19').join(';')),null)});
 
 test('perfil apresenta resumo real da conta autenticada', async (t) => {
   const { app } = setup(t);
@@ -69,6 +73,14 @@ test('perfil apresenta resumo real da conta autenticada', async (t) => {
   assert.equal(response.body.vehicleCount, 0);
   assert.deepEqual(response.body.recentTrips, []);
 });
+
+test('titular exporta somente os próprios dados sem credenciais ou tokens',async(t)=>{const{app}=setup(t),owner=request.agent(app),other=request.agent(app);await register(owner).expect(201);await register(other,{email:'outro@example.com'}).expect(201);await owner.post('/api/vehicles').send({...vehicle,type:'car',dataSource:'manual'}).expect(201);await other.post('/api/vehicles').send({...vehicle,plate:'XYZ9Z99',type:'car',dataSource:'manual'}).expect(201);const exported=await owner.get('/api/privacy/export').expect(200);assert.match(exported.headers['content-disposition'],/^attachment;/);assert.equal(exported.body.user.email,'teste@example.com');assert.equal(exported.body.vehicles.length,1);assert.equal(exported.body.vehicles[0].plate,'ABC1D23');const serialized=JSON.stringify(exported.body);assert.doesNotMatch(serialized,/password|tokenHash|mobile_token|auth_sessions|Senha123/i);assert.doesNotMatch(serialized,/XYZ9Z99/)});
+
+test('exclusão de conta exige CSRF, senha e frase e remove dados em cascata',async(t)=>{const{app,database}=setup(t),agent=request.agent(app);await register(agent).expect(201);await agent.post('/api/vehicles').send({...vehicle,type:'car',dataSource:'manual'}).expect(201);await agent.delete('/api/privacy/account').send({password:'Senha123',confirmation:'EXCLUIR MINHA CONTA'}).expect(403);const csrf=(await agent.get('/api/auth/csrf').expect(200)).body.token,del=body=>agent.delete('/api/privacy/account').set('X-CSRF-Token',csrf).send(body);await del({password:'errada',confirmation:'EXCLUIR MINHA CONTA'}).expect(401);await del({password:'Senha123',confirmation:'excluir'}).expect(400);await del({password:'Senha123',confirmation:'EXCLUIR MINHA CONTA'}).expect(204);assert.equal(database.prepare('SELECT COUNT(*) AS total FROM users').get().total,0);assert.equal(database.prepare('SELECT COUNT(*) AS total FROM vehicles').get().total,0);const audit=database.prepare("SELECT actor_user_id,action FROM audit_events WHERE action='ACCOUNT_DELETED'").get();assert.equal(audit.actor_user_id,null);await agent.get('/api/auth/me').expect(401)});
+
+test('retenção remove apenas sessões antigas encerradas ou expiradas',async(t)=>{const{database}=setup(t),now=Date.now();database.prepare("INSERT INTO users (name,email,password_hash,created_at) VALUES ('U','u@e.com','hash',?)").run(now);const insert=database.prepare('INSERT INTO tracking_sessions (id,user_id,created_at,expires_at,closed_at) VALUES (?,1,?,?,?)');insert.run('old-closed',now-100*86400000,now-99*86400000,now-99*86400000);insert.run('old-open',now-100*86400000,now+86400000,null);insert.run('recent-closed',now-5*86400000,now+86400000,now-4*86400000);const result=applyDataRetention(database,{now,days:90});assert.equal(result.deletedSessions,1);assert.deepEqual(database.prepare('SELECT id FROM tracking_sessions ORDER BY id').all().map(row=>row.id),['old-open','recent-closed'])});
+
+test('produção exige segredo forte, HTTPS e chave para providers Google',()=>{assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'http://exemplo.test'},{sessionSecret:'curto'}),/SESSION_SECRET.*HTTPS/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google'},{sessionSecret:'x'.repeat(32)}),/GOOGLE_MAPS_API_KEY/);assert.deepEqual(validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google',GOOGLE_MAPS_API_KEY:'chave'},{sessionSecret:'x'.repeat(32)}),{valid:true})});
 
 test('veículos possuem CRUD persistente e seleção por proprietário', async (t) => {
   const { app, database } = setup(t);
@@ -134,7 +146,7 @@ test('API de consumo exige autenticação e retorna estimativa segmentada', asyn
 });
 
 test('providers normalizam geocodificação e rota OSRM com mocks', async () => {
-  const geocoder = new NominatimGeocodingProvider({ fetchImpl: async () => ({ ok: true, json: async () => [{ display_name: 'Timóteo, MG', lat: '-19.58', lon: '-42.64', type: 'city' }] }) });
+  const geocoder = new NominatimGeocodingProvider({ baseUrl:'https://nominatim.internal',fetchImpl: async () => ({ ok: true, json: async () => [{ display_name: 'Timóteo, MG', lat: '-19.58', lon: '-42.64', type: 'city' }] }) });
   const places = await geocoder.search('Timóteo');
   assert.equal(places[0].provider, 'nominatim');
   const router = new OsrmRouteProvider({ fetchImpl: async () => ({ ok: true, json: async () => ({ code: 'Ok', routes: [{ distance: 1234, duration: 321, geometry: { coordinates: [[-42.64, -19.58], [-42.5, -19.4]] } }] }) }) });
@@ -163,6 +175,38 @@ test('consulta por placa normaliza somente dados públicos do veículo', async (
   assert.deepEqual(JSON.parse(requestOptions.body),{placa:'ABC1D23'});
 });
 
+test('consulta por placa aceita padrões antigo e Mercosul e mantém campos ausentes nulos',async()=>{
+  const calls=[];
+  const provider=new PlateLookupProvider({token:'segredo-do-provider',fetchImpl:async(_url,options)=>{calls.push(options);return{ok:true,status:200,json:async()=>({marca:'Ford',modelo:'Ka'})}}});
+  const old=await provider.lookup('abc-1234'),mercosul=await provider.lookup('abc-1d23');
+  assert.equal(old.plate,'ABC1234');assert.equal(mercosul.plate,'ABC1D23');assert.equal(old.version,null);assert.equal(old.engine,null);assert.equal(old.transmission,null);
+  assert.doesNotMatch(JSON.stringify(old),/segredo-do-provider/);assert.equal(calls[0].headers.Authorization,'Bearer segredo-do-provider');
+  await assert.rejects(()=>provider.lookup('placa ruim'),error=>error.code==='INVALID_PLATE');
+});
+
+test('provider de placa padroniza autenticação, limite, timeout, offline e não encontrado',async()=>{
+  const statusCode=new Map([[401,'PROVIDER_AUTH_ERROR'],[403,'PROVIDER_AUTH_ERROR'],[429,'PROVIDER_RATE_LIMIT'],[404,'PLATE_NOT_FOUND'],[500,'PROVIDER_UNAVAILABLE']]);
+  for(const [status,code] of statusCode){const provider=new PlateLookupProvider({token:'token',fetchImpl:async()=>({ok:false,status})});await assert.rejects(()=>provider.lookup('ABC1D23'),error=>error.code===code)}
+  const timeout=new PlateLookupProvider({token:'token',fetchImpl:async()=>{const error=new Error('timeout');error.name='TimeoutError';throw error}});
+  await assert.rejects(()=>timeout.lookup('ABC1D23'),error=>error.code==='PROVIDER_TIMEOUT');
+  const offline=new PlateLookupProvider({token:'token',fetchImpl:async()=>{throw new Error('offline')}});
+  await assert.rejects(()=>offline.lookup('ABC1D23'),error=>error.code==='PROVIDER_UNAVAILABLE');
+  await assert.rejects(()=>new PlateLookupProvider().lookup('ABC1D23'),error=>error.code==='PROVIDER_AUTH_ERROR');
+});
+
+test('API de placa retorna códigos estáveis e não bloqueia preenchimento manual',async(t)=>{
+  const provider={lookup:async()=>{throw new VehicleRegistryError('PROVIDER_TIMEOUT','timeout')}};
+  const{app}=setup(t,{plateLookupProvider:provider}),agent=request.agent(app);await register(agent).expect(201);
+  const invalid=await agent.get('/api/vehicles/lookup?plate=123').expect(400);assert.equal(invalid.body.code,'INVALID_PLATE');assert.equal(invalid.body.retryable,false);
+  const timeout=await agent.get('/api/vehicles/lookup?plate=ABC1D23').expect(502);assert.equal(timeout.body.code,'PROVIDER_TIMEOUT');assert.equal(timeout.body.retryable,true);
+});
+
+test('preço de combustível fica separado do veículo, possui fonte e isolamento',async(t)=>{const{app,database}=setup(t),owner=request.agent(app),other=request.agent(app);await register(owner).expect(201);await register(other,{email:'outro@example.com'}).expect(201);const saved=await owner.post('/api/vehicles').send({...vehicle,type:'car',dataSource:'manual'}).expect(201);assert.equal('price' in saved.body.vehicle,false);assert.equal(database.prepare('SELECT fuel_price FROM vehicles WHERE id=?').get(saved.body.vehicle.id).fuel_price,0);await owner.get('/api/fuel-price?fuelType=Gasolina').expect(200,{preference:null});const updated=await owner.put('/api/fuel-price').send({fuelType:'Gasolina',pricePerLiter:6.49,region:'Vale do Aço'}).expect(200);assert.equal(updated.body.preference.source,'user-provided');assert.equal(updated.body.preference.pricePerLiter,6.49);const own=await owner.get('/api/fuel-price?fuelType=Gasolina').expect(200);assert.equal(own.body.preference.region,'Vale do Aço');await other.get('/api/fuel-price?fuelType=Gasolina').expect(200,{preference:null});await owner.put('/api/fuel-price').send({fuelType:'Gasolina',pricePerLiter:0}).expect(400)});
+
+test('provider FIPE valida código e escolhe o ano correspondente',async()=>{const provider=new FipePriceProvider({fetchImpl:async()=>({ok:true,json:async()=>[{codigoFipe:'001004-9',marca:'Fiat',modelo:'Palio',anoModelo:1998,combustivel:'Gasolina',valor:'R$ 10.000,00',mesReferencia:'agosto de 2026'},{codigoFipe:'001004-9',marca:'Fiat',modelo:'Palio',anoModelo:1999,combustivel:'Gasolina',valor:'R$ 11.000,00',mesReferencia:'agosto de 2026'}]})});const price=await provider.lookup('001004-9',{year:1999});assert.equal(price.value,'R$ 11.000,00');assert.equal(price.modelYear,1999);assert.equal(price.provider,'brasilapi-fipe');await assert.rejects(()=>provider.lookup('invalido'),/Código FIPE inválido/)});
+
+test('API FIPE é autenticada e mantém aviso de valor referencial',async(t)=>{const fipePriceProvider={lookup:async(code,{year})=>({code,modelYear:year,value:'R$ 50.000,00',referenceMonth:'agosto de 2026',provider:'mock-fipe'})},{app}=setup(t,{fipePriceProvider}),agent=request.agent(app);await request(app).get('/api/fipe/001004-9').expect(401);await register(agent).expect(201);const response=await agent.get('/api/fipe/001004-9?year=2020').expect(200);assert.equal(response.body.price.value,'R$ 50.000,00');assert.match(response.body.disclaimer,/referência/);await agent.get('/api/fipe/invalido').expect(400)});
+
 test('catálogo viário filtra por raio e categoria sem devolver a base inteira', (t) => {
   const { database }=setup(t),now=Date.now();
   database.prepare('INSERT INTO road_events (fingerprint,category,label,longitude,latitude,speed_limit,source,imported_at) VALUES (?,?,?,?,?,?,?,?)').run('near','speed_camera','Radar 60',-42.64,-19.58,60,'test',now);
@@ -186,7 +230,7 @@ test('Google Routes mantém chave no header e normaliza ETA com trânsito', asyn
 test('providers rejeitam timeout HTTP, resposta malformada e ausência de rota', async () => {
   const failed = new OsrmRouteProvider({ fetchImpl: async () => ({ ok: false, status: 504 }) });
   await assert.rejects(() => failed.calculateRoute({ origin: { latitude: 0, longitude: 0 }, destination: { latitude: 1, longitude: 1 } }), /504/);
-  const malformed = new NominatimGeocodingProvider({ fetchImpl: async () => ({ ok: true, json: async () => ({ invalid: true }) }) });
+  const malformed = new NominatimGeocodingProvider({ baseUrl:'https://nominatim.internal',fetchImpl: async () => ({ ok: true, json: async () => ({ invalid: true }) }) });
   await assert.rejects(() => malformed.search('consulta'), /inválida/);
   const noRoute = new OsrmRouteProvider({ fetchImpl: async () => ({ ok: true, json: async () => ({ code: 'NoRoute', routes: [] }) }) });
   await assert.rejects(() => noRoute.calculateRoute({ origin: { latitude: 0, longitude: 0 }, destination: { latitude: 1, longitude: 1 } }), /Nenhuma rota/);

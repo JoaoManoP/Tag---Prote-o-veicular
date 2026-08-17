@@ -2,6 +2,7 @@
   'use strict';
 
   const byId = id => document.getElementById(id);
+  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const healthTypes = [
     ['LOW_FUEL', 'Combustível baixo', 'warning'],
     ['BATTERY_WARNING', 'Bateria', 'warning'],
@@ -39,6 +40,7 @@
   let selectedVehicleId = null;
   let healthSaveTimer = null;
   let poiRequest = null;
+  let activeRoute = [];
   let fencePoint = null;
   let fencePreview = null;
   let addressTimer = null;
@@ -49,7 +51,7 @@
 
   function trackingMarkup() {
     return `<div id="vehicleHealthBadge" class="health-badge hidden"><button id="healthBadgeBtn" aria-label="Abrir avisos de saúde" aria-expanded="false">${icon('warning')}<b>1 aviso</b></button><div id="healthPopover" class="health-popover hidden"></div></div><aside id="arrivalPrompt" class="arrival-prompt hidden"><b id="arrivalTitle">Você chegou.</b><p>Ativar proteção?</p><div><button id="arrivalLater" class="secondary">Agora não</button><button id="arrivalActivate">Ativar</button></div></aside>
-      <div id="exploreMenu" class="explore-menu hidden"><b>Explorar perto</b>${[['fuel','Postos'],['food','Restaurantes'],['charge','Carregadores'],['parking','Estacionamento'],['camera','Radares']].map(x => `<label><input type="checkbox" value="${x[0]}"> ${x[1]}</label>`).join('')}<small>Escolha uma categoria por vez para manter o mapa limpo.</small></div>
+      <div id="exploreMenu" class="explore-menu hidden"><b>Explorar locais</b><select id="poiScope" aria-label="Área da busca"><option value="nearby">Perto de mim</option><option value="route">Ao longo da rota</option></select>${[['fuel','Postos'],['food','Restaurantes'],['hotel','Hotéis'],['hospital','Hospitais'],['pharmacy','Farmácias'],['supermarket','Mercados'],['mechanic','Oficinas'],['charge','Carregadores'],['parking','Estacionamento'],['police','Polícia'],['camera','Radares']].map(x => `<label><input type="checkbox" value="${x[0]}"> ${x[1]}</label>`).join('')}<small>Use sua posição atual ou o corredor da rota calculada. Escolha uma categoria por vez.</small></div>
       <section id="vehicleSheet" class="vehicle-sheet minimized" aria-label="Resumo do veículo"><button id="sheetHandle" class="sheet-handle" aria-expanded="false"><span><strong id="sheetVehicleName">Meu veículo</strong><small id="sheetOnline">● Aguardando</small><small id="sheetCurrentAddress"></small></span><span><strong><span id="sheetSpeed">0</span> km/h</strong><small id="sheetUpdated">sem dados</small></span>${icon('chevron-up')}</button><div class="sheet-details"><div><span>Destino</span><strong id="sheetDestination">Não definido</strong></div><div><span>Chegada</span><strong id="sheetEta">—</strong></div><div><span>Distância</span><strong id="sheetDistance">—</strong></div><div><span>Saúde</span><strong id="sheetHealth">Normal</strong></div><button id="openTechnical" class="secondary wide">Ver detalhes da viagem</button></div></section>`;
   }
 
@@ -257,7 +259,7 @@
       const lat = group.reduce((n,p) => n + p.latitude, 0) / group.length, lng = group.reduce((n,p) => n + p.longitude, 0) / group.length;
       const marker = api.L.circleMarker([lat,lng], { radius:group.length > 1 ? 16 : 8, color:'#fff', weight:2, fillColor:'#ff5a0a', fillOpacity:.95 }).addTo(api.layers.pois);
       marker.bindTooltip(group.length > 1 ? `${group.length} locais` : group[0].name, { permanent:group.length > 1, direction:'center', className:'poi-cluster-label' });
-      marker.bindPopup(`<b>${group.length > 1 ? `${group.length} locais próximos` : group[0].name}</b><br><small>${category}</small>`);
+      const popupName=group.length>1?`${group.length} locais próximos`:group[0].name,stopButton=group.length===1?`<br><button type="button" data-poi-stop="true" data-latitude="${group[0].latitude}" data-longitude="${group[0].longitude}" data-name="${encodeURIComponent(group[0].name)}">Adicionar como parada</button>`:'';marker.bindPopup(`<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(category)}</small>${stopButton}`);
       if (group.length > 1) marker.on('click', () => api.map.setView([lat,lng], Math.min(18, zoom + 2)));
     }
   }
@@ -266,9 +268,9 @@
     const api = window.rastreonMap; if (!api) return;
     if (!input.checked) { api.layers.pois?.clearLayers(); return; }
     poiRequest?.abort(); poiRequest = new AbortController();
-    const center = api.map.getCenter();
+    const current = window.rastreonLocation?.current(), center = current ? {lat:current.latitude,lng:current.longitude} : api.map.getCenter();
     try {
-      const response = await fetch(`/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}`, { signal:poiRequest.signal });
+      const scope=byId('poiScope')?.value||'nearby';if(scope==='route'&&activeRoute.length<2)throw new Error('Calcule uma rota antes de buscar no corredor.');const sample=activeRoute.length>30?Array.from({length:30},(_,index)=>activeRoute[Math.round(index*(activeRoute.length-1)/29)]):activeRoute,route=scope==='route'?`&route=${encodeURIComponent(sample.map(point=>`${point[1]},${point[0]}`).join(';'))}`:'';const response = await fetch(`/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}${route}`, { signal:poiRequest.signal });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
       renderPois(data.places, input.parentElement.textContent.trim());
     } catch (error) { if (error.name !== 'AbortError' && byId('toast')) { byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.'; byId('toast').classList.add('show'); setTimeout(() => byId('toast').classList.remove('show'), 2600); } }
@@ -313,6 +315,7 @@
 
   function bindEvents() {
     document.addEventListener('click', event => {
+      const poiStop=event.target.closest('[data-poi-stop]');if(poiStop){window.dispatchEvent(new CustomEvent('rastreon:add-route-stop',{detail:{latitude:Number(poiStop.dataset.latitude),longitude:Number(poiStop.dataset.longitude),label:decodeURIComponent(poiStop.dataset.name)}}));return}
       if(event.target.closest('.search-results [data-index]')){const box=event.target.closest('.search-results'),input=box?.closest('.field')?.querySelector('input');if(input?.dataset.cepSearch==='true')setTimeout(()=>requestNumberComplement(input),0);}
       const nav = event.target.closest('[data-view]');
       if (nav) setTimeout(() => setPage(nav.dataset.view), 0);
@@ -355,6 +358,8 @@
       if (input.checked) document.querySelectorAll('#exploreMenu input').forEach(other => { if (other !== input) other.checked = false; });
       loadPois(input);
     });
+    byId('poiScope').onchange=()=>{const selected=document.querySelector('#exploreMenu input:checked');if(selected)loadPois(selected)};
+    window.addEventListener('rastreon:route-selected',event=>{activeRoute=Array.isArray(event.detail?.geometry)?event.detail.geometry:[]});
     new MutationObserver(syncSummary).observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class']});
     window.rastreonSocket?.on('vehicle-health:update', payload => {
       if (selectedVehicleId && Number(payload.vehicleId) !== Number(selectedVehicleId)) return;

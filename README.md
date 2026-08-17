@@ -1,21 +1,27 @@
-# Rastreon — Plataforma de Rastreamento Veicular
+# RastroTack — rastreamento e navegação veicular
 
-Demonstração web de uma central de rastreamento com autenticação, banco SQLite, planejamento rodoviário, alternativas, comparação entre rota planejada e realizada, reconstrução explícita de lacunas offline e compartilhamento consentido da localização de um celular.
+Aplicação web com autenticação, navegação GPS diária em primeiro plano, planejamento rodoviário, POIs, rastreamento consentido por celular, histórico de viagens e reconstrução explícita de lacunas offline. O projeto é funcional localmente, mas integrações que exigem credenciais, aplicativo nativo, dispositivo físico ou VPS não são apresentadas como concluídas.
 
 ## Requisitos e execução
 
 - Node.js 22 ou mais recente
 - Visual Studio Code (recomendado)
 
-```bash
-cd rastreador-simulador
+```powershell
 npm install
 copy .env.example .env
 npm run db:init
 npm start
 ```
 
-Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, use `npm run dev`. Para executar os testes, use `npm test`.
+Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, use `npm run dev`. O backend e os clientes web são servidos pelo mesmo processo. No VS Code, use `Terminal > Run Task` ou a configuração de depuração `RastroTack: servidor`.
+
+Validação completa local:
+
+```powershell
+npm run predeploy
+npm audit --omit=dev
+```
 
 ## Login, API e banco de dados
 
@@ -25,6 +31,7 @@ Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, us
 - Usuários, sessões, veículos, viagens, posições e interrupções ficam no SQLite em `data/rastreon.sqlite` por padrão.
 - Cada sessão de rastreamento pertence ao usuário autenticado. Outro usuário recebe resposta de recurso inexistente.
 - O endpoint `GET /api/health` confirma o estado da API e do banco.
+- O endpoint `GET /api/ready` confirma se a instância está pronta para receber tráfego.
 - `npm run db:init` cria ou atualiza as tabelas sem apagar dados.
 
 Configure um `SESSION_SECRET` longo e aleatório no `.env`. Sem ele, o desenvolvimento usa um segredo temporário e os logins deixam de valer quando o servidor reinicia. Em `NODE_ENV=production`, o servidor não inicia sem o segredo.
@@ -40,7 +47,9 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 1. O celular e o computador precisam conseguir acessar o mesmo servidor.
 2. Defina `PUBLIC_URL` no `.env` com a URL que o celular abrirá.
 3. Geolocalização em navegadores exige **contexto seguro (HTTPS)**, exceto em `localhost`. Para testar em outro aparelho, publique o servidor com HTTPS ou use um túnel HTTPS confiável.
-4. Crie a sessão no painel, escaneie o QR Code e toque em **Iniciar compartilhamento** no celular. A permissão só é solicitada nesse momento.
+4. Crie a sessão no painel, escaneie o QR Code ou digite o código de pareamento e toque em **Iniciar compartilhamento** no celular. A permissão só é solicitada nesse momento.
+
+Este cliente móvel é web e funciona em primeiro plano. GPS contínuo com tela bloqueada exige aplicativo nativo, permissões específicas e testes físicos; consulte [docs/ARQUITETURA_MOBILE.md](docs/ARQUITETURA_MOBILE.md).
 
 ## Comportamento e privacidade
 
@@ -50,18 +59,21 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 - O convite móvel usa um token exclusivo, não recebe o histórico do painel e expira junto com a sessão de rastreamento.
 - O Socket.IO tenta se reconectar automaticamente após uma queda de internet.
 - O círculo no mapa e a telemetria usam `coords.accuracy`; seis casas decimais não representam garantia de precisão física.
-- O consumo de combustível é somente uma estimativa: distância percorrida dividida pela eficiência em km/L configurada no painel. Não há leitura do veículo.
+- O consumo de combustível é somente uma estimativa: distância percorrida dividida pela eficiência em km/L configurada no painel. O preço é uma preferência separada do veículo, com fonte visível. Não há leitura do veículo.
 - O cache em memória mantém até 10.000 posições por sessão; o histórico completo é persistido no SQLite.
 
 ## Viagem Inteligente
 
-- A busca de cidades, bairros e endereços usa Nominatim/OpenStreetMap através do servidor.
+- A busca padrão de cidades, bairros e endereços usa Photon; uma instância Nominatim própria ou contratada pode ser configurada no backend.
 - Distância e duração planejadas vêm de rotas rodoviárias do OSRM; não são calculadas em linha reta.
+- O botão **Minha localização** usa o GPS do navegador para navegação diária sem iniciar compartilhamento de rastreamento.
+- Postos, restaurantes, hotéis, hospitais, farmácias, mercados e oficinas são carregados sob demanda por proximidade ou corredor da rota, com fonte declarada.
 - Clique em uma alternativa cinza no mapa para promovê-la a rota principal.
 - O celular mantém pontos GPS em uma fila estruturada no `IndexedDB` durante uma queda. A reconexão envia lotes em ordem e remove somente as sequências confirmadas pelo servidor.
 - A combinação de sessão e número de sequência é idempotente: reenviar o mesmo ponto não duplica a posição persistida.
 - Três ou mais pontos GPS locais formam um trecho confirmado. Sem pontos suficientes, o painel consulta rotas possíveis e apresenta a mais plausível como reconstrução estimada, com alternativas visíveis.
 - Reconstruções são guardadas separadamente em `route_gaps` e `reconstruction_candidates`; nunca substituem os pontos GPS originais.
+- O histórico pode ser reproduzido no mapa e sempre aparece como **REPRODUÇÃO — não é ao vivo**; uma posição GPS ao vivo encerra esse modo.
 - Cada candidato registra confiança, classificação e os componentes usados na pontuação: tempo, direção, velocidade, proximidade da rota planejada e plausibilidade de distância.
 - A interface identifica o resultado como **rota provável**, com alternativas e percentual de confiança. Map matching permanece uma abstração indisponível por padrão e não modifica a telemetria bruta.
 - Horários autorizados são persistidos por veículo com dias da semana, intervalo e timezone, incluindo regras que atravessam a meia-noite.
@@ -69,9 +81,9 @@ O firewall do Windows pode solicitar autorização para a porta 3000. Acesso pú
 - Áreas de cobertura circulares são escolhidas pelo usuário. Precisão ruim gera estado pendente; saída exige leituras consecutivas e usa histerese/cooldown.
 - O painel oferece cenários demonstrativos de percurso, queda offline, saída da área e movimento fora do horário.
 - Ranking e conquistas são opcionais. A pontuação considera viagens concluídas, continuidade, configurações de proteção e qualidade do GPS; velocidade não gera pontos.
-- A referência de endpoints está em `docs/API.md` e a preparação para aplicativo/tag física em `docs/MOBILE_ROADMAP.md`.
+- A referência de endpoints está em `docs/API.md`; escopo e arquitetura estão em `docs/ESCOPO_RASTROTACK.md`, `docs/ARQUITETURA.md` e `docs/ARQUITETURA_MOBILE.md`.
 - Os modelos pré-carregados são referências demonstrativas baseadas no PBE Veicular/Inmetro e devem ser conferidos para ano e versão. A opção manual permanece disponível.
-- Não é realizada consulta de proprietário por placa.
+- Consulta por placa usa provider configurável e retorna somente atributos públicos do veículo. Não é realizada consulta de proprietário, Renavam ou chassi. Sem credencial real, a integração permanece indisponível de forma explícita.
 - Os planos são apenas visuais e não contêm pagamento.
 
 ## Estrutura
@@ -80,9 +92,15 @@ O Express serve os arquivos de `public/`, faz proxy controlado para geocodifica�
 
 ## Provedores de geocodificação e rotas
 
-- A geocodificação usa um adaptador do Nominatim. A consulta é enviada somente quando o usuário pressiona Enter, sem autocomplete contínuo.
+- `GEOCODING_PROVIDER=photon` é o padrão sem chave. Nominatim somente deve apontar para serviço próprio ou contratado compatível com a carga da aplicação.
 - `ROUTE_PROVIDER=osrm` é o padrão e não exige chave.
 - `ROUTE_PROVIDER=google` usa a Google Routes API pelo backend e exige `GOOGLE_MAPS_API_KEY` no `.env`.
 - A chave do Google nunca é enviada ao HTML, ao JavaScript público ou a um iframe.
 - Rotas do Google podem considerar trânsito e `TWO_WHEELER`; disponibilidade, cobrança e cobertura dependem da configuração da conta Google Maps Platform.
 - Pedágios e campos não oferecidos pelo provider são apresentados como indisponíveis, nunca estimados silenciosamente.
+
+## Deploy e limitações verificáveis
+
+A configuração versionada de Nginx, HTTPS, WebSocket, healthcheck, readiness, backup e rollback está descrita em [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md). Execute primeiro `npm run predeploy`, depois valide em staging. O deploy real não pode ser atestado sem acesso autorizado à VPS, domínio/TLS e banco de produção.
+
+Google Login, CNH/documentos, GPS nativo em background, Navigation SDK, tráfego Google, consulta real por placa e notificações externas dependem de decisões de produto, credenciais ou infraestrutura externa. A lista operacional está em [docs/APIS_EXTERNAS_NECESSARIAS.txt](docs/APIS_EXTERNAS_NECESSARIAS.txt) e os bloqueios atuais em [docs/PROBLEMAS_CONHECIDOS.md](docs/PROBLEMAS_CONHECIDOS.md).

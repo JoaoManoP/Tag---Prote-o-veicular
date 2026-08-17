@@ -174,6 +174,28 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_road_events_bounds ON road_events(latitude, longitude);
       CREATE INDEX IF NOT EXISTS idx_road_events_category_bounds ON road_events(category, latitude, longitude);
     `); }
+  },
+  {
+    version: 7,
+    name: 'fuel-price-separation',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS fuel_price_preferences (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          fuel_type TEXT NOT NULL,
+          price_per_liter REAL NOT NULL CHECK(price_per_liter > 0 AND price_per_liter <= 100),
+          source TEXT NOT NULL,
+          region TEXT,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(user_id, fuel_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fuel_prices_owner_updated ON fuel_price_preferences(user_id, updated_at DESC);
+      `);
+      if (!columnNames(database, 'vehicles').has('fuel_price')) return;
+      const rows=database.prepare('SELECT user_id,fuel,fuel_price,updated_at FROM vehicles WHERE fuel_price > 0 ORDER BY updated_at').all();
+      const upsert=database.prepare("INSERT INTO fuel_price_preferences (user_id,fuel_type,price_per_liter,source,region,updated_at) VALUES (?,?,?,'legacy-vehicle-migration',NULL,?) ON CONFLICT(user_id,fuel_type) DO UPDATE SET price_per_liter=excluded.price_per_liter,source=excluded.source,updated_at=excluded.updated_at");
+      for(const row of rows)upsert.run(row.user_id,String(row.fuel||'Não informado').slice(0,40),row.fuel_price,row.updated_at);
+    }
   }
 ];
 

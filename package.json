@@ -7,13 +7,15 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
-    "lint": "node --check server/server.js && node --check server/auth.js && node --check server/authorization.js && node --check server/database.js && node --check server/gamification.js && node --check server/geofence.js && node --check server/init-database.js && node --check server/migrations.js && node --check server/providers.js && node --check server/providers/route-provider.js && node --check server/providers/tracker-device-provider.js && node --check server/reconstruction.js && node --check server/schedule.js && node --check server/seed-demo-accounts.js && node --check server/set-role.js && node --check server/telemetry.js && node --check server/vehicle-diagnostics.js && node --check server/vehicle-efficiency.js && node --check public/js/auth.js && node --check public/js/dashboard.js && node --check public/js/maplibre-loader.js && node --check public/js/map-service.js && node --check public/js/navigation-state.js && node --check public/js/mobile.js && node --check public/js/offline-queue.js && node --check public/js/restricted-area.js && node --check public/js/theme-init.js && node --check public/js/ux.js",
+    "lint": "node --check server/server.js && node --check server/auth.js && node --check server/authorization.js && node --check server/backup-database.js && node --check server/database.js && node --check server/gamification.js && node --check server/geofence.js && node --check server/init-database.js && node --check server/migrations.js && node --check server/providers.js && node --check server/providers/route-provider.js && node --check server/providers/tracker-device-provider.js && node --check server/reconstruction.js && node --check server/schedule.js && node --check server/seed-demo-accounts.js && node --check server/set-role.js && node --check server/telemetry.js && node --check server/vehicle-diagnostics.js && node --check server/vehicle-efficiency.js && node --check public/js/auth.js && node --check public/js/dashboard.js && node --check public/js/maplibre-loader.js && node --check public/js/map-service.js && node --check public/js/navigation-state.js && node --check public/js/mobile.js && node --check public/js/offline-queue.js && node --check public/js/restricted-area.js && node --check public/js/theme-init.js && node --check public/js/ux.js",
     "build": "npm run lint",
     "db:init": "node server/init-database.js",
+    "db:backup": "node server/backup-database.js",
     "demo:seed": "node server/seed-demo-accounts.js",
     "road-events:import": "node server/import-road-events.js",
     "role:set": "node server/set-role.js",
-    "test": "node --test"
+    "test": "node --test",
+    "predeploy": "npm run lint && npm test && npm run build"
   },
   "engines": {
     "node": ">=22"

@@ -78,6 +78,16 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       updated_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_vehicles_owner ON vehicles(user_id, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS fuel_price_preferences (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      fuel_type TEXT NOT NULL,
+      price_per_liter REAL NOT NULL CHECK(price_per_liter > 0 AND price_per_liter <= 100),
+      source TEXT NOT NULL,
+      region TEXT,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY(user_id, fuel_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_fuel_prices_owner_updated ON fuel_price_preferences(user_id, updated_at DESC);
     CREATE TABLE IF NOT EXISTS trips (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

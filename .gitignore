@@ -3,5 +3,6 @@ node_modules/
 data/*.sqlite-shm
 data/*.sqlite-wal
 data/*.sqlite
+backups/
 node_modules~*/
 npm-debug.log*
