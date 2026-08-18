@@ -168,18 +168,43 @@
 
   async function ready(){
     if(config.provider==='maplibre'){
-      try{const maplibregl=window.maplibregl||await window.RastroMapLibre;if(maplibregl)return{L:mapLibreFacade(maplibregl),mapProvider:'maplibre'}}
-      catch(error){console.warn(`${error.message} Usando OpenStreetMap como fallback.`)}
+      try{
+        const maplibregl=window.maplibregl||await window.RastroMapLibre;
+        if(maplibregl) return{L:mapLibreFacade(maplibregl),mapProvider:'maplibre'};
+        throw new Error('MapLibre indisponível.');
+      }catch(error){
+        console.warn('[RastroTack Map] MapLibre indisponível, usando Leaflet como fallback.', error);
+        if(config.allowMapFallback && leaflet){ return{L:leaflet,mapProvider:'leaflet-fallback',message:'Fallback Leaflet ativo'}; }
+        return{L:null,mapProvider:'maplibre',error:'MapLibre não configurado neste ambiente.'};
+      }
     }
-    if(config.provider!=='google'||!config.googleMapsApiKey)return{L:leaflet,mapProvider:'leaflet'};
+    if(config.provider!=='google'){
+      if(config.allowMapFallback && leaflet){
+        console.info('[RastroTack Map] Fallback Leaflet ativo.');
+        return{L:leaflet,mapProvider:'leaflet-fallback',message:'Fallback Leaflet ativo'};
+      }
+      return{L:null,mapProvider:config.provider||'unknown',error:'Provider de mapa não disponível neste ambiente.'};
+    }
+    if(!config.googleMapsApiKey){
+      if(config.allowMapFallback && leaflet){
+        console.info('[RastroTack Map] Fallback Leaflet ativo.');
+        return{L:leaflet,mapProvider:'leaflet-fallback',message:'Fallback Leaflet ativo'};
+      }
+      console.warn('[RastroTack Map] GOOGLE_MAPS_API_KEY ausente. Google Maps não está configurado neste ambiente.');
+      return{L:null,mapProvider:'google',error:'Google Maps não configurado neste ambiente. Configure GOOGLE_MAPS_API_KEY no .env.'};
+    }
     try{
       const maps=await loadGoogleMaps();
       await maps.importLibrary('maps');
       await maps.importLibrary('marker');
       return{L:googleFacade(maps),mapProvider:'google'};
     }catch(error){
-      console.warn(`${error.message} Usando OpenStreetMap como fallback.`);
-      return{L:leaflet,mapProvider:'leaflet-fallback'};
+      if(config.allowMapFallback && leaflet){
+        console.warn('[RastroTack Map] Google Maps falhou ao inicializar, usando Leaflet como fallback explícito.', error);
+        return{L:leaflet,mapProvider:'leaflet-fallback',message:'Fallback Leaflet ativo'};
+      }
+      console.warn('[RastroTack Map] Google Maps falhou ao inicializar.', error);
+      return{L:null,mapProvider:'google',error:'Google Maps não configurado neste ambiente.'};
     }
   }
 

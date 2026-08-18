@@ -1,7 +1,37 @@
 /* global io */
 'use strict';
-window.RastroMap.ready.then(({L,mapProvider})=>{
-const $=id=>document.getElementById(id),socket=io({reconnection:true}),map=L.map('map').setView([-19.47,-42.54],10);window.rastreonSocket=socket;
+console.info('[RastroTack] Dashboard build:','CORRECAO-DASHBOARD-01');
+window.RastroMap.ready.then((context)=>{
+  const {L,mapProvider,error} = context || {};
+  const $=id=>document.getElementById(id);
+const mapHost=$('map');
+
+if(!L){
+  if(mapHost){
+    mapHost.innerHTML = '<div class="map-error"><strong>Google Maps não configurado neste ambiente.</strong><span>Configure GOOGLE_MAPS_API_KEY no .env para ativar o mapa principal.</span></div>';
+    const mapCard = mapHost.closest('.map-card');
+    if(mapCard){
+      const vehicleHud = document.createElement('div');
+      vehicleHud.className = 'vehicle-hud';
+      vehicleHud.innerHTML = '<div class="vehicle-hud__status">● AO VIVO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__meta"><strong>0 km/h</strong><span>Saúde: Normal</span></div><button type="button">Ver detalhes</button>';
+      mapCard.appendChild(vehicleHud);
+    }
+  }
+  console.error('[RastroTack Dashboard] Mapa indisponível:', error || 'Sem provider disponível.');
+  return;
+}
+
+if(mapHost){
+  const mapCard = mapHost.closest('.map-card');
+  if(mapCard){
+    const vehicleHud = document.createElement('div');
+    vehicleHud.className = 'vehicle-hud';
+    vehicleHud.innerHTML = '<div class="vehicle-hud__status">● AO VIVO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__meta"><strong>0 km/h</strong><span>Saúde: Normal</span></div><button type="button">Ver detalhes</button>';
+    mapCard.appendChild(vehicleHud);
+  }
+}
+
+const socket=io({reconnection:true}),map=L.map('map').setView([-19.47,-42.54],10);window.rastreonSocket=socket;
 const baseMap=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap',crossOrigin:true}).addTo(map);
 let tileFailures=0;
 baseMap.on('tileload',()=>{tileFailures=0});

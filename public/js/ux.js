@@ -65,18 +65,24 @@
 
   function setupStructure() {
     const mapCard = document.querySelector('.smart-map');
+    const config = window.RASTROTACK_MAP_CONFIG || {};
+    const devToolsEnabled = config.enableDevTools === true || new URLSearchParams(location.search).get('dev') === 'true';
+    document.body.classList.toggle('dev-tools-enabled', devToolsEnabled);
     if (mapCard) {
       mapCard.insertAdjacentHTML('beforeend', trackingMarkup());
       const actions = mapCard.querySelector('.map-toolbar .actions');
-      const explore = document.createElement('button');
-      explore.id = 'exploreBtn'; explore.className = 'secondary'; explore.textContent = 'Explorar perto'; explore.setAttribute('aria-expanded', 'false');
-      actions?.insertBefore(explore, byId('simulateBtn'));
-      const trip = document.createElement('button'); trip.id = 'tripPlannerBtn'; trip.className = 'secondary'; trip.textContent = 'Viagem'; actions?.insertBefore(trip, explore);
-      const fence = document.createElement('button'); fence.id = 'fenceBtn'; fence.className = 'secondary'; fence.textContent = 'Cerco'; actions?.insertBefore(fence, explore);
-      const automotive = document.createElement('button');
-      automotive.id = 'automotiveBtn'; automotive.className = 'secondary'; automotive.textContent = 'Modo carro'; automotive.setAttribute('aria-pressed', 'false');
-      actions?.insertBefore(automotive, byId('simulateBtn'));
-      const sidePanel=document.createElement('aside');sidePanel.className='map-side-panel';sidePanel.setAttribute('aria-label','Ações do mapa');sidePanel.innerHTML='<strong>Ferramentas</strong><small>Ações fora da área de navegação</small>';if(actions)sidePanel.append(actions);const scenarios=byId('simulationScenarios');if(scenarios)sidePanel.append(scenarios);mapCard.append(sidePanel);mapCard.classList.add('has-side-panel');
+      if (!devToolsEnabled) {
+        if (!byId('exploreBtn')) { const explore = document.createElement('button'); explore.id = 'exploreBtn'; explore.className = 'secondary'; explore.textContent = 'Explorar perto'; explore.setAttribute('aria-expanded', 'false'); actions?.appendChild(explore); }
+        if (!byId('tripPlannerBtn')) { const trip = document.createElement('button'); trip.id = 'tripPlannerBtn'; trip.className = 'secondary'; trip.textContent = 'Viagem'; actions?.appendChild(trip); }
+        if (!byId('fenceBtn')) { const fence = document.createElement('button'); fence.id = 'fenceBtn'; fence.className = 'secondary'; fence.textContent = 'Cerco'; actions?.appendChild(fence); }
+        if (!byId('automotiveBtn')) { const automotive = document.createElement('button'); automotive.id = 'automotiveBtn'; automotive.className = 'secondary'; automotive.textContent = 'Modo carro'; automotive.setAttribute('aria-pressed', 'false'); actions?.appendChild(automotive); }
+      } else {
+        if (!byId('exploreBtn')) { const explore = document.createElement('button'); explore.id = 'exploreBtn'; explore.className = 'secondary'; explore.textContent = 'Explorar perto'; explore.setAttribute('aria-expanded', 'false'); actions?.insertBefore(explore, byId('simulateBtn')); }
+        if (!byId('tripPlannerBtn')) { const trip = document.createElement('button'); trip.id = 'tripPlannerBtn'; trip.className = 'secondary'; trip.textContent = 'Viagem'; actions?.insertBefore(trip, byId('exploreBtn')); }
+        if (!byId('fenceBtn')) { const fence = document.createElement('button'); fence.id = 'fenceBtn'; fence.className = 'secondary'; fence.textContent = 'Cerco'; actions?.insertBefore(fence, byId('exploreBtn')); }
+        if (!byId('automotiveBtn')) { const automotive = document.createElement('button'); automotive.id = 'automotiveBtn'; automotive.className = 'secondary'; automotive.textContent = 'Modo carro'; automotive.setAttribute('aria-pressed', 'false'); actions?.insertBefore(automotive, byId('simulateBtn')); }
+        const sidePanel=document.createElement('aside');sidePanel.className='map-side-panel';sidePanel.setAttribute('aria-label','Ações do mapa');sidePanel.innerHTML='<strong>Ferramentas</strong><small>Ações fora da área de navegação</small>';if(actions)sidePanel.append(actions);const scenarios=byId('simulationScenarios');if(scenarios)sidePanel.append(scenarios);mapCard.append(sidePanel);mapCard.classList.add('has-side-panel');
+      }
       mapCard.insertAdjacentHTML('beforeend', fenceMarkup());
     }
     const tripHelp = helpByPage.tracking;
@@ -176,7 +182,17 @@
     try { const data=await fetch('/api/saved-places').then(r=>r.json()); for(const key of ['home','work']){const button=document.querySelector(`[data-save-place="${key}"]`),place=(data.places||[]).find(p=>p.placeKey===key);if(!button)continue;button.querySelector('span').textContent=place?'Usar / remover':'Adicionar';button.onclick=()=>{if(!place)return savePlace(key);chooseFencePoint(place,place.address);if(confirm(`Remover ${place.label} dos locais salvos?`))fetch(`/api/saved-places/${key}`,{method:'DELETE'}).then(loadSavedPlaces);};} } catch(_){}
   }
 
-  function openFence() { currentPage='fence'; renderHelp(); byId('fencePanel').classList.remove('hidden'); document.body.classList.remove('trip-planning','technical-open'); if(!localStorage.getItem('rastreon-tour-fence'))showTourWelcome('fence'); loadSavedPlaces();loadManagedFences(); }
+  function openFence() {
+    const fencePanel = byId('fencePanel');
+    if (!fencePanel) return;
+    currentPage='fence';
+    renderHelp();
+    fencePanel.classList.remove('hidden');
+    document.body.classList.remove('trip-planning','technical-open');
+    if(!localStorage.getItem('rastreon-tour-fence'))showTourWelcome('fence');
+    loadSavedPlaces();
+    loadManagedFences();
+  }
 
   function renderHelp() {
     const questions = helpByPage[currentPage] || helpByPage.tracking;
@@ -326,34 +342,61 @@
         byId('sheetHandle').setAttribute('aria-expanded', String(next !== 'minimized'));
       }
       if (event.target.closest('#openTechnical')) document.body.classList.toggle('technical-open');
-      if (event.target.closest('#tripPlannerBtn')) { document.body.classList.toggle('trip-planning'); document.body.classList.remove('technical-open'); byId('fencePanel').classList.add('hidden'); currentPage='trip'; renderHelp(); if(!localStorage.getItem('rastreon-tour-trip'))showTourWelcome('trip'); }
-      if (event.target.closest('#fenceBtn')) openFence();
-      if (event.target.closest('#closeFence')) { byId('fencePanel').classList.add('hidden'); currentPage='tracking'; renderHelp(); }
-      if (event.target.closest('#routeDetailsBtn')) { byId('routeSummary').classList.toggle('details-open'); event.target.textContent=byId('routeSummary').classList.contains('details-open')?'Ocultar detalhes':'Ver detalhes'; }
-      if (event.target.closest('#exploreBtn')) {
-        byId('exploreMenu').classList.toggle('hidden');
-        byId('exploreBtn').setAttribute('aria-expanded', String(!byId('exploreMenu').classList.contains('hidden')));
+      if (event.target.closest('#tripPlannerBtn')) {
+        document.body.classList.toggle('trip-planning');
+        document.body.classList.remove('technical-open');
+        const fencePanel = byId('fencePanel');
+        if (fencePanel) fencePanel.classList.add('hidden');
+        currentPage='trip';
+        renderHelp();
+        if(!localStorage.getItem('rastreon-tour-trip'))showTourWelcome('trip');
       }
-      if (event.target.closest('#healthBadgeBtn')) byId('healthPopover').classList.toggle('hidden');
+      if (event.target.closest('#fenceBtn')) openFence();
+      if (event.target.closest('#closeFence')) {
+        const fencePanel = byId('fencePanel');
+        if (fencePanel) fencePanel.classList.add('hidden');
+        currentPage='tracking';
+        renderHelp();
+      }
+      if (event.target.closest('#routeDetailsBtn')) { const summary = byId('routeSummary'); if (summary) { summary.classList.toggle('details-open'); event.target.textContent=summary.classList.contains('details-open')?'Ocultar detalhes':'Ver detalhes'; } }
+      if (event.target.closest('#exploreBtn')) {
+        const exploreMenu = byId('exploreMenu'); const exploreBtn = byId('exploreBtn');
+        if (exploreMenu && exploreBtn) {
+          exploreMenu.classList.toggle('hidden');
+          exploreBtn.setAttribute('aria-expanded', String(!exploreMenu.classList.contains('hidden')));
+        }
+      }
+      if (event.target.closest('#healthBadgeBtn')) {
+        const popover = byId('healthPopover'); if (popover) popover.classList.toggle('hidden');
+      }
       if (event.target.closest('#automotiveBtn')) { document.body.classList.toggle('automotive-mode'); const active = document.body.classList.contains('automotive-mode'); byId('automotiveBtn').setAttribute('aria-pressed', String(active)); byId('automotiveBtn').textContent = active ? 'Sair do modo carro' : 'Modo carro'; setTimeout(() => window.rastreonMap?.map.invalidateSize(), 50); }
       const preset = event.target.closest('[data-preset]'); if (preset) applyPreset(preset.dataset.preset);
     });
-    byId('helpToggle').onclick = () => { byId('helpPanel').classList.toggle('hidden'); byId('helpToggle').setAttribute('aria-expanded', String(!byId('helpPanel').classList.contains('hidden'))); };
-    byId('helpClose').onclick = () => byId('helpPanel').classList.add('hidden');
-    byId('restartTour').onclick = () => { byId('helpPanel').classList.add('hidden'); showTourWelcome(currentPage); };
-    byId('tourStart').onclick = () => { byId('tourWelcome').classList.add('hidden'); showTip(0); };
-    byId('tourSkip').onclick = () => finishTour(); byId('tourDismiss').onclick = () => finishTour(true);
-    byId('tourClose').onclick = () => finishTour(); byId('tourNext').onclick = () => showTip(tourIndex + 1);
-    byId('healthOptions').addEventListener('change', renderHealth);
+    const helpToggle = byId('helpToggle');
+    const helpPanel = byId('helpPanel');
+    if (helpToggle && helpPanel) {
+      helpToggle.onclick = () => { helpPanel.classList.toggle('hidden'); helpToggle.setAttribute('aria-expanded', String(!helpPanel.classList.contains('hidden'))); };
+    }
+    const helpClose = byId('helpClose'); if (helpClose && helpPanel) helpClose.onclick = () => helpPanel.classList.add('hidden');
+    const restartTour = byId('restartTour'); if (restartTour && helpPanel) restartTour.onclick = () => { helpPanel.classList.add('hidden'); showTourWelcome(currentPage); };
+    const tourStart = byId('tourStart'); if (tourStart) tourStart.onclick = () => { const tourWelcome = byId('tourWelcome'); if (tourWelcome) tourWelcome.classList.add('hidden'); showTip(0); };
+    const tourSkip = byId('tourSkip'); if (tourSkip) tourSkip.onclick = () => finishTour();
+    const tourDismiss = byId('tourDismiss'); if (tourDismiss) tourDismiss.onclick = () => finishTour(true);
+    const tourClose = byId('tourClose'); if (tourClose) tourClose.onclick = () => finishTour();
+    const tourNext = byId('tourNext'); if (tourNext) tourNext.onclick = () => showTip(tourIndex + 1);
+    const healthOptions = byId('healthOptions'); if (healthOptions) healthOptions.addEventListener('change', renderHealth);
     [byId('originInput'),byId('destinationInput')].forEach(input=>input?.addEventListener('input',()=>{input.dataset.cepSearch=String(input.value.replace(/\D/g,'').length===8);}));
-    const fenceSearch=byId('fenceSearch'); let fenceSearchTimer; fenceSearch.oninput=()=>{clearTimeout(fenceSearchTimer);fenceSearchTimer=setTimeout(()=>searchAddress(fenceSearch.value,'fenceResults',place=>chooseFencePoint(place,place.label)),400);};
-    byId('fenceMapPick').onclick=()=>{showNotice('Toque no mapa para escolher o local.');byId('fencePanel').classList.add('picking');window.rastreonMap?.map.once('click',async event=>{byId('fencePanel').classList.remove('picking');const label=await reverseAddress(event.latlng.lat,event.latlng.lng);chooseFencePoint({latitude:event.latlng.lat,longitude:event.latlng.lng},label);});};
-    byId('activateFence').onclick=reviewFence;byId('confirmFence').onclick=activateFence;byId('drawCustomArea').onclick=drawCustomArea;
-    byId('arrivalLater').onclick=()=>byId('arrivalPrompt').classList.add('hidden'); byId('arrivalActivate').onclick=activateArrivalFence;
+    const fenceSearch=byId('fenceSearch'); let fenceSearchTimer; if (fenceSearch) { fenceSearch.oninput=()=>{clearTimeout(fenceSearchTimer);fenceSearchTimer=setTimeout(()=>searchAddress(fenceSearch.value,'fenceResults',place=>chooseFencePoint(place,place.label)),400);}; }
+    const fenceMapPick = byId('fenceMapPick'); const fencePanel = byId('fencePanel'); if (fenceMapPick && fencePanel) { fenceMapPick.onclick=()=>{showNotice('Toque no mapa para escolher o local.');fencePanel.classList.add('picking');window.rastreonMap?.map.once('click',async event=>{fencePanel.classList.remove('picking');const label=await reverseAddress(event.latlng.lat,event.latlng.lng);chooseFencePoint({latitude:event.latlng.lat,longitude:event.latlng.lng},label);});}; }
+    const activateFenceBtn = byId('activateFence'); if (activateFenceBtn) activateFenceBtn.onclick = reviewFence;
+    const confirmFenceBtn = byId('confirmFence'); if (confirmFenceBtn) confirmFenceBtn.onclick = activateFence;
+    const drawCustomAreaBtn = byId('drawCustomArea'); if (drawCustomAreaBtn) drawCustomAreaBtn.onclick = drawCustomArea;
+    const arrivalLater = byId('arrivalLater'); if (arrivalLater) arrivalLater.onclick = () => { const arrivalPrompt = byId('arrivalPrompt'); if (arrivalPrompt) arrivalPrompt.classList.add('hidden'); };
+    const arrivalActivate = byId('arrivalActivate'); if (arrivalActivate) arrivalActivate.onclick = activateArrivalFence;
     document.querySelectorAll('[name="fenceSize"]').forEach(input=>input.onchange=()=>fencePoint&&chooseFencePoint(fencePoint,fencePoint.label));
-    byId('fenceCustomSize').oninput=event=>{byId('fenceSizeOutput').textContent=`${event.target.value} m`;document.querySelectorAll('[name="fenceSize"]').forEach(input=>input.checked=false);fencePoint&&chooseFencePoint(fencePoint,fencePoint.label);};
+    const fenceCustomSize = byId('fenceCustomSize'); const fenceSizeOutput = byId('fenceSizeOutput'); if (fenceCustomSize && fenceSizeOutput) { fenceCustomSize.oninput=event=>{fenceSizeOutput.textContent=`${event.target.value} m`;document.querySelectorAll('[name="fenceSize"]').forEach(input=>input.checked=false);fencePoint&&chooseFencePoint(fencePoint,fencePoint.label);}; }
     document.querySelectorAll('[data-save-place]').forEach(button=>button.onclick=()=>savePlace(button.dataset.savePlace));
-    byId('simFuelLevel').oninput = event => { byId('simFuelOutput').textContent = `${event.target.value}%`; renderHealth(); };
+    const simFuelLevel = byId('simFuelLevel'); const simFuelOutput = byId('simFuelOutput'); if (simFuelLevel && simFuelOutput) { simFuelLevel.oninput = event => { simFuelOutput.textContent = `${event.target.value}%`; renderHealth(); }; }
     document.querySelectorAll('#exploreMenu input').forEach(input => input.onchange = () => {
       if (input.checked) document.querySelectorAll('#exploreMenu input').forEach(other => { if (other !== input) other.checked = false; });
       loadPois(input);

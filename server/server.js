@@ -133,12 +133,16 @@ function createApplication(options = {}) {
   app.use('/vendor/leaflet', express.static(path.join(__dirname, '..', 'node_modules', 'leaflet', 'dist')));
   app.use('/vendor/maplibre', express.static(path.join(__dirname, '..', 'node_modules', 'maplibre-gl', 'dist')));
   app.get('/map-config.js', (_req, res) => {
-    const provider = process.env.MAP_PROVIDER || 'maplibre';
+    const provider = process.env.MAP_PROVIDER || 'google';
+    const allowMapFallback = process.env.ALLOW_MAP_FALLBACK === 'true' || process.env.ALLOW_MAP_FALLBACK === '1';
+    const enableDevTools = process.env.ENABLE_DEV_TOOLS === 'true' || process.env.ENABLE_DEV_TOOLS === '1';
     res.type('application/javascript').set('Cache-Control', 'no-store').send(`window.RASTROTACK_MAP_CONFIG=${JSON.stringify({
       provider,
       mapStyleUrl: process.env.MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty',
       googleMapsApiKey: provider === 'google' ? process.env.GOOGLE_MAPS_API_KEY || '' : '',
-      googleMapsMapId: provider === 'google' ? process.env.GOOGLE_MAPS_MAP_ID || '' : ''
+      googleMapsMapId: provider === 'google' ? process.env.GOOGLE_MAPS_MAP_ID || '' : '',
+      allowMapFallback,
+      enableDevTools
     })};`);
   });
   app.get('/login.html', (req, res) => req.session.userId ? res.redirect('/dashboard') : res.sendFile(path.join(publicDir, 'login.html')));
