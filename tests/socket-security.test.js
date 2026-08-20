@@ -31,25 +31,26 @@ function emit(socket, event, payload) {
 }
 
 function mobileInvite(url) { return new URLSearchParams(new URL(url).hash.slice(1)); }
+async function pairDevice(agent,created){const token=mobileInvite(created.body.pairUrl).get('token'),resolved=await agent.get(`/api/pairings/resolve?token=${encodeURIComponent(token)}`).expect(200),confirmed=await agent.post(`/api/pairings/${resolved.body.pairing.id}/confirm`).send({name:'Celular de teste'}).expect(201);return{token:confirmed.body.credential,deviceId:confirmed.body.device.id}}
 
 test('convite móvel exige token e não expõe histórico nem placa', async (t) => {
   const { app, database, url } = await setup(t);
   const agent = request.agent(app);
   await agent.post('/api/auth/register').send({ name: 'Teste Socket', email: 'socket@example.com', password: 'Senha123' }).expect(201);
   const created = await agent.post('/api/sessions').send({ vehicle }).expect(201);
-  const invite = new URL(created.body.mobileUrl);
+  const invite = new URL(created.body.pairUrl);
   assert.equal(invite.search, '');
-  const token = mobileInvite(created.body.mobileUrl).get('token');
-  assert.ok(token);
+  const pairingToken = mobileInvite(created.body.pairUrl).get('token');
+  assert.ok(pairingToken);
+  const {token,deviceId}=await pairDevice(agent,created);
   const stored = database.prepare('SELECT mobile_token_hash AS hash FROM tracking_sessions WHERE id = ?').get(created.body.id);
-  assert.notEqual(stored.hash, token);
-  assert.equal(stored.hash.length, 64);
+  assert.notEqual(stored.hash, token);assert.notEqual(stored.hash,pairingToken);assert.equal(stored.hash.length,64);
 
   const socket = await connect(url);
   t.after(() => socket.close());
-  const denied = await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token: 'token-invalido-com-tamanho-suficiente-123456' });
+  const denied = await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token: 'token-invalido-com-tamanho-suficiente-123456',deviceId });
   assert.equal(denied.ok, false);
-  const joined = await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token });
+  const joined = await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token,deviceId });
   assert.equal(joined.ok, true);
   assert.equal('positions' in joined.session, false);
   assert.equal('interruptions' in joined.session, false);
@@ -61,12 +62,12 @@ test('Socket.IO rejeita telemetria inválida e limita frequência ao vivo', asyn
   const agent = request.agent(app);
   await agent.post('/api/auth/register').send({ name: 'Teste GPS', email: 'gps@example.com', password: 'Senha123' }).expect(201);
   const created = await agent.post('/api/sessions').send({ vehicle }).expect(201);
-  const token = mobileInvite(created.body.mobileUrl).get('token');
+  const {token,deviceId}=await pairDevice(agent,created);
   const socket = await connect(url);
   t.after(() => socket.close());
-  assert.equal((await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token })).ok, true);
+  assert.equal((await emit(socket, 'session:join', { sessionId: created.body.id, role: 'mobile', token,deviceId })).ok, true);
 
-  const base = { deviceId: 'test-device', latitude: -19.58, longitude: -42.64, accuracy: 8, timestamp: Date.now(), source: 'mobile-gps', sequence: 1 };
+  const base = { deviceId, latitude: -19.58, longitude: -42.64, accuracy: 8, timestamp: Date.now(), source: 'mobile-gps', sequence: 1 };
   const withoutConsent = await emit(socket, 'position:update', base);
   assert.equal(withoutConsent.code, 'CONSENT_REQUIRED');
   assert.equal((await emit(socket, 'consent:grant', { deviceId: base.deviceId, purpose: 'vehicle-tracking' })).ok, true);
@@ -80,6 +81,9 @@ test('Socket.IO rejeita telemetria inválida e limita frequência ao vivo', asyn
   assert.equal(limited.ok, false);
   assert.equal(limited.code, 'RATE_LIMITED');
   assert.equal(database.prepare('SELECT COUNT(*) AS total FROM positions').get().total, 1);
+  await agent.delete(`/api/devices/${deviceId}`).expect(204);
+  const revoked=await emit(socket,'position:update',{...base,timestamp:Date.now()+5000,sequence:3});
+  assert.equal(revoked.code,'DEVICE_REVOKED');
 });
 
 test('API bloqueia mutação originada por outro site', async (t) => {

@@ -36,7 +36,8 @@ form.addEventListener('submit', async (event) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Não foi possível continuar.');
     if (isRegister) sessionStorage.setItem('rastreon-subscription-confirmation', `${planNames[data.subscription?.plan] || planNames[selectedPlan]} ativado em modo demonstrativo.`);
-    location.replace('/dashboard');
+    const pendingPair=sessionStorage.getItem('rastreon-pending-pair-token');
+    location.replace(pendingPair?'/pair.html':'/dashboard');
   } catch (error) {
     showError(error.message);
     button.disabled = false;

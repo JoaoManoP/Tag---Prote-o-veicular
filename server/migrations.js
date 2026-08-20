@@ -204,6 +204,45 @@ const migrations = [
       addColumn(database, 'users', "subscription_plan TEXT NOT NULL DEFAULT 'inteligente'");
       addColumn(database, 'users', "subscription_status TEXT NOT NULL DEFAULT 'demo_active'");
     }
+  },
+  {
+    version: 9,
+    name: 'secure-phone-device-pairing',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS devices (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          tracking_session_id TEXT REFERENCES tracking_sessions(id) ON DELETE SET NULL,
+          type TEXT NOT NULL CHECK(type IN ('PHONE','GPS_TRACKER','OBD','SIMULATOR')),
+          name TEXT NOT NULL,
+          credential_hash TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('ACTIVE','REVOKED')),
+          created_at INTEGER NOT NULL,
+          last_seen INTEGER,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_devices_owner_vehicle ON devices(user_id, vehicle_id, created_at DESC);
+        CREATE TABLE IF NOT EXISTS pairing_sessions (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          tracking_session_id TEXT NOT NULL REFERENCES tracking_sessions(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL UNIQUE,
+          manual_code_hash TEXT NOT NULL UNIQUE,
+          type TEXT NOT NULL CHECK(type IN ('PHONE_TRACKER')),
+          status TEXT NOT NULL CHECK(status IN ('PENDING','SCANNED','CONFIRMED','EXPIRED','CANCELLED')),
+          created_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          claimed_at INTEGER,
+          confirmed_at INTEGER,
+          device_id TEXT REFERENCES devices(id) ON DELETE SET NULL,
+          claimed_user_agent TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_pairing_owner_status ON pairing_sessions(user_id, status, created_at DESC);
+      `);
+    }
   }
 ];
 

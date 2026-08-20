@@ -117,11 +117,13 @@ test('cadastro do veículo oferece consulta por placa e não expõe dados pessoa
   assert.match(dashboard, /Dados do veículo preenchidos pela placa/);
 });
 
-test('mapa mantém ferramentas na lateral e celular aceita pareamento sem QR', () => {
-  const mobile=fs.readFileSync(path.join(root,'public','mobile.html'),'utf8'),mobileScript=fs.readFileSync(path.join(root,'public','js','mobile.js'),'utf8');
+test('mapa mantém ferramentas na lateral e celular possui QR com fallback manual', () => {
+  const mobile=fs.readFileSync(path.join(root,'public','mobile.html'),'utf8'),mobileScript=fs.readFileSync(path.join(root,'public','js','mobile.js'),'utf8'),pair=fs.readFileSync(path.join(root,'public','pair.html'),'utf8'),pairScript=fs.readFileSync(path.join(root,'public','js','pair.js'),'utf8');
   assert.match(ux,/map-side-panel/);assert.match(css,/smart-map\.has-side-panel/);
-  assert.match(mobile,/pairingForm/);assert.match(mobileScript,/\/api\/mobile\/pair/);
+  assert.match(pair,/id="scanBtn"/);assert.match(pair,/id="manualForm"/);assert.match(pairScript,/BarcodeDetector/);assert.match(pairScript,/ZXingBrowser/);assert.match(pairScript,/getUserMedia/);assert.match(pairScript,/getTracks\(\)\.forEach/);assert.match(mobileScript,/device:revoked/);
 });
+
+test('garagem gerencia dispositivos e apresenta estados de conexão',()=>{assert.match(html,/id="devicesPanel"/);assert.match(html,/id="connectPhoneBtn"/);assert.match(dashboard,/\/api\/vehicles\/\$\{vehicle\.id\}\/devices/);assert.match(dashboard,/\/api\/devices\/\$\{id\}/);assert.match(dashboard,/Sem atualização/);assert.match(dashboard,/Desvincular/);assert.match(css,/\.device-status\.online/);assert.match(css,/\.device-status\.stale/)});
 
 test('GPS diário usa localização consentida sem exigir sessão de rastreamento', () => {
   assert.match(html, /id="useMyLocationBtn"/);

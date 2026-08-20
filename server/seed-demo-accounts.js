@@ -5,6 +5,7 @@ const { createDatabase } = require('./database');
 const { hashPassword } = require('./auth');
 
 const accounts = [
+  { name: 'Joao', email: 'joao@rastreon.demo', password: 'Joao#2026', role: 'ADMIN' },
   { name: 'Cliente Demonstração', email: 'cliente@rastreon.demo', password: 'Rastreon#2026', role: 'USER' },
   { name: 'Administrador Demonstração', email: 'admin@rastreon.demo', password: 'Admin#Rastreon2026', role: 'ADMIN' },
   { name: 'Desenvolvedor Demonstração', email: 'dev@rastreon.demo', password: 'Dev#Rastreon2026', role: 'DEVELOPER' }

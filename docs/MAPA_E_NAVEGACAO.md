@@ -5,6 +5,7 @@
 ```env
 MAP_PROVIDER=maplibre
 MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
+MAPBOX_ACCESS_TOKEN=
 GEOCODING_PROVIDER=photon
 PHOTON_API_URL=https://photon.komoot.io
 NOMINATIM_BASE_URL=
