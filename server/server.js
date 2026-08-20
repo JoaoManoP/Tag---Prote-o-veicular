@@ -114,8 +114,9 @@ function createApplication(options = {}) {
 
   app.disable('x-powered-by');
   app.use((req,res,next)=>{const supplied=String(req.get('x-request-id')||'');req.requestId=/^[A-Za-z0-9._-]{8,80}$/.test(supplied)?supplied:crypto.randomUUID();res.set('X-Request-Id',req.requestId);const started=Date.now();res.on('finish',()=>{if(process.env.NODE_ENV==='production')console.log(JSON.stringify({request_id:req.requestId,method:req.method,path:req.path,status:res.statusCode,duration_ms:Date.now()-started,timestamp:new Date().toISOString()}))});next()});
+  const enforceHttpsResources=options.enforceHttpsResources??process.env.NODE_ENV==='production';
   app.use(helmet({
-    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.gstatic.com', 'https://*.googleapis.com', 'https://*.ggpht.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'], workerSrc: ["'self'", 'blob:'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.googleapis.com', 'https://maps.gstatic.com'] } },
+    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.gstatic.com', 'https://*.googleapis.com', 'https://*.ggpht.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'], workerSrc: ["'self'", 'blob:'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.googleapis.com', 'https://maps.gstatic.com'], upgradeInsecureRequests:enforceHttpsResources?[]:null } },
     crossOriginEmbedderPolicy: false,
     referrerPolicy: { policy: 'origin-when-cross-origin' }
   }));
