@@ -17,6 +17,11 @@ const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
 const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
 const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
 
+test('resumo do dashboard não realimenta o observador de mutações',()=>{
+  assert.match(ux,/onlineStatus\.className !== onlineClass/);
+  assert.doesNotMatch(ux,/byId\('sheetOnline'\)\.className\s*=/);
+});
+
 test('planos da home chegam ao cadastro e exibem confirmação', () => {
   assert.match(home, /register\.html\?plano=rastreio/);
   assert.match(home, /register\.html\?plano=inteligente/);

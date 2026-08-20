@@ -303,5 +303,5 @@ function createApplication(options = {}) {
   return { app, server, io, database, close };
 }
 
-if (require.main === module) { const { server } = createApplication(); const port = Number(process.env.PORT) || 3000; const host = process.env.HOST || '0.0.0.0'; server.listen(port, host, () => console.log(`Rastreon disponível em ${process.env.PUBLIC_URL || `http://localhost:${port}`} (escutando em ${host}:${port}; mapa: ${process.env.MAP_PROVIDER || 'maplibre'})`)); }
+if (require.main === module) { const { server } = createApplication(); const port = Number(process.env.PORT) || 3000; const host = process.env.HOST || '0.0.0.0'; server.once('error',error=>{if(error.code==='EADDRINUSE'){console.error(`A porta ${port} já está em uso. O Rastreon provavelmente já está aberto; use a instância existente ou encerre-a com Ctrl+C.`);process.exitCode=1;return}throw error});server.listen(port, host, () => console.log(`Rastreon disponível em ${process.env.PUBLIC_URL || `http://localhost:${port}`} (escutando em ${host}:${port}; mapa: ${process.env.MAP_PROVIDER || 'maplibre'})`)); }
 module.exports = { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair, parsePoiRoute, validateVehicle, applyDataRetention, validateProductionConfig, PBE_MODELS };

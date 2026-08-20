@@ -319,7 +319,8 @@
     setText(byId('sheetSpeed'), speed.replace(',0',''));
     const connected = !byId('phoneStatus')?.classList.contains('offline');
     setText(byId('sheetOnline'), connected ? '● Online' : '● Aguardando conexão');
-    byId('sheetOnline').className = connected ? 'online-text' : '';
+    const onlineStatus = byId('sheetOnline'), onlineClass = connected ? 'online-text' : '';
+    if (onlineStatus && onlineStatus.className !== onlineClass) onlineStatus.className = onlineClass;
     setText(byId('sheetUpdated'), speed !== '0,0' ? 'atualizado agora' : 'sem dados');
     const name = byId('vehicleSummary')?.querySelector('b')?.textContent || byId('vNickname')?.value || 'Meu veículo';
     setText(byId('sheetVehicleName'), name);
