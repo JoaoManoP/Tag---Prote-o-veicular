@@ -9,3 +9,6 @@ data/**/*.sqlite-wal
 backups/
 node_modules~*/
 npm-debug.log*
+*.log
+cookies.txt
+out.txt
