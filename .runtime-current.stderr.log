@@ -41,3 +41,4 @@ Emitted 'error' event on Server instance at:
 
 Node.js v24.18.1
 AVISO: SESSION_SECRET temporário. Configure o .env para manter logins após reinícios.
+AVISO: SESSION_SECRET temporário. Configure o .env para manter logins após reinícios.
