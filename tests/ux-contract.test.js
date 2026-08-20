@@ -17,6 +17,12 @@ const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
 const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
 const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
 
+test('dashboard contem overflow e mantem acoes do mapa no toolbar movel', () => {
+  assert.match(css, /html,body\{max-width:100%;overflow-x:hidden\}/);
+  assert.match(css, /\.map-toolbar \.actions\{max-width:68%;display:flex;flex-direction:row/);
+  assert.match(ux, /matchMedia\('\(min-width:781px\)'\)\.matches/);
+});
+
 test('resumo do dashboard não realimenta o observador de mutações',()=>{
   assert.match(ux,/onlineStatus\.className !== onlineClass/);
   assert.doesNotMatch(ux,/byId\('sheetOnline'\)\.className\s*=/);

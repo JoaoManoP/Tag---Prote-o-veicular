@@ -98,6 +98,38 @@ class FallbackGeocodingProvider {
   async reverse(latitude,longitude){try{return await this.primary.reverse(latitude,longitude)}catch{return this.fallback.reverse(latitude,longitude)}}
 }
 
+class MapboxGeocodingProvider {
+  constructor({ accessToken, fetchImpl = fetch, baseUrl = 'https://api.mapbox.com/search/geocode/v6', timeoutMs = 12000 } = {}) {
+    if (!accessToken) throw new Error('MAPBOX_ACCESS_TOKEN é obrigatório');
+    this.accessToken = accessToken;
+    this.fetch = fetchImpl;
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.timeoutMs = timeoutMs;
+  }
+  normalize(feature) {
+    const properties = feature?.properties || {};
+    const coordinates = properties.coordinates || {};
+    const longitude = Number(coordinates.longitude ?? feature?.geometry?.coordinates?.[0]);
+    const latitude = Number(coordinates.latitude ?? feature?.geometry?.coordinates?.[1]);
+    const context = properties.context || {};
+    const label = properties.full_address || properties.place_formatted || properties.name || feature?.place_name || '';
+    return { label: String(label).slice(0, 300), latitude, longitude, type: String(properties.feature_type || feature?.type || 'place').slice(0, 40), neighborhood: String(context.neighborhood?.name || ''), city: String(context.place?.name || context.locality?.name || ''), state: String(context.region?.name || ''), provider: 'mapbox' };
+  }
+  async search(query, options = {}) {
+    const url = `${this.baseUrl}/forward?q=${encodeURIComponent(query)}&country=${encodeURIComponent(options.countryCode || 'br')}&language=pt-BR&limit=6&autocomplete=true&access_token=${encodeURIComponent(this.accessToken)}`;
+    const data = await requestJson(this.fetch, url, {}, this.timeoutMs);
+    if (!Array.isArray(data?.features)) throw new Error('Resposta de geocodificação Mapbox inválida');
+    return data.features.map(feature => this.normalize(feature)).filter(place => place.label && Number.isFinite(place.latitude) && Number.isFinite(place.longitude));
+  }
+  async reverse(latitude, longitude) {
+    const url = `${this.baseUrl}/reverse?longitude=${encodeURIComponent(longitude)}&latitude=${encodeURIComponent(latitude)}&country=br&language=pt-BR&access_token=${encodeURIComponent(this.accessToken)}`;
+    const data = await requestJson(this.fetch, url, {}, this.timeoutMs);
+    const place = data?.features?.map(feature => this.normalize(feature)).find(item => item.label && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+    if (!place) throw new Error('Endereço Mapbox não encontrado');
+    return place;
+  }
+}
+
 function normalizeManeuver(value = '') { const text=String(value).toLowerCase(); if(text.includes('left'))return'left';if(text.includes('right'))return'right';if(text.includes('roundabout')||text.includes('rotary'))return'roundabout';if(text.includes('uturn')||text.includes('u-turn'))return'uturn';if(text.includes('arrive'))return'arrive';if(text.includes('depart'))return'depart';if(text.includes('merge'))return'merge';if(text.includes('fork'))return'fork';return'straight'; }
 
 class OsrmRouteProvider {
@@ -112,4 +144,4 @@ class GoogleRouteProvider {
 
 function createRouteProvider(options = {}) { const name = options.name || process.env.ROUTE_PROVIDER || 'osrm'; if (name === 'google') return new GoogleRouteProvider({ apiKey: options.apiKey || process.env.GOOGLE_MAPS_API_KEY, fetchImpl: options.fetchImpl }); if (name === 'osrm' || name === 'demo') return new OsrmRouteProvider({ fetchImpl: options.fetchImpl }); throw new Error(`ROUTE_PROVIDER não suportado: ${name}`); }
 
-module.exports = { VehicleRegistryError, VehicleRegistryProvider, ApiBrasilVehicleProvider, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, FallbackGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, createRouteProvider, decodePolyline, normalizeManeuver };
+module.exports = { VehicleRegistryError, VehicleRegistryProvider, ApiBrasilVehicleProvider, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, MapboxGeocodingProvider, FallbackGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, createRouteProvider, decodePolyline, normalizeManeuver };

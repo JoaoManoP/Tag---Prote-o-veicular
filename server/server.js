@@ -14,7 +14,7 @@ const { createDatabase, createSessionStore } = require('./database');
 const { normalizeEmail, validatePassword, validateRegistration, requireAuth, hashPassword, verifyPassword } = require('./auth');
 const { ROLES, requireRole, requirePageRole } = require('./authorization');
 const { VehicleEfficiencyProvider, estimateConsumption } = require('./vehicle-efficiency');
-const { PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, FallbackGeocodingProvider, createRouteProvider } = require('./providers');
+const { PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, MapboxGeocodingProvider, FallbackGeocodingProvider, createRouteProvider } = require('./providers');
 const { RoadEventService, ALLOWED_CATEGORIES } = require('./road-events');
 const { rankReconstructionCandidates, MapMatchingProvider } = require('./reconstruction');
 const { validateSchedule, isWithinSchedule } = require('./schedule');
@@ -80,6 +80,19 @@ function publicVehicle(row) { return { id: row.id, nickname: row.nickname, type:
 function localNetworkAddress(){for(const entries of Object.values(os.networkInterfaces()))for(const entry of entries||[])if(entry.family==='IPv4'&&!entry.internal)return entry.address;return null}
 function distanceBetween(a, b) { const radians = value => value * Math.PI / 180; const dLat = radians(b.latitude - a.latitude), dLng = radians(b.longitude - a.longitude), value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2; return 6371000 * 2 * Math.asin(Math.sqrt(value)); }
 function mapboxStyleUrl(styleUrl, accessToken) { if (!String(styleUrl).startsWith('mapbox://styles/')) return styleUrl; const stylePath = String(styleUrl).replace('mapbox://styles/', ''); const separator = stylePath.includes('?') ? '&' : '?'; return `https://api.mapbox.com/styles/v1/${stylePath}${separator}access_token=${encodeURIComponent(accessToken)}`; }
+function mapboxRasterStyle(styleUrl, accessToken) {
+  const match = String(styleUrl || '').match(/^mapbox:\/\/styles\/([^/]+)\/([^/?#]+)/);
+  if (!match) return mapboxStyleUrl(styleUrl, accessToken);
+  const [, owner, styleId] = match;
+  const tileUrl = `https://api.mapbox.com/styles/v1/${encodeURIComponent(owner)}/${encodeURIComponent(styleId)}/tiles/512/{z}/{x}/{y}?access_token=${encodeURIComponent(accessToken)}`;
+  return {
+    version: 8,
+    sources: {
+      mapbox: { type: 'raster', tiles: [tileUrl], tileSize: 512, maxzoom: 22, attribution: '© Mapbox © OpenStreetMap' }
+    },
+    layers: [{ id: 'mapbox-base', type: 'raster', source: 'mapbox' }]
+  };
+}
 function validPlannedRoute(value) { if (!value || typeof value !== 'object') return null; const distanceMeters = Number(value.distanceMeters ?? value.distance), durationSeconds = Number(value.durationSeconds ?? value.duration); if (!(distanceMeters >= 0) || !(durationSeconds >= 0) || !Array.isArray(value.geometry)) return null; const steps=(Array.isArray(value.steps)?value.steps:[]).slice(0,1000).map(step=>({maneuver:String(step?.maneuver||'straight').slice(0,30),instruction:String(step?.instruction||'Continue na rota').slice(0,240),street:String(step?.street||'').slice(0,160),distanceMeters:Number(step?.distanceMeters)||0,durationSeconds:Number(step?.durationSeconds)||0,location:step?.location&&Number.isFinite(Number(step.location.latitude))&&Number.isFinite(Number(step.location.longitude))?{latitude:Number(step.location.latitude),longitude:Number(step.location.longitude)}:null})); return { routeId: String(value.routeId ?? value.id ?? 'primary').slice(0, 100), provider: String(value.provider || 'unknown').slice(0, 40), distanceMeters, durationSeconds, durationInTrafficSeconds: Number.isFinite(Number(value.durationInTrafficSeconds)) ? Number(value.durationInTrafficSeconds) : null, geometry: value.geometry.slice(0, 50000), steps, tolls: value.tolls ?? null, traffic: value.traffic ?? null }; }
 function publicSession(value) { return { id: value.id, createdAt: value.createdAt, closed: value.closed, phoneConnected: value.phoneSockets.size > 0, positions: value.positions, vehicle: value.vehicle, trip: value.trip, interruptions: value.interruptions }; }
 function mobileSession(value) { return { id: value.id, closed: value.closed, vehicle: value.vehicle ? { nickname: value.vehicle.nickname, type: value.vehicle.type, brand: value.vehicle.brand, model: value.vehicle.model, version: value.vehicle.version || '' } : null }; }
@@ -87,7 +100,7 @@ function createApplication(options = {}) {
   const database = options.database || createDatabase(options.databasePath);
   const efficiencyProvider = options.efficiencyProvider || defaultEfficiencyProvider;
   const photonGeocoder=new PhotonGeocodingProvider({baseUrl:process.env.PHOTON_API_URL||'https://photon.komoot.io'}),nominatimUrl=process.env.NOMINATIM_BASE_URL;if(nominatimUrl&&new URL(nominatimUrl).hostname==='nominatim.openstreetmap.org')throw new Error('O Nominatim público não pode ser usado pelo RastroTack. Configure uma instância própria ou contratada.');const nominatimGeocoder=nominatimUrl?new NominatimGeocodingProvider({baseUrl:nominatimUrl}):null,openGeocoder=nominatimGeocoder?new FallbackGeocodingProvider(photonGeocoder,nominatimGeocoder):photonGeocoder;
-  if(process.env.GEOCODING_PROVIDER==='nominatim'&&!nominatimGeocoder)throw new Error('NOMINATIM_BASE_URL própria ou contratada é obrigatória para GEOCODING_PROVIDER=nominatim.');const geocodingProvider = options.geocodingProvider || (process.env.GEOCODING_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY ? new FallbackGeocodingProvider(new GoogleGeocodingProvider({ apiKey: process.env.GOOGLE_MAPS_API_KEY }), openGeocoder) : process.env.GEOCODING_PROVIDER==='nominatim'?nominatimGeocoder:openGeocoder);
+  if(process.env.GEOCODING_PROVIDER==='nominatim'&&!nominatimGeocoder)throw new Error('NOMINATIM_BASE_URL própria ou contratada é obrigatória para GEOCODING_PROVIDER=nominatim.');const mapboxGeocoder=process.env.MAPBOX_ACCESS_TOKEN?new MapboxGeocodingProvider({accessToken:process.env.MAPBOX_ACCESS_TOKEN}):null;const geocodingProvider = options.geocodingProvider || (process.env.GEOCODING_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY ? new FallbackGeocodingProvider(new GoogleGeocodingProvider({ apiKey: process.env.GOOGLE_MAPS_API_KEY }), openGeocoder) : process.env.GEOCODING_PROVIDER==='nominatim'?nominatimGeocoder:mapboxGeocoder?new FallbackGeocodingProvider(mapboxGeocoder,openGeocoder):openGeocoder);
   const plateLookupProvider = options.plateLookupProvider || new PlateLookupProvider({ baseUrl: process.env.PLATE_LOOKUP_URL, token: process.env.PLATE_LOOKUP_TOKEN });
   const fipePriceProvider=options.fipePriceProvider||new FipePriceProvider({baseUrl:process.env.FIPE_API_URL||'https://brasilapi.com.br/api/fipe/preco/v1'});
   const routeProvider = options.routeProvider || createRouteProvider();
@@ -116,7 +129,7 @@ function createApplication(options = {}) {
   app.use((req,res,next)=>{const supplied=String(req.get('x-request-id')||'');req.requestId=/^[A-Za-z0-9._-]{8,80}$/.test(supplied)?supplied:crypto.randomUUID();res.set('X-Request-Id',req.requestId);const started=Date.now();res.on('finish',()=>{if(process.env.NODE_ENV==='production')console.log(JSON.stringify({request_id:req.requestId,method:req.method,path:req.path,status:res.statusCode,duration_ms:Date.now()-started,timestamp:new Date().toISOString()}))});next()});
   const enforceHttpsResources=options.enforceHttpsResources??process.env.NODE_ENV==='production';
   app.use(helmet({
-    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.gstatic.com', 'https://*.googleapis.com', 'https://*.ggpht.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'], workerSrc: ["'self'", 'blob:'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://maps.googleapis.com', 'https://maps.gstatic.com'], upgradeInsecureRequests:enforceHttpsResources?[]:null } },
+    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://api.mapbox.com', 'https://*.tiles.mapbox.com', 'https://maps.gstatic.com', 'https://*.googleapis.com', 'https://*.ggpht.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'], workerSrc: ["'self'", 'blob:'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://tile.openstreetmap.org', 'https://*.openstreetmap.org', 'https://tiles.openfreemap.org', 'https://*.openfreemap.org', 'https://api.mapbox.com', 'https://*.tiles.mapbox.com', 'https://events.mapbox.com', 'https://maps.googleapis.com', 'https://maps.gstatic.com'], upgradeInsecureRequests:enforceHttpsResources?[]:null } },
     crossOriginEmbedderPolicy: false,
     referrerPolicy: { policy: 'origin-when-cross-origin' }
   }));
@@ -144,7 +157,7 @@ function createApplication(options = {}) {
     const mapboxAccessToken = provider === 'mapbox' ? process.env.MAPBOX_ACCESS_TOKEN || '' : '';
     const defaultMapboxStyle = 'mapbox://styles/mapbox/navigation-day-v1';
     const mapStyleUrl = provider === 'mapbox'
-      ? mapboxStyleUrl(process.env.MAP_STYLE_URL || defaultMapboxStyle, mapboxAccessToken)
+      ? mapboxRasterStyle(process.env.MAP_STYLE_URL || defaultMapboxStyle, mapboxAccessToken)
       : process.env.MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty';
     res.type('application/javascript').set('Cache-Control', 'no-store').send(`window.RASTROTACK_MAP_CONFIG=${JSON.stringify({
       provider,

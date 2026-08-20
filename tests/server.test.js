@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair, parsePoiRoute, applyDataRetention, validateProductionConfig } = require('../server/server');
 const { VehicleEfficiencyProvider, estimateConsumption } = require('../server/vehicle-efficiency');
-const { VehicleRegistryError, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
+const { VehicleRegistryError, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, MapboxGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
 const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
@@ -51,7 +51,8 @@ function register(agent, overrides = {}) { return agent.post('/api/auth/register
 
 test('health check confirma API e banco', async (t) => { const { app } = setup(t); const response = await request(app).get('/api/health').expect(200); assert.equal(response.body.database, 'connected'); });
 test('CSP permite assets HTTP na rede local e exige upgrade em produção',async(t)=>{const development=setup(t,{enforceHttpsResources:false});const devResponse=await request(development.app).get('/').expect(200);assert.doesNotMatch(devResponse.headers['content-security-policy']||'',/upgrade-insecure-requests/);const production=setup(t,{enforceHttpsResources:true});const prodResponse=await request(production.app).get('/').expect(200);assert.match(prodResponse.headers['content-security-policy']||'',/upgrade-insecure-requests/)});
-test('configuração do mapa gera estilo Mapbox quando token está configurado', async (t) => { const previous={MAP_PROVIDER:process.env.MAP_PROVIDER,MAP_STYLE_URL:process.env.MAP_STYLE_URL,MAPBOX_ACCESS_TOKEN:process.env.MAPBOX_ACCESS_TOKEN};process.env.MAP_PROVIDER='mapbox';process.env.MAP_STYLE_URL='mapbox://styles/mapbox/navigation-day-v1';process.env.MAPBOX_ACCESS_TOKEN='pk.test-token';t.after(()=>{for(const [key,value] of Object.entries(previous))value===undefined?delete process.env[key]:process.env[key]=value});const { app }=setup(t);const response=await request(app).get('/map-config.js').expect(200);assert.match(response.text,/"provider":"mapbox"/);assert.match(response.text,/api\.mapbox\.com\/styles\/v1\/mapbox\/navigation-day-v1/);assert.match(response.text,/access_token=pk\.test-token/);});
+test('CSP permite os recursos necessários dos mapas sem liberar origens genéricas',async(t)=>{const{app}=setup(t);const response=await request(app).get('/dashboard').expect(302);const policy=response.headers['content-security-policy']||'';assert.match(policy,/connect-src[^;]*https:\/\/tile\.openstreetmap\.org/);assert.match(policy,/https:\/\/api\.mapbox\.com/);assert.match(policy,/https:\/\/\*\.tiles\.mapbox\.com/);assert.match(policy,/https:\/\/events\.mapbox\.com/);assert.doesNotMatch(policy,/connect-src[^;]*\shttps:\s/)});
+test('configuração do mapa gera tiles Mapbox compatíveis com MapLibre', async (t) => { const previous={MAP_PROVIDER:process.env.MAP_PROVIDER,MAP_STYLE_URL:process.env.MAP_STYLE_URL,MAPBOX_ACCESS_TOKEN:process.env.MAPBOX_ACCESS_TOKEN};process.env.MAP_PROVIDER='mapbox';process.env.MAP_STYLE_URL='mapbox://styles/mapbox/navigation-day-v1';process.env.MAPBOX_ACCESS_TOKEN='pk.test-token';t.after(()=>{for(const [key,value] of Object.entries(previous))value===undefined?delete process.env[key]:process.env[key]=value});const { app }=setup(t);const response=await request(app).get('/map-config.js').expect(200);assert.match(response.text,/"provider":"mapbox"/);assert.match(response.text,/"type":"raster"/);assert.doesNotMatch(response.text,/tile\.openstreetmap\.org/);assert.match(response.text,/api\.mapbox\.com\/styles\/v1\/mapbox\/navigation-day-v1\/tiles\/512/);assert.match(response.text,/access_token=pk\.test-token/);});
 test('todas as respostas recebem identificador de requisição rastreável', async (t) => { const { app }=setup(t);const generated=await request(app).get('/api/health').expect(200);assert.match(generated.headers['x-request-id'],/^[0-9a-f-]{36}$/);const supplied=await request(app).get('/api/health').set('X-Request-Id','teste-request-123').expect(200);assert.equal(supplied.headers['x-request-id'],'teste-request-123'); });
 test('readiness e áreas restritas aplicam papéis no backend', async (t) => { const { app,database }=setup(t);await request(app).get('/api/ready').expect(200,{status:'ready'});const user=request.agent(app);await register(user).expect(201);await user.get('/api/admin/overview').expect(403);await user.get('/api/lab/info').expect(403);database.prepare("UPDATE users SET role='ADMIN' WHERE email=?").run('teste@example.com');await user.get('/api/admin/overview').expect(200);database.prepare("UPDATE users SET role='DEVELOPER' WHERE email=?").run('teste@example.com');await user.get('/api/lab/info').expect(200);await user.post('/api/lab/telemetry/validate').send({deviceId:'LAB-VIRTUAL-TAG',timestamp:Date.now(),latitude:-19.9,longitude:-43.9,accuracy:8,source:'simulation',sequence:1}).expect(200); });
 test('cadastro cria usuário, hash e sessão autenticada', async (t) => { const { app, database } = setup(t); const agent = request.agent(app); await register(agent).expect(201); const row = database.prepare('SELECT email, password_hash FROM users').get(); assert.equal(row.email, 'teste@example.com'); assert.notEqual(row.password_hash, 'Senha123'); assert.match(row.password_hash, /^\$2[aby]\$/); await agent.get('/api/auth/me').expect(200); });
@@ -168,6 +169,20 @@ test('Photon normaliza resultados GeoJSON sem exigir chave', async () => {
   assert.equal(places[0].latitude,-19.58);
   assert.match(places[0].label,/Timóteo, Minas Gerais, Brasil/);
   assert.match(requestedUrl,/photon\.komoot\.io\/api/);
+});
+
+test('Mapbox normaliza busca direta e reversa usando Geocoding v6', async () => {
+  const requested=[];
+  const feature={geometry:{coordinates:[-42.64,-19.58]},properties:{feature_type:'place',name:'Timóteo',full_address:'Timóteo, Minas Gerais, Brasil',coordinates:{longitude:-42.64,latitude:-19.58},context:{place:{name:'Timóteo'},region:{name:'Minas Gerais'}}}};
+  const geocoder=new MapboxGeocodingProvider({accessToken:'pk.test-token',fetchImpl:async url=>{requested.push(url);return{ok:true,json:async()=>({features:[feature]})}}});
+  const places=await geocoder.search('Timóteo');
+  const reverse=await geocoder.reverse(-19.58,-42.64);
+  assert.equal(places[0].provider,'mapbox');
+  assert.equal(places[0].latitude,-19.58);
+  assert.equal(reverse.city,'Timóteo');
+  assert.match(requested[0],/search\/geocode\/v6\/forward/);
+  assert.match(requested[1],/search\/geocode\/v6\/reverse/);
+  assert.ok(requested.every(url=>url.includes('access_token=pk.test-token')));
 });
 
 test('consulta por placa normaliza somente dados públicos do veículo', async () => {

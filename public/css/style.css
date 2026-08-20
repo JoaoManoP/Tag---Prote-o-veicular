@@ -141,3 +141,7 @@ body:not(.auth-page):not(.mobile-page) .danger{background:#fff3f2;color:#d5382d;
 
 /* Garante que o mapa ocupe a janela central; a regra antiga tinha o seletor inválido ".#map". */
 #map{flex:1;min-height:410px;height:100%;background:linear-gradient(180deg,#101f2f,#0b1829)}
+
+/* Contenção responsiva: evita que navegação, cartões ou o mapa ampliem o viewport. */
+html,body{max-width:100%;overflow-x:hidden}.topbar,.page-content,.workspace{max-width:100%}.topbar>*{min-width:0}
+@media(max-width:780px){#trackingView .map-toolbar{display:flex;min-width:0}.map-toolbar .actions{max-width:68%;display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;gap:6px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.map-toolbar .actions button{flex:0 0 auto;white-space:nowrap}.map-side-panel{display:none!important}}

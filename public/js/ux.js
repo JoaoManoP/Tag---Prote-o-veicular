@@ -81,7 +81,7 @@
         if (!byId('tripPlannerBtn')) { const trip = document.createElement('button'); trip.id = 'tripPlannerBtn'; trip.className = 'secondary'; trip.textContent = 'Viagem'; actions?.insertBefore(trip, byId('exploreBtn')); }
         if (!byId('fenceBtn')) { const fence = document.createElement('button'); fence.id = 'fenceBtn'; fence.className = 'secondary'; fence.textContent = 'Cerco'; actions?.insertBefore(fence, byId('exploreBtn')); }
         if (!byId('automotiveBtn')) { const automotive = document.createElement('button'); automotive.id = 'automotiveBtn'; automotive.className = 'secondary'; automotive.textContent = 'Modo carro'; automotive.setAttribute('aria-pressed', 'false'); actions?.insertBefore(automotive, byId('simulateBtn')); }
-        const sidePanel=document.createElement('aside');sidePanel.className='map-side-panel';sidePanel.setAttribute('aria-label','Ações do mapa');sidePanel.innerHTML='<strong>Ferramentas</strong><small>Ações fora da área de navegação</small>';if(actions)sidePanel.append(actions);const scenarios=byId('simulationScenarios');if(scenarios)sidePanel.append(scenarios);mapCard.append(sidePanel);mapCard.classList.add('has-side-panel');
+        if(window.matchMedia('(min-width:781px)').matches){const sidePanel=document.createElement('aside');sidePanel.className='map-side-panel';sidePanel.setAttribute('aria-label','Ações do mapa');sidePanel.innerHTML='<strong>Ferramentas</strong><small>Ações fora da área de navegação</small>';if(actions)sidePanel.append(actions);const scenarios=byId('simulationScenarios');if(scenarios)sidePanel.append(scenarios);mapCard.append(sidePanel);mapCard.classList.add('has-side-panel')}
       }
       mapCard.insertAdjacentHTML('beforeend', fenceMarkup());
     }
