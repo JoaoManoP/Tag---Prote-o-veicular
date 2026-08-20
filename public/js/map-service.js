@@ -167,15 +167,15 @@
   }
 
   async function ready(){
-    if(config.provider==='maplibre'){
+    if(config.provider==='maplibre'||config.provider==='mapbox'){
       try{
         const maplibregl=window.maplibregl||await window.RastroMapLibre;
-        if(maplibregl) return{L:mapLibreFacade(maplibregl),mapProvider:'maplibre'};
+        if(maplibregl) return{L:mapLibreFacade(maplibregl),mapProvider:config.provider};
         throw new Error('MapLibre indisponível.');
       }catch(error){
         console.warn('[RastroTack Map] MapLibre indisponível, usando Leaflet como fallback.', error);
         if(config.allowMapFallback && leaflet){ return{L:leaflet,mapProvider:'leaflet-fallback',message:'Fallback Leaflet ativo'}; }
-        return{L:null,mapProvider:'maplibre',error:'MapLibre não configurado neste ambiente.'};
+      return{L:null,mapProvider:config.provider,error:`${config.provider==='mapbox'?'Mapbox':'MapLibre'} não configurado neste ambiente.`};
       }
     }
     if(config.provider!=='google'){

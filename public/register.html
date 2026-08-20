@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#091725">
+  <meta name="theme-color" content="#080a0d">
   <title>Criar conta — Rastreon</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/theme-home.css">
 </head>
 <body class="register-page">
   <main class="register-shell">
@@ -21,6 +22,7 @@
     <section class="register-form-panel">
       <form id="registerForm" class="register-form">
         <header><span class="register-kicker">NOVA CONTA</span><h2>Crie sua conta</h2><p>Preencha os dados para acessar a central.</p></header>
+        <div id="selectedPlan" class="selected-plan" aria-live="polite"><span>PLANO SELECIONADO</span><b>Plano Inteligente</b><small>Demonstração sem cobrança</small><a href="/#planos">Alterar</a></div>
         <label>Nome completo<input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" required placeholder="Seu nome"></label>
         <label>E-mail<input id="email" name="email" type="email" autocomplete="email" maxlength="160" required placeholder="voce@exemplo.com"></label>
         <label>Telefone <small>(opcional)</small><input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="24" placeholder="(31) 99999-9999"></label>

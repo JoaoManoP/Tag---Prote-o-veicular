@@ -2,6 +2,11 @@
 const form = document.querySelector('form');
 const errorBox = document.getElementById('formError');
 const passwordToggle = document.getElementById('togglePassword');
+const planNames = { rastreio: 'Plano Rastreio', inteligente: 'Plano Inteligente', familia: 'Plano Família' };
+const requestedPlan = new URLSearchParams(location.search).get('plano');
+const selectedPlan = Object.hasOwn(planNames, requestedPlan) ? requestedPlan : 'inteligente';
+const planBox = document.getElementById('selectedPlan');
+if (planBox) planBox.querySelector('b').textContent = planNames[selectedPlan];
 function showError(message) { errorBox.textContent = message; errorBox.classList.remove('hidden'); }
 if (passwordToggle) passwordToggle.addEventListener('click', () => {
   const passwordInput = document.getElementById('password');
@@ -23,14 +28,16 @@ form.addEventListener('submit', async (event) => {
   const isRegister = form.id === 'registerForm';
   const password = document.getElementById('password').value;
   if (isRegister && password !== document.getElementById('confirmPassword').value) return showError('As senhas não coincidem.');
-  const payload = isRegister ? { name: document.getElementById('name').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, password } : { email: document.getElementById('email').value, password };
+  const payload = isRegister ? { name: document.getElementById('name').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, password, plan: selectedPlan } : { email: document.getElementById('email').value, password };
   button.disabled = true;
   button.textContent = isRegister ? 'Criando conta…' : 'Entrando…';
   try {
     const response = await fetch(`/api/auth/${isRegister ? 'register' : 'login'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Não foi possível continuar.');
-    location.replace('/dashboard');
+    if (isRegister) sessionStorage.setItem('rastreon-subscription-confirmation', `${planNames[data.subscription?.plan] || planNames[selectedPlan]} ativado em modo demonstrativo.`);
+    const pendingPair=sessionStorage.getItem('rastreon-pending-pair-token');
+    location.replace(pendingPair?'/pair.html':'/dashboard');
   } catch (error) {
     showError(error.message);
     button.disabled = false;
