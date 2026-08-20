@@ -13,6 +13,17 @@ const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnosti
 const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
 const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
 const navigationState = fs.readFileSync(path.join(root, 'public', 'js', 'navigation-state.js'), 'utf8');
+const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
+const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
+const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
+
+test('planos da home chegam ao cadastro e exibem confirmação', () => {
+  assert.match(home, /register\.html\?plano=rastreio/);
+  assert.match(home, /register\.html\?plano=inteligente/);
+  assert.match(home, /register\.html\?plano=familia/);
+  assert.match(register, /id="selectedPlan"/);
+  assert.match(authClient, /rastreon-subscription-confirmation/);
+});
 
 test('ajuda e tour são pequenos, fecháveis e não navegam automaticamente', () => {
   assert.match(html, /id="helpCenter"/);

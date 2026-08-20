@@ -196,6 +196,14 @@ const migrations = [
       const upsert=database.prepare("INSERT INTO fuel_price_preferences (user_id,fuel_type,price_per_liter,source,region,updated_at) VALUES (?,?,?,'legacy-vehicle-migration',NULL,?) ON CONFLICT(user_id,fuel_type) DO UPDATE SET price_per_liter=excluded.price_per_liter,source=excluded.source,updated_at=excluded.updated_at");
       for(const row of rows)upsert.run(row.user_id,String(row.fuel||'Não informado').slice(0,40),row.fuel_price,row.updated_at);
     }
+  },
+  {
+    version: 8,
+    name: 'user-subscription-plan',
+    up(database) {
+      addColumn(database, 'users', "subscription_plan TEXT NOT NULL DEFAULT 'inteligente'");
+      addColumn(database, 'users', "subscription_status TEXT NOT NULL DEFAULT 'demo_active'");
+    }
   }
 ];
 

@@ -1,5 +1,6 @@
 /* global io */
 'use strict';
+const homeTheme=document.createElement('link');homeTheme.rel='stylesheet';homeTheme.href='/css/theme-home.css';document.head.appendChild(homeTheme);
 console.info('[RastroTack] Dashboard build:','CORRECAO-DASHBOARD-01');
 window.RastroMap.ready.then((context)=>{
   const {L,mapProvider,error} = context || {};
@@ -49,6 +50,7 @@ const navigation=new window.NavigationStateService({map,container:document.query
 const br=(n,d=1)=>Number(n||0).toFixed(d).replace('.',','),formatDistance=m=>m<1000?`${br(m,0)} m`:`${br(m/1000,2)} km`,formatDuration=s=>s<3600?`${Math.round(s/60)} min`:`${Math.floor(s/3600)}h ${Math.round((s%3600)/60)}min`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2600)}
+const subscriptionConfirmation=sessionStorage.getItem('rastreon-subscription-confirmation');if(subscriptionConfirmation){sessionStorage.removeItem('rastreon-subscription-confirmation');setTimeout(()=>toast(subscriptionConfirmation),500)}
 function geolocationError(error){const messages={1:'Permita o acesso à localização para usar o GPS.',2:'Sua localização está indisponível no momento.',3:'O GPS demorou para responder. Tente novamente.'};toast(messages[error?.code]||'Não foi possível obter sua localização.')}
 function normalizeBrowserPosition(position){return{latitude:position.coords.latitude,longitude:position.coords.longitude,accuracy:Math.max(0,position.coords.accuracy||0),speed:Number.isFinite(position.coords.speed)?position.coords.speed:0,heading:Number.isFinite(position.coords.heading)?position.coords.heading:null,altitude:Number.isFinite(position.coords.altitude)?position.coords.altitude:null,timestamp:position.timestamp||Date.now(),source:'browser-gps'}}
 function renderUserLocation(position,{center=false}={}){userPosition=position;const ll=[position.latitude,position.longitude],userIcon=L.divIcon({className:'user-location-icon',html:'<span aria-label="Minha localização"></span>'});if(!userLocationMarker)userLocationMarker=L.marker(ll,{icon:userIcon}).addTo(layers.userLocation).bindTooltip('Minha localização');else userLocationMarker.setLatLng(ll);if(!userAccuracyCircle)userAccuracyCircle=L.circle(ll,{radius:position.accuracy,color:'#1684e8',fillColor:'#1684e8',fillOpacity:.08,weight:1}).addTo(layers.userLocation);else userAccuracyCircle.setLatLng(ll).setRadius(position.accuracy);if(center)map.setView(ll,Math.max(16,map.getZoom()));window.dispatchEvent(new CustomEvent('rastreon:user-location',{detail:position}));return position}
