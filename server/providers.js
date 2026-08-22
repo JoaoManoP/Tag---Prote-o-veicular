@@ -116,7 +116,9 @@ class MapboxGeocodingProvider {
     return { label: String(label).slice(0, 300), latitude, longitude, type: String(properties.feature_type || feature?.type || 'place').slice(0, 40), neighborhood: String(context.neighborhood?.name || ''), city: String(context.place?.name || context.locality?.name || ''), state: String(context.region?.name || ''), provider: 'mapbox' };
   }
   async search(query, options = {}) {
-    const url = `${this.baseUrl}/forward?q=${encodeURIComponent(query)}&country=${encodeURIComponent(options.countryCode || 'br')}&language=pt-BR&limit=6&autocomplete=true&access_token=${encodeURIComponent(this.accessToken)}`;
+    const params = new URLSearchParams({ q: query, country: options.countryCode || 'br', language: 'pt-BR', limit: '6', autocomplete: 'true', access_token: this.accessToken });
+    if (Number.isFinite(options.longitude) && Number.isFinite(options.latitude)) params.set('proximity', `${options.longitude},${options.latitude}`);
+    const url = `${this.baseUrl}/forward?${params}`;
     const data = await requestJson(this.fetch, url, {}, this.timeoutMs);
     if (!Array.isArray(data?.features)) throw new Error('Resposta de geocodificação Mapbox inválida');
     return data.features.map(feature => this.normalize(feature)).filter(place => place.label && Number.isFinite(place.latitude) && Number.isFinite(place.longitude));

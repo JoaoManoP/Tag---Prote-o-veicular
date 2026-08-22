@@ -243,6 +243,11 @@ const migrations = [
         CREATE INDEX IF NOT EXISTS idx_pairing_owner_status ON pairing_sessions(user_id, status, created_at DESC);
       `);
     }
+  },
+  {
+    version: 10,
+    name: 'user-profile-avatar',
+    up(database) { addColumn(database, 'users', 'avatar_data TEXT'); }
   }
 ];
 
