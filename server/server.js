@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const fs = require('node:fs');
 const crypto = require('node:crypto');
 const http = require('node:http');
 const os = require('node:os');
@@ -174,7 +175,7 @@ function createApplication(options = {}) {
   app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
   app.get(['/pair','/pair.html'], (_req, res) => res.sendFile(path.join(publicDir, 'pair.html')));
   app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
-  app.get('/dashboard', (req, res) => req.session.userId ? res.sendFile(path.join(publicDir, 'index.html')) : res.redirect('/login.html'));
+  app.get('/dashboard', (req, res) => { if (!req.session.userId) return res.redirect('/login.html'); const html=fs.readFileSync(path.join(publicDir,'index.html'),'utf8').replace(/dashboard-refresh\.css\?v=[^"']+/g,'dashboard-refresh.css?v=20260822-12').replace(/dashboard\.js\?v=[^"']+/g,'dashboard.js?v=8'); res.set('Cache-Control','no-store').type('html').send(html); });
   app.get('/admin', requirePageRole(database, ROLES.ADMIN), (_req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
   app.get('/lab', requirePageRole(database, ROLES.DEVELOPER), (_req, res) => res.sendFile(path.join(publicDir, 'lab.html')));
 
