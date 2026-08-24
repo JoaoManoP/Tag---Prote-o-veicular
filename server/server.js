@@ -24,6 +24,7 @@ const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextG
 const { calculateSafeScore } = require('./gamification');
 const { createDiagnosticEvent, EVENT_TYPES, SEVERITIES } = require('./vehicle-diagnostics');
 const { acceptTelemetryPoint, validateTelemetryPoint } = require('./telemetry');
+const { smoothTrackForDisplay } = require('./trajectory');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -323,6 +324,13 @@ function createApplication(options = {}) {
     socket.on('history:clear', () => { const tracking = sessions.get(socket.data.sessionId); if (tracking && socket.data.role === 'dashboard' && socket.request.session?.userId === tracking.ownerId) { database.prepare('DELETE FROM positions WHERE tracking_session_id = ?').run(tracking.id); database.prepare('DELETE FROM interruptions WHERE tracking_session_id = ?').run(tracking.id); tracking.positions = []; tracking.interruptions = []; io.to(tracking.id).emit('history:cleared'); } });
     socket.on('session:close', () => { const tracking = sessions.get(socket.data.sessionId); if (tracking && socket.data.role === 'dashboard' && socket.request.session?.userId === tracking.ownerId) { tracking.closed = true;database.prepare("UPDATE pairing_sessions SET status='CANCELLED' WHERE tracking_session_id=? AND status IN ('PENDING','SCANNED')").run(tracking.id); database.prepare('UPDATE tracking_sessions SET closed_at = ? WHERE id = ? AND user_id = ?').run(Date.now(), tracking.id, tracking.ownerId); io.to(tracking.id).emit('session:closed'); io.to(`mobile:${tracking.id}`).emit('session:closed'); setTimeout(() => sessions.delete(tracking.id), 10000).unref(); } });
     socket.on('disconnect', () => { const tracking = sessions.get(socket.data.sessionId); if (tracking && socket.data.role === 'mobile') { tracking.phoneSockets.delete(socket.id);if(socket.data.deviceId)database.prepare("INSERT INTO audit_events (actor_user_id,action,target_type,target_id,reason,created_at) VALUES (?,'DEVICE_DISCONNECTED','DEVICE',?,'Conexão WebSocket encerrada',?)").run(tracking.ownerId,socket.data.deviceId,Date.now()); io.to(tracking.id).emit('session:status', { phoneConnected: tracking.phoneSockets.size > 0 }); } });
+  });
+
+  app.get('/api/trips/:id/display-track', requireAuth, (req, res) => {
+    const trip = database.prepare('SELECT tracking_session_id AS trackingSessionId FROM trips WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+    if (!trip) return res.status(404).json({ error: 'Viagem não encontrada.' });
+    const actualTrack = database.prepare('SELECT latitude, longitude, accuracy, speed, heading, captured_at AS timestamp, source, captured_offline AS capturedOffline FROM positions WHERE tracking_session_id = ? ORDER BY captured_at, id').all(trip.trackingSessionId);
+    res.json({ displayTrack: smoothTrackForDisplay(actualTrack), pointCount: actualTrack.length });
   });
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Endpoint não encontrado.' }));

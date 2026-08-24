@@ -149,7 +149,7 @@
       remove(){if(this.object){this.object.remove();this.object=null}if(this.map?.getLayer(this.id))this.map.removeLayer(this.id);if(this.map?.getSource(this.id))this.map.removeSource(this.id);return this}
     }
     class MapWrapper{
-      constructor(id){this._map=new maplibregl.Map({container:id,style:config.mapStyleUrl||'https://tiles.openfreemap.org/styles/liberty',center:[-42.54,-19.47],zoom:10,pitch:0,attributionControl:true});this._map.addControl(new maplibregl.NavigationControl({showCompass:true}),'bottom-right');this.ready=new Promise(resolve=>this._map.once('load',resolve));mapInstance=this}
+      constructor(id){this._map=new maplibregl.Map({container:id,style:config.mapStyleUrl||'https://tiles.openfreemap.org/styles/liberty',center:[-42.54,-19.47],zoom:10,pitch:0,attributionControl:true});this.ready=new Promise(resolve=>this._map.once('load',resolve));mapInstance=this}
       setView(center,zoom){this._map.jumpTo({center:lngLat(center),zoom:Number.isFinite(zoom)?zoom:this.getZoom()});return this}
       fitBounds(bounds,options={}){this._map.fitBounds(bounds,{padding:options.padding?.[0]||30,maxZoom:options.maxZoom});return this}
       removeLayer(layer){layer?.remove?.();return this}

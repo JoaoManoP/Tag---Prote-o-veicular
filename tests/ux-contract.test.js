@@ -37,6 +37,11 @@ test('planos da home chegam ao cadastro e exibem confirmação', () => {
   assert.match(authClient, /rastreon-subscription-confirmation/);
 });
 
+test('atalhos de planos usam a rota pública da home', () => {
+  assert.doesNotMatch(dashboard, /\/home\.html#planos/);
+  assert.match(dashboard, /location\.href='\/#planos'/);
+});
+
 test('ajuda e tour são pequenos, fecháveis e não navegam automaticamente', () => {
   assert.match(html, /id="helpCenter"/);
   assert.match(html, /id="tourDismiss"/);
