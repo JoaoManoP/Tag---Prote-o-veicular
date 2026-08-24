@@ -1,4 +1,4 @@
-# Changelog RastroTack
+# Changelog RASTREON
 
 ## Em andamento — 17/08/2026
 

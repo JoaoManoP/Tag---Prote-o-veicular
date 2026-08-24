@@ -8,7 +8,6 @@ const { VehicleRegistryError, PlateLookupProvider, AutoDevVehicleImageProvider, 
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
 const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
-const { calculateSafeScore } = require('../server/gamification');
 const { RoadEventService, categoryFor } = require('../server/road-events');
 
 test('preferências de tour e diagnósticos simulados são persistidos separadamente', async (t) => {
@@ -455,31 +454,6 @@ test('cenário offline demonstrativo persiste pontos em ordem e interrupção', 
   assert.match(response.body.disclaimer, /demonstrativo/);
   assert.deepEqual(database.prepare('SELECT sequence_number AS sequence FROM positions ORDER BY captured_at').all().map(row => row.sequence), [1, 2, 3]);
   assert.equal(database.prepare('SELECT COUNT(*) AS total FROM interruptions').get().total, 1);
-});
-
-test('gamificação não usa velocidade e recompensa práticas seguras', () => {
-  const result = calculateSafeScore({ completedTrips: 5, interruptions: 0, scheduleRules: 1, outsideScheduleAlerts: 0, geofences: 1, geofenceExitAlerts: 0, accuratePositionRatio: 1, maximumSpeed: 999 });
-  assert.equal(result.score, 100);
-  assert.ok(result.achievements.includes('GUARDIAO_DA_AREA'));
-  assert.match(result.disclaimer, /Velocidade não gera pontos/);
-  assert.equal(calculateSafeScore({ completedTrips: 0 }).score, 0);
-});
-
-test('ranking é opt-in, protegido e não expõe usuário sem consentimento', async (t) => {
-  const { app } = setup(t), participant = request.agent(app), privateUser = request.agent(app);
-  await register(participant).expect(201);
-  await register(privateUser, { email: 'privado@example.com' }).expect(201);
-  await request(app).get('/api/gamification/ranking').expect(401);
-  let ranking = await privateUser.get('/api/gamification/ranking').expect(200);
-  assert.deepEqual(ranking.body.ranking, []);
-  await participant.put('/api/gamification/me').send({ enabled: true, displayName: 'Motorista Seguro' }).expect(200);
-  ranking = await privateUser.get('/api/gamification/ranking').expect(200);
-  assert.equal(ranking.body.ranking.length, 1);
-  assert.equal(ranking.body.ranking[0].displayName, 'Motorista Seguro');
-  assert.match(ranking.body.criteria, /Velocidade não é utilizada/);
-  await participant.put('/api/gamification/me').send({ enabled: false, displayName: '' }).expect(200);
-  ranking = await privateUser.get('/api/gamification/ranking').expect(200);
-  assert.deepEqual(ranking.body.ranking, []);
 });
 
 test('capabilities documenta recursos disponíveis sem expor segredos', async (t) => {

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "RASTREON",
+    "slug": "rastreon",
+    "scheme": "rastreon",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/rastreon-app-icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.nexobg.rastreon",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O RASTREON usa sua localização somente após sua autorização para rastrear o veículo.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Permite manter o compartilhamento autorizado durante a viagem.",
+        "NSCameraUsageDescription": "A câmera é usada apenas para ler o QR Code de pareamento."
+      }
+    },
+    "android": {
+      "package": "br.com.nexobg.rastreon",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_LOCATION", "CAMERA", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permita que o RASTREON compartilhe a posição deste veículo durante uma viagem." }],
+      ["expo-camera", { "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento." }],
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-router"
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}

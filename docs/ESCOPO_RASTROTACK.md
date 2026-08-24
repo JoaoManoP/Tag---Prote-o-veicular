@@ -1,4 +1,4 @@
-# Escopo funcional do RastroTack
+# Escopo funcional do RASTREON
 
 O mapa deve apresentar veículo, rota e informações relevantes sem transformar a experiência em um painel cheio de caixas. Em desktop ele usa uma moldura compacta; em telas pequenas e no modo automotivo volta a ocupar a área útil disponível.
 

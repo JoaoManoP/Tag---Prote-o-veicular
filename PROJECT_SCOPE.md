@@ -1,6 +1,6 @@
-# Escopo do RastroTack
+# Escopo do RASTREON
 
-O RastroTack oferece rastreamento veicular, planejamento de rotas, histórico, cercos e telemetria consentida. O mapa é o elemento principal, com contextos distintos para rastreamento e navegação.
+O RASTREON oferece rastreamento veicular, planejamento de rotas, histórico, cercos e telemetria consentida. O mapa é o elemento principal, com contextos distintos para rastreamento e navegação. Gamificação não faz parte do produto.
 
 ## Mapa
 

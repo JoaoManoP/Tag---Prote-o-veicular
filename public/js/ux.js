@@ -19,7 +19,6 @@
     timeline: [['Como consultar uma viagem?', 'Escolha o período e toque em Aplicar.'], ['Saúde e segurança são iguais?', 'Não. Eventos mecânicos simulados ficam separados dos alertas de segurança.']],
     vehicles: [['Como adicionar um veículo?', 'Toque em Adicionar veículo e preencha apenas os dados essenciais.'], ['Posso editar depois?', 'Sim. Use a ação Editar no veículo escolhido.']],
     profile: [['Onde altero meus dados?', 'As opções da conta ficam reunidas nesta página.'], ['Quem vê meus veículos?', 'Somente pessoas autorizadas na sua conta.']],
-    gamification: [['Como ganho pontos?', 'Condução responsável, continuidade e respeito às regras geram progresso.'], ['Preciso participar do ranking?', 'Não. A participação pública é opcional.']],
     plans: [['Isto gera cobrança?', 'Não. Os planos apresentados nesta versão são demonstrativos.']],
     fence: [['O que é um cerco?', 'É uma área protegida. O Rastreon avisa quando o veículo sair.'], ['Como proteger minha casa?', 'Busque o endereço, escolha o tamanho e ative a proteção.'], ['Posso criar mais de um?', 'Sim. Você pode proteger locais diferentes.'], ['Como desativar temporariamente?', 'Abra o local protegido e altere seu estado.'], ['Por que recebi um alerta de saída?', 'O veículo teve leituras confirmadas fora da área protegida.']],
     developer: [['Os alertas são reais?', 'Não. Todo evento deste laboratório tem fonte SIMULATION.'], ['O celular lê a ECU?', 'Não. Dados reais exigem integração OBD, CAN ou API compatível.']]
@@ -29,7 +28,6 @@
     timeline: [['#eventTimeline', 'Aqui aparecem os acontecimentos da viagem em ordem.'], ['#dateFilter', 'Use o período para encontrar uma atividade.']],
     vehicles: [['#vehiclesGrid', 'Aqui ficam os veículos vinculados à sua conta.'], ['#newVehicleBtn', 'Use esta ação para adicionar um veículo.']],
     profile: [['.profile-card', 'Este é o resumo da sua conta.'], ['#profileTrips', 'Suas atividades recentes aparecem aqui.']],
-    gamification: [['#safeScore', 'A pontuação considera condução responsável, nunca velocidade.'], ['#rankingEnabled', 'Você decide se quer participar publicamente.']],
     plans: [['.plans-grid', 'Compare os recursos demonstrativos sem realizar cobrança.']],
     fence: [['#fenceSearch', 'Digite um endereço ou CEP aqui.'], ['#fenceSizes', 'Escolha uma área aproximada sem precisar pensar em metros.'], ['#activateFence', 'Confira a área no mapa e ative a proteção.']],
     trip: [['#originInput', 'Digite um endereço ou CEP de saída.'], ['#destinationInput', 'Escolha para onde você vai.'], ['#calculateBtn', 'Calcule a rota e confira apenas o resumo principal.']],

@@ -1,4 +1,4 @@
-# RastroTack — rastreamento e navegação veicular
+# RASTREON — rastreamento e navegação veicular
 
 Aplicação web com autenticação, navegação GPS diária em primeiro plano, planejamento rodoviário, POIs, rastreamento consentido por celular, histórico de viagens e reconstrução explícita de lacunas offline. O projeto é funcional localmente, mas integrações que exigem credenciais, aplicativo nativo, dispositivo físico ou VPS não são apresentadas como concluídas.
 
@@ -14,7 +14,7 @@ npm run db:init
 npm start
 ```
 
-Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, use `npm run dev`. O backend e os clientes web são servidos pelo mesmo processo. No VS Code, use `Terminal > Run Task` ou a configuração de depuração `RastroTack: servidor`.
+Abra `http://localhost:3000`. Para desenvolvimento com reinício automático, use `npm run dev`. O backend e os clientes web são servidos pelo mesmo processo. No VS Code, use `Terminal > Run Task` ou a configuração de depuração `RASTREON: servidor`.
 
 Validação completa local:
 
@@ -80,7 +80,6 @@ Este cliente móvel é web e funciona em primeiro plano. GPS contínuo com tela 
 - Movimento fora da regra cria alerta interno `OUTSIDE_ALLOWED_TIME` somente com velocidade e precisão aceitáveis. Um cooldown evita alertas repetidos; não há envio real de SMS, WhatsApp ou push.
 - Áreas de cobertura circulares são escolhidas pelo usuário. Precisão ruim gera estado pendente; saída exige leituras consecutivas e usa histerese/cooldown.
 - O painel oferece cenários demonstrativos de percurso, queda offline, saída da área e movimento fora do horário.
-- Ranking e conquistas são opcionais. A pontuação considera viagens concluídas, continuidade, configurações de proteção e qualidade do GPS; velocidade não gera pontos.
 - A referência de endpoints está em `docs/API.md`; escopo e arquitetura estão em `docs/ESCOPO_RASTROTACK.md`, `docs/ARQUITETURA.md` e `docs/ARQUITETURA_MOBILE.md`.
 - Os modelos pré-carregados são referências demonstrativas baseadas no PBE Veicular/Inmetro e devem ser conferidos para ano e versão. A opção manual permanece disponível.
 - Consulta por placa usa provider configurável e retorna somente atributos públicos do veículo. Não é realizada consulta de proprietário, Renavam ou chassi. Sem credencial real, a integração permanece indisponível de forma explícita.

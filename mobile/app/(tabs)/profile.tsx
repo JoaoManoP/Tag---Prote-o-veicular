@@ -1,0 +1,6 @@
+import { router } from 'expo-router';
+import React from 'react';
+import { Pressable,Text,View } from 'react-native';
+import { Button,Card,Header,Screen,styles } from '../../src/components/ui';
+import { useApp } from '../../src/state/AppContext';
+export default function Profile(){const{user,vehicles,alerts,logout,theme}=useApp();const row=(title:string,path:string)=><Pressable onPress={()=>router.push(path as any)} style={{minHeight:48,justifyContent:'center'}}><Text style={{color:theme.colors.text,fontWeight:'700'}}>{title}  ›</Text></Pressable>;return <Screen><Header title="Perfil" subtitle="Conta, privacidade e preferências"/><Card><Text style={[styles.title,{color:theme.colors.text}]}>{user?.name}</Text><Text style={{color:theme.colors.muted}}>{user?.email}</Text><View style={{flexDirection:'row',gap:20}}><Text style={{color:theme.colors.text}}>{vehicles.length} veículo(s)</Text><Text style={{color:theme.colors.text}}>{alerts.filter(a=>!a.readAt).length} alerta(s)</Text></View></Card><Card>{row('Meus veículos','/vehicles')}{row('Dispositivos','/devices')}{row('Notificações','/notifications')}{row('Configurações','/settings')}{row('Privacidade e segurança','/privacy')}{row('Central de ajuda','/help')}</Card><Button danger title="Sair" onPress={logout}/></Screen>}

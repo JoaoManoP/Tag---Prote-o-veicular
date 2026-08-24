@@ -110,7 +110,7 @@ test('navegação usa ícones, separa Perfil e mantém cinco ações no celular'
 });
 
 test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
-  assert.match(css, /\.timeline-layout,\.plans-grid,\.profile-layout,\.gamification-layout\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(css, /\.timeline-layout,\.plans-grid,\.profile-layout\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(css, /\.form-grid\{grid-template-columns:1fr\}/);
   assert.match(css, /@media\(max-width:390px\)/);
 });
