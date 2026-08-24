@@ -41,9 +41,13 @@ class ApiBrasilVehicleProvider extends VehicleRegistryProvider {
     if(!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(normalized))throw new VehicleRegistryError('INVALID_PLATE','Placa inválida.');
     if(!this.token)throw new VehicleRegistryError('PROVIDER_AUTH_ERROR','Provider de placa sem credencial configurada.');
     const headers={'Content-Type':'application/json','Accept':'application/json','User-Agent':'Rastreon/1.0'};
-    headers.Authorization=`Bearer ${this.token}`;
+    const apiPlacas=/\bwdapi2\.com\.br\b/i.test(this.baseUrl);
+    if(!apiPlacas)headers.Authorization=`Bearer ${this.token}`;
     let response;
-    try { response=await this.fetch(this.baseUrl,{method:'POST',headers,body:JSON.stringify({tipo:this.serviceType,placa:normalized,homolog:this.homolog}),signal:AbortSignal.timeout(this.timeoutMs)}); }
+    const requestUrl=apiPlacas?`${this.baseUrl.replace(/\/$/,'')}/${encodeURIComponent(normalized)}/${encodeURIComponent(this.token)}`:this.baseUrl;
+    const requestOptions={method:apiPlacas?'GET':'POST',headers,signal:AbortSignal.timeout(this.timeoutMs)};
+    if(!apiPlacas)requestOptions.body=JSON.stringify({tipo:this.serviceType,placa:normalized,homolog:this.homolog});
+    try { response=await this.fetch(requestUrl,requestOptions); }
     catch(error){if(error?.name==='AbortError'||error?.name==='TimeoutError')throw new VehicleRegistryError('PROVIDER_TIMEOUT','O provider de placa excedeu o tempo limite.',{cause:error});throw new VehicleRegistryError('PROVIDER_UNAVAILABLE','Provider de placa indisponível.',{cause:error})}
     if(response.status===401||response.status===403)throw new VehicleRegistryError('PROVIDER_AUTH_ERROR','Credencial do provider de placa rejeitada.');
     if(response.status===404)throw new VehicleRegistryError('PLATE_NOT_FOUND','Veículo não encontrado.');
@@ -51,12 +55,12 @@ class ApiBrasilVehicleProvider extends VehicleRegistryProvider {
     if(!response.ok)throw new VehicleRegistryError('PROVIDER_UNAVAILABLE',`Provider de placa respondeu ${response.status}.`);
     let payload;try{payload=await response.json()}catch(error){throw new VehicleRegistryError('PROVIDER_UNAVAILABLE','Resposta inválida do provider de placa.',{cause:error})}
     if(payload?.error===true){const message=String(payload.message||'').toLowerCase();if(/token|credencial|autoriz/.test(message))throw new VehicleRegistryError('PROVIDER_AUTH_ERROR','Credencial do provider de placa rejeitada.');if(/saldo|crédito|credito/.test(message))throw new VehicleRegistryError('PROVIDER_RATE_LIMIT','Saldo do provider de placa indisponível.');throw new VehicleRegistryError('PROVIDER_UNAVAILABLE',String(payload.message||'Provider de placa recusou a consulta.'))}
-    const data=payload?.data?.veiculo||payload?.data||payload?.response||payload?.result||payload;
+    const data=apiPlacas?payload:payload?.data?.veiculo||payload?.data||payload?.response||payload?.result||payload?.informacoes_veiculo||payload;
     const text=(...keys)=>{for(const key of keys){const value=data?.[key];if(value!==undefined&&value!==null&&String(value).trim())return String(value).trim()}return''};
     const year=Number.parseInt(text('anoModelo','ano_modelo','ano','anoFabricacao','ano_fabricacao'),10);
     const nullable=(...keys)=>text(...keys)||null,normalizedYear=Number.isFinite(year)?year:null;
     const category=text('tipo','tipoVeiculo','tipo_veiculo','especie','categoria').toLowerCase(),motorcycle=/moto|motocicleta|ciclomotor|scooter/.test(category);
-    const vehicle={plate:normalized,type:motorcycle?'motorcycle':'car',brand:nullable('marca','Marca','brand','fabricante'),model:nullable('modelo','Modelo','model'),year:normalizedYear,modelYear:normalizedYear,version:nullable('versao','versão','submodelo'),engine:nullable('cilindradas','motor','motorizacao','motor_descricao'),transmission:nullable('cambio','câmbio','transmissao_descricao'),fuel:nullable('combustivel','combustível'),color:nullable('cor'),city:nullable('municipio','cidade'),state:nullable('uf','estado'),fipeCode:nullable('codigoFipe','codigo_fipe','fipe_codigo'),fipeValue:null,source:'apibrasil-v2',provider:'apibrasil'};
+    const vehicle={plate:normalized,type:motorcycle?'motorcycle':'car',brand:nullable('marca','Marca','MARCA','brand','fabricante'),model:nullable('modelo','Modelo','MODELO','model'),year:normalizedYear,modelYear:normalizedYear,version:nullable('versao','versão','VERSAO','submodelo','SUBMODELO'),engine:nullable('cilindradas','CILINDRADAS','motor','motorizacao','motor_descricao'),transmission:nullable('cambio','câmbio','CAMBIO','transmissao_descricao'),fuel:nullable('combustivel','combustível','COMBUSTIVEL'),color:nullable('cor','COR'),city:nullable('municipio','MUNICIPIO','cidade'),state:nullable('uf','UF','estado'),fipeCode:nullable('codigoFipe','codigo_fipe','fipe_codigo'),fipeValue:null,source:apiPlacas?'apiplacas':'apibrasil-v2',provider:apiPlacas?'apiplacas':'apibrasil'};
     if(!vehicle.brand&&!vehicle.model)throw new VehicleRegistryError('PLATE_NOT_FOUND','Veículo não encontrado.');
     return vehicle;
   }

@@ -204,6 +204,16 @@ test('consulta por placa aceita padrões antigo e Mercosul e mantém campos ause
   await assert.rejects(()=>provider.lookup('placa ruim'),error=>error.code==='INVALID_PLATE');
 });
 
+test('API Placas usa GET com credencial na URL e normaliza campos maiúsculos',async()=>{
+  let requestUrl,requestOptions;
+  const provider=new PlateLookupProvider({baseUrl:'https://wdapi2.com.br/consulta',token:'token-teste',fetchImpl:async(url,options)=>{requestUrl=url;requestOptions=options;return{ok:true,status:200,json:async()=>({MARCA:'VW',MODELO:'CROSSFOX',anoModelo:'2007',COMBUSTIVEL:'FLEX',data:'22/08/2026',chassi:'segredo'})}}});
+  const result=await provider.lookup('INT8C36');
+  assert.equal(requestUrl,'https://wdapi2.com.br/consulta/INT8C36/token-teste');
+  assert.equal(requestOptions.method,'GET');assert.equal(requestOptions.body,undefined);assert.equal(requestOptions.headers.Authorization,undefined);
+  assert.deepEqual({brand:result.brand,model:result.model,year:result.year,fuel:result.fuel,provider:result.provider},{brand:'VW',model:'CROSSFOX',year:2007,fuel:'FLEX',provider:'apiplacas'});
+  assert.equal('chassi' in result,false);
+});
+
 test('provider de placa padroniza autenticação, limite, timeout, offline e não encontrado',async()=>{
   const statusCode=new Map([[401,'PROVIDER_AUTH_ERROR'],[403,'PROVIDER_AUTH_ERROR'],[429,'PROVIDER_RATE_LIMIT'],[404,'PLATE_NOT_FOUND'],[500,'PROVIDER_UNAVAILABLE']]);
   for(const [status,code] of statusCode){const provider=new PlateLookupProvider({token:'token',fetchImpl:async()=>({ok:false,status})});await assert.rejects(()=>provider.lookup('ABC1D23'),error=>error.code===code)}

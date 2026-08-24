@@ -140,6 +140,7 @@
       bindPopup(text){this.popup=text;return this}
       openTooltip(){return this}
       setLatLng(value){this.value=value;this.object?.setLngLat(lngLat(value));return this}
+      setIcon(icon){this.options.icon=icon;const element=this.object?.getElement?.();if(element){element.className=icon?.options?.className||'map-pin';element.innerHTML=icon?.options?.html||''}return this}
       getLatLng(){const value=this.object?.getLngLat()||point(this.value);return{lat:value.lat,lng:value.lng}}
       getElement(){return this.object?.getElement?.()}
       setRadius(radius){this.options.radius=radius;const source=this.map?.getSource(this.id);if(source)source.setData(this._feature());return this}
