@@ -338,8 +338,9 @@
       }
       if (event.target.closest('#openTechnical')) document.body.classList.toggle('technical-open');
       if (event.target.closest('#tripPlannerBtn')) {
-        document.body.classList.toggle('trip-planning');
+        document.body.classList.remove('trip-planning');
         document.body.classList.remove('technical-open');
+        byId('quickRouteSearch')?.querySelector('input')?.focus();
         const fencePanel = byId('fencePanel');
         if (fencePanel) fencePanel.classList.add('hidden');
         currentPage='trip';

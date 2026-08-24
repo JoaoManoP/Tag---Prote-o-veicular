@@ -9,6 +9,7 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
 const ux = fs.readFileSync(path.join(root, 'public', 'js', 'ux.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'public', 'css', 'style.css'), 'utf8');
+const refreshCss = fs.readFileSync(path.join(root, 'public', 'css', 'dashboard-refresh.css'), 'utf8');
 const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnostics.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
 const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
@@ -77,6 +78,14 @@ test('autocomplete limita resultados e detalhes da rota ficam recolhidos', () =>
   assert.match(css, /route-summary>small\{display:none\}/);
 });
 
+test('busca inferior inicia a viagem e celular permanece opcional',()=>{
+  assert.match(dashboard,/Para onde você quer ir\?/);
+  assert.match(dashboard,/openQuickTripPanel/);
+  assert.match(dashboard,/Iniciar navegação neste dispositivo/);
+  assert.match(dashboard,/O site continua funcionando sem conexão com o telefone/);
+  assert.match(refreshCss,/wizard>:not\(\.quick-trip-panel\):not\(#routeSummary\)\{display:none/);
+});
+
 test('acabamentos do cerco e viagem permanecem progressivos',()=>{
   assert.match(ux,/Desenhar área personalizada/);
   assert.match(ux,/Confirmar e ativar/);
@@ -124,8 +133,8 @@ test('navegação possui manobra, ETA, interpolação, follow e camadas essencia
 
 test('cadastro do veículo oferece consulta por placa e não expõe dados pessoais', () => {
   assert.match(dashboard, /lookupPlateBtn/);
-  assert.match(dashboard, /\/api\/vehicles\/lookup\?plate=/);
-  assert.match(dashboard, /Dados do veículo preenchidos pela placa/);
+  assert.match(dashboard, /\/api\/vehicles\/lookup\/\$\{encodeURIComponent\(plate\)\}/);
+  assert.match(dashboard, /Veículo identificado pela placa/);
 });
 
 test('mapa mantém ferramentas na lateral e celular possui QR com fallback manual', () => {

@@ -248,6 +248,36 @@ const migrations = [
     version: 10,
     name: 'user-profile-avatar',
     up(database) { addColumn(database, 'users', 'avatar_data TEXT'); }
+  },
+  {
+    version: 11,
+    name: 'vehicle-vin-for-authorized-images',
+    up(database) { addColumn(database, 'vehicles', 'vin TEXT'); }
+  },
+  {
+    version: 12,
+    name: 'vehicle-identification-and-image-cache',
+    up(database) {
+      addColumn(database, 'vehicles', 'manufacture_year INTEGER');
+      addColumn(database, 'vehicles', 'color TEXT');
+      addColumn(database, 'vehicles', 'image_json TEXT');
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS vehicle_lookup_cache (
+          plate TEXT PRIMARY KEY, make TEXT, model TEXT, version TEXT,
+          manufacture_year INTEGER, model_year INTEGER, color TEXT, fuel TEXT, type TEXT,
+          provider TEXT NOT NULL, image_json TEXT, created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_vehicle_lookup_expiry ON vehicle_lookup_cache(expires_at);
+        CREATE TABLE IF NOT EXISTS vehicle_image_cache (
+          cache_key TEXT PRIMARY KEY, make TEXT NOT NULL, model TEXT NOT NULL, year INTEGER,
+          found INTEGER NOT NULL DEFAULT 0, image_url TEXT NOT NULL, source TEXT,
+          license TEXT, author TEXT, attribution TEXT, reference TEXT,
+          created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_vehicle_image_expiry ON vehicle_image_cache(expires_at);
+      `);
+    }
   }
 ];
 

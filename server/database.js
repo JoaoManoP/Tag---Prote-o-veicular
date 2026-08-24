@@ -60,10 +60,14 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       nickname TEXT NOT NULL,
       type TEXT NOT NULL CHECK(type IN ('car', 'motorcycle')),
       plate TEXT,
+      vin TEXT,
       brand TEXT NOT NULL,
       model TEXT NOT NULL,
       year INTEGER,
+      manufacture_year INTEGER,
       version TEXT,
+      color TEXT,
+      image_json TEXT,
       engine TEXT,
       transmission TEXT,
       fuel TEXT,
@@ -78,6 +82,20 @@ function createDatabase(databasePath = defaultDatabasePath()) {
       updated_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_vehicles_owner ON vehicles(user_id, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS vehicle_lookup_cache (
+      plate TEXT PRIMARY KEY, make TEXT, model TEXT, version TEXT,
+      manufacture_year INTEGER, model_year INTEGER, color TEXT, fuel TEXT, type TEXT,
+      provider TEXT NOT NULL, image_json TEXT, created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_lookup_expiry ON vehicle_lookup_cache(expires_at);
+    CREATE TABLE IF NOT EXISTS vehicle_image_cache (
+      cache_key TEXT PRIMARY KEY, make TEXT NOT NULL, model TEXT NOT NULL, year INTEGER,
+      found INTEGER NOT NULL DEFAULT 0, image_url TEXT NOT NULL, source TEXT,
+      license TEXT, author TEXT, attribution TEXT, reference TEXT,
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_image_expiry ON vehicle_image_cache(expires_at);
     CREATE TABLE IF NOT EXISTS fuel_price_preferences (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       fuel_type TEXT NOT NULL,

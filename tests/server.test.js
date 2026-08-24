@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const { createApplication, sessions, safePosition, normalizePositionBatch, insertPosition, validCoordPair, parsePoiRoute, applyDataRetention, validateProductionConfig } = require('../server/server');
 const { VehicleEfficiencyProvider, estimateConsumption } = require('../server/vehicle-efficiency');
-const { VehicleRegistryError, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, MapboxGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
+const { VehicleRegistryError, PlateLookupProvider, AutoDevVehicleImageProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, MapboxGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, decodePolyline } = require('../server/providers');
 const { rankReconstructionCandidates, classificationFor, MapMatchingProvider } = require('../server/reconstruction');
 const { validateSchedule, isWithinSchedule } = require('../server/schedule');
 const { validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState } = require('../server/geofence');
@@ -192,7 +192,7 @@ test('consulta por placa normaliza somente dados públicos do veículo', async (
   assert.deepEqual({plate:result.plate,brand:result.brand,model:result.model,year:result.year,fuel:result.fuel},{plate:'ABC1D23',brand:'Fiat',model:'Argo',year:2024,fuel:'Flex'});
   assert.equal('renavam' in result,false);assert.equal('chassis' in result,false);
   assert.equal(requestOptions.headers.Authorization,'Bearer token-teste');
-  assert.deepEqual(JSON.parse(requestOptions.body),{placa:'ABC1D23'});
+  assert.deepEqual(JSON.parse(requestOptions.body),{tipo:'agregados-basica',placa:'ABC1D23',homolog:false});
 });
 
 test('consulta por placa aceita padrões antigo e Mercosul e mantém campos ausentes nulos',async()=>{
@@ -224,6 +224,19 @@ test('API de placa retorna códigos estáveis e não bloqueia preenchimento manu
 test('preço de combustível fica separado do veículo, possui fonte e isolamento',async(t)=>{const{app,database}=setup(t),owner=request.agent(app),other=request.agent(app);await register(owner).expect(201);await register(other,{email:'outro@example.com'}).expect(201);const saved=await owner.post('/api/vehicles').send({...vehicle,type:'car',dataSource:'manual'}).expect(201);assert.equal('price' in saved.body.vehicle,false);assert.equal(database.prepare('SELECT fuel_price FROM vehicles WHERE id=?').get(saved.body.vehicle.id).fuel_price,0);await owner.get('/api/fuel-price?fuelType=Gasolina').expect(200,{preference:null});const updated=await owner.put('/api/fuel-price').send({fuelType:'Gasolina',pricePerLiter:6.49,region:'Vale do Aço'}).expect(200);assert.equal(updated.body.preference.source,'user-provided');assert.equal(updated.body.preference.pricePerLiter,6.49);const own=await owner.get('/api/fuel-price?fuelType=Gasolina').expect(200);assert.equal(own.body.preference.region,'Vale do Aço');await other.get('/api/fuel-price?fuelType=Gasolina').expect(200,{preference:null});await owner.put('/api/fuel-price').send({fuelType:'Gasolina',pricePerLiter:0}).expect(400)});
 
 test('provider FIPE valida código e escolhe o ano correspondente',async()=>{const provider=new FipePriceProvider({fetchImpl:async()=>({ok:true,json:async()=>[{codigoFipe:'001004-9',marca:'Fiat',modelo:'Palio',anoModelo:1998,combustivel:'Gasolina',valor:'R$ 10.000,00',mesReferencia:'agosto de 2026'},{codigoFipe:'001004-9',marca:'Fiat',modelo:'Palio',anoModelo:1999,combustivel:'Gasolina',valor:'R$ 11.000,00',mesReferencia:'agosto de 2026'}]})});const price=await provider.lookup('001004-9',{year:1999});assert.equal(price.value,'R$ 11.000,00');assert.equal(price.modelYear,1999);assert.equal(price.provider,'brasilapi-fipe');await assert.rejects(()=>provider.lookup('invalido'),/Código FIPE inválido/)});
+
+test('provider Auto.dev valida VIN, autentica no header e normaliza fotos',async()=>{
+  let captured;
+  const provider=new AutoDevVehicleImageProvider({apiKey:'segredo-teste',fetchImpl:async(url,options)=>{
+    captured={url,options};
+    return {ok:true,json:async()=>({data:{retail:['https://cdn.example/1.webp'],wholesale:[{url:'https://cdn.example/2.jpg'}]}})};
+  }});
+  const result=await provider.lookup('WP0AF2A99KS165242');
+  assert.equal(captured.options.headers.Authorization,'Bearer segredo-teste');
+  assert.equal(captured.url.includes('segredo-teste'),false);
+  assert.deepEqual(result.photos,['https://cdn.example/1.webp','https://cdn.example/2.jpg']);
+  await assert.rejects(()=>provider.lookup('VIN-INVALIDO'),/VIN inválido/);
+});
 
 test('API FIPE é autenticada e mantém aviso de valor referencial',async(t)=>{const fipePriceProvider={lookup:async(code,{year})=>({code,modelYear:year,value:'R$ 50.000,00',referenceMonth:'agosto de 2026',provider:'mock-fipe'})},{app}=setup(t,{fipePriceProvider}),agent=request.agent(app);await request(app).get('/api/fipe/001004-9').expect(401);await register(agent).expect(201);const response=await agent.get('/api/fipe/001004-9?year=2020').expect(200);assert.equal(response.body.price.value,'R$ 50.000,00');assert.match(response.body.disclaimer,/referência/);await agent.get('/api/fipe/invalido').expect(400)});
 

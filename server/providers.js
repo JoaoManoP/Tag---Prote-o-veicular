@@ -23,7 +23,7 @@ async function requestJson(fetchImpl, url, options = {}, timeoutMs = 12000) {
 class NominatimGeocodingProvider {
   constructor({ fetchImpl = fetch, baseUrl, timeoutMs = 12000 } = {}) { if(!baseUrl)throw new Error('NOMINATIM_BASE_URL própria ou contratada é obrigatória');this.fetch = fetchImpl; this.baseUrl = baseUrl.replace(/\/$/,''); this.timeoutMs = timeoutMs; this.cache = new Map(); }
   async search(query, options = {}) { const key = `${query}|${options.countryCode || 'br'}`.toLowerCase(); if (this.cache.has(key)) return this.cache.get(key); const data = await requestJson(this.fetch, `${this.baseUrl}/search?format=jsonv2&limit=6&countrycodes=${encodeURIComponent(options.countryCode || 'br')}&q=${encodeURIComponent(query)}`, { headers: { 'User-Agent': 'Rastreon/1.0 (local educational demo)', 'Accept-Language': 'pt-BR,pt;q=0.9' } }, this.timeoutMs); if (!Array.isArray(data)) throw new Error('Resposta de geocodificação inválida'); const results = data.map((item) => ({ label: String(item.display_name || '').slice(0, 300), latitude: Number(item.lat), longitude: Number(item.lon), type: String(item.type || '').slice(0, 40), provider: 'nominatim' })).filter((item) => item.label && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)); this.cache.set(key, results); if (this.cache.size > 200) this.cache.delete(this.cache.keys().next().value); return results; }
-  async reverse(latitude,longitude){const data=await requestJson(this.fetch,`${this.baseUrl}/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1`,{headers:{'User-Agent':'RastroTack/1.0','Accept-Language':'pt-BR,pt;q=0.9'}},this.timeoutMs);return{label:String(data.display_name||'Local escolhido').slice(0,240),neighborhood:data.address?.suburb||data.address?.neighbourhood||'',city:data.address?.city||data.address?.town||data.address?.municipality||'',state:data.address?.state||'',provider:'nominatim'}}
+  async reverse(latitude,longitude){const data=await requestJson(this.fetch,`${this.baseUrl}/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1`,{headers:{'User-Agent':'Rastreon/1.0','Accept-Language':'pt-BR,pt;q=0.9'}},this.timeoutMs);return{label:String(data.display_name||'Local escolhido').slice(0,240),neighborhood:data.address?.suburb||data.address?.neighbourhood||'',city:data.address?.city||data.address?.town||data.address?.municipality||'',state:data.address?.state||'',provider:'nominatim'}}
 }
 
 class VehicleRegistryError extends Error {
@@ -35,7 +35,7 @@ class VehicleRegistryProvider {
 }
 
 class ApiBrasilVehicleProvider extends VehicleRegistryProvider {
-  constructor({ fetchImpl = fetch, baseUrl = 'https://placa-fipe.apibrasil.com.br/placa/consulta', token = '', timeoutMs = 12000 } = {}) { super(); this.fetch=fetchImpl;this.baseUrl=baseUrl;this.token=token;this.timeoutMs=timeoutMs; }
+  constructor({ fetchImpl = fetch, baseUrl = 'https://gateway.apibrasil.io/api/v2/vehicles/base/001/consulta', token = '', serviceType = 'agregados-basica', homolog = false, timeoutMs = 12000 } = {}) { super(); this.fetch=fetchImpl;this.baseUrl=baseUrl;this.token=token;this.serviceType=serviceType;this.homolog=Boolean(homolog);this.timeoutMs=timeoutMs; }
   async lookup(plate) {
     const normalized=String(plate||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
     if(!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(normalized))throw new VehicleRegistryError('INVALID_PLATE','Placa inválida.');
@@ -43,24 +43,58 @@ class ApiBrasilVehicleProvider extends VehicleRegistryProvider {
     const headers={'Content-Type':'application/json','Accept':'application/json','User-Agent':'Rastreon/1.0'};
     headers.Authorization=`Bearer ${this.token}`;
     let response;
-    try { response=await this.fetch(this.baseUrl,{method:'POST',headers,body:JSON.stringify({placa:normalized}),signal:AbortSignal.timeout(this.timeoutMs)}); }
+    try { response=await this.fetch(this.baseUrl,{method:'POST',headers,body:JSON.stringify({tipo:this.serviceType,placa:normalized,homolog:this.homolog}),signal:AbortSignal.timeout(this.timeoutMs)}); }
     catch(error){if(error?.name==='AbortError'||error?.name==='TimeoutError')throw new VehicleRegistryError('PROVIDER_TIMEOUT','O provider de placa excedeu o tempo limite.',{cause:error});throw new VehicleRegistryError('PROVIDER_UNAVAILABLE','Provider de placa indisponível.',{cause:error})}
     if(response.status===401||response.status===403)throw new VehicleRegistryError('PROVIDER_AUTH_ERROR','Credencial do provider de placa rejeitada.');
     if(response.status===404)throw new VehicleRegistryError('PLATE_NOT_FOUND','Veículo não encontrado.');
     if(response.status===429)throw new VehicleRegistryError('PROVIDER_RATE_LIMIT','Limite do provider de placa atingido.');
     if(!response.ok)throw new VehicleRegistryError('PROVIDER_UNAVAILABLE',`Provider de placa respondeu ${response.status}.`);
     let payload;try{payload=await response.json()}catch(error){throw new VehicleRegistryError('PROVIDER_UNAVAILABLE','Resposta inválida do provider de placa.',{cause:error})}
-    const data=payload?.data||payload?.response||payload?.result||payload;
+    if(payload?.error===true){const message=String(payload.message||'').toLowerCase();if(/token|credencial|autoriz/.test(message))throw new VehicleRegistryError('PROVIDER_AUTH_ERROR','Credencial do provider de placa rejeitada.');if(/saldo|crédito|credito/.test(message))throw new VehicleRegistryError('PROVIDER_RATE_LIMIT','Saldo do provider de placa indisponível.');throw new VehicleRegistryError('PROVIDER_UNAVAILABLE',String(payload.message||'Provider de placa recusou a consulta.'))}
+    const data=payload?.data?.veiculo||payload?.data||payload?.response||payload?.result||payload;
     const text=(...keys)=>{for(const key of keys){const value=data?.[key];if(value!==undefined&&value!==null&&String(value).trim())return String(value).trim()}return''};
-    const year=Number.parseInt(text('anoModelo','ano_modelo','ano','anoFabricacao'),10);
+    const year=Number.parseInt(text('anoModelo','ano_modelo','ano','anoFabricacao','ano_fabricacao'),10);
     const nullable=(...keys)=>text(...keys)||null,normalizedYear=Number.isFinite(year)?year:null;
-    const vehicle={plate:normalized,brand:nullable('marca','Marca','brand'),model:nullable('modelo','Modelo','model'),year:normalizedYear,modelYear:normalizedYear,version:nullable('versao','versão','submodelo'),engine:nullable('cilindradas','motor','motorizacao'),transmission:nullable('cambio','câmbio'),fuel:nullable('combustivel','combustível'),color:nullable('cor'),city:nullable('municipio','cidade'),state:nullable('uf','estado'),fipeCode:nullable('codigoFipe','codigo_fipe','fipe_codigo'),fipeValue:null,source:'apibrasil',provider:'apibrasil'};
+    const category=text('tipo','tipoVeiculo','tipo_veiculo','especie','categoria').toLowerCase(),motorcycle=/moto|motocicleta|ciclomotor|scooter/.test(category);
+    const vehicle={plate:normalized,type:motorcycle?'motorcycle':'car',brand:nullable('marca','Marca','brand','fabricante'),model:nullable('modelo','Modelo','model'),year:normalizedYear,modelYear:normalizedYear,version:nullable('versao','versão','submodelo'),engine:nullable('cilindradas','motor','motorizacao','motor_descricao'),transmission:nullable('cambio','câmbio','transmissao_descricao'),fuel:nullable('combustivel','combustível'),color:nullable('cor'),city:nullable('municipio','cidade'),state:nullable('uf','estado'),fipeCode:nullable('codigoFipe','codigo_fipe','fipe_codigo'),fipeValue:null,source:'apibrasil-v2',provider:'apibrasil'};
     if(!vehicle.brand&&!vehicle.model)throw new VehicleRegistryError('PLATE_NOT_FOUND','Veículo não encontrado.');
     return vehicle;
   }
 }
 
 class PlateLookupProvider extends ApiBrasilVehicleProvider {}
+
+class AutoDevVehicleImageProvider {
+  constructor({ apiKey, fetchImpl = fetch, baseUrl = 'https://api.auto.dev', timeoutMs = 12000 } = {}) {
+    this.apiKey = apiKey;
+    this.fetch = fetchImpl;
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.timeoutMs = timeoutMs;
+  }
+  async lookup(vin) {
+    const normalized = String(vin || '').toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(normalized)) throw new Error('VIN inválido.');
+    if (!this.apiKey) return { available: false, reason: 'not-configured', photos: [] };
+    const response = await this.fetch(`${this.baseUrl}/photos/${normalized}`, { headers: { Authorization: `Bearer ${this.apiKey}`, Accept: 'application/json', 'User-Agent': 'Rastreon/1.0' }, redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs) });
+    if (response.status === 404) return { available: false, reason: 'not-found', photos: [] };
+    if (!response.ok) throw new Error(`Auto.dev respondeu ${response.status}.`);
+    const payload = await response.json();
+    const values = [...(payload?.data?.retail || []), ...(payload?.data?.wholesale || [])];
+    const photos = values.map(value => typeof value === 'string' ? value : value?.url || value?.link).filter(value => { try { return new URL(value).protocol === 'https:'; } catch { return false; } }).slice(0, 10);
+    return { available: photos.length > 0, reason: photos.length ? null : 'not-found', photos, provider: 'auto.dev' };
+  }
+  async fetchImage(url) {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) throw new Error('URL de imagem rejeitada.');
+    const response = await this.fetch(parsed, { headers: { Accept: 'image/avif,image/webp,image/jpeg,image/png', 'User-Agent': 'Rastreon/1.0' }, redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs) });
+    const type = String(response.headers.get('content-type') || '').split(';')[0];
+    const length = Number(response.headers.get('content-length') || 0);
+    if (!response.ok || !['image/avif', 'image/webp', 'image/jpeg', 'image/png'].includes(type) || length > 2 * 1024 * 1024) throw new Error('Imagem automotiva inválida.');
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > 2 * 1024 * 1024) throw new Error('Imagem automotiva excede 2 MB.');
+    return { bytes, type };
+  }
+}
 
 class PhotonGeocodingProvider {
   constructor({ fetchImpl = fetch, baseUrl = 'https://photon.komoot.io', timeoutMs = 12000 } = {}) { this.fetch = fetchImpl; this.baseUrl = baseUrl; this.timeoutMs = timeoutMs; this.cache = new Map(); }
@@ -78,12 +112,12 @@ class PhotonGeocodingProvider {
     }).filter(item => item.label && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
     this.cache.set(key, results); if (this.cache.size > 200) this.cache.delete(this.cache.keys().next().value); return results;
   }
-  async reverse(latitude,longitude){const params=new URLSearchParams({lat:String(latitude),lon:String(longitude),lang:'pt'}),data=await requestJson(this.fetch,`${this.baseUrl}/reverse?${params}`,{headers:{'User-Agent':'RastroTack/1.0'}},this.timeoutMs),feature=data?.features?.[0],properties=feature?.properties||{};if(!feature)throw new Error('Endereço não encontrado');const label=[properties.name,properties.street,properties.housenumber,properties.district||properties.city,properties.state,properties.country].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).join(', ');return{label:String(label||'Local escolhido').slice(0,240),neighborhood:String(properties.district||properties.locality||''),city:String(properties.city||properties.county||''),state:String(properties.state||''),provider:'photon'}}
+  async reverse(latitude,longitude){const params=new URLSearchParams({lat:String(latitude),lon:String(longitude),lang:'pt'}),data=await requestJson(this.fetch,`${this.baseUrl}/reverse?${params}`,{headers:{'User-Agent':'Rastreon/1.0'}},this.timeoutMs),feature=data?.features?.[0],properties=feature?.properties||{};if(!feature)throw new Error('Endereço não encontrado');const label=[properties.name,properties.street,properties.housenumber,properties.district||properties.city,properties.state,properties.country].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).join(', ');return{label:String(label||'Local escolhido').slice(0,240),neighborhood:String(properties.district||properties.locality||''),city:String(properties.city||properties.county||''),state:String(properties.state||''),provider:'photon'}}
 }
 
 class FipePriceProvider{
   constructor({fetchImpl=fetch,baseUrl='https://brasilapi.com.br/api/fipe/preco/v1',timeoutMs=12000}={}){this.fetch=fetchImpl;this.baseUrl=baseUrl.replace(/\/$/,'');this.timeoutMs=timeoutMs}
-  async lookup(code,{year}={}){const normalized=String(code||'').trim();if(!/^\d{6}-\d$/.test(normalized))throw new Error('Código FIPE inválido');const data=await requestJson(this.fetch,`${this.baseUrl}/${encodeURIComponent(normalized)}`,{headers:{'User-Agent':'RastroTack/1.0'}},this.timeoutMs);if(!Array.isArray(data)||!data.length)throw new Error('Preço FIPE não encontrado');const rows=data.map(item=>({code:String(item.codigoFipe||normalized),brand:String(item.marca||'').slice(0,80),model:String(item.modelo||'').slice(0,160),modelYear:Number(item.anoModelo)||null,fuel:String(item.combustivel||'').slice(0,40),value:String(item.valor||'').slice(0,40),referenceMonth:String(item.mesReferencia||'').trim().slice(0,80),consultedAt:String(item.dataConsulta||'').slice(0,100),provider:'brasilapi-fipe'}));return rows.find(item=>year&&item.modelYear===Number(year))||rows[0]}
+  async lookup(code,{year}={}){const normalized=String(code||'').trim();if(!/^\d{6}-\d$/.test(normalized))throw new Error('Código FIPE inválido');const data=await requestJson(this.fetch,`${this.baseUrl}/${encodeURIComponent(normalized)}`,{headers:{'User-Agent':'Rastreon/1.0'}},this.timeoutMs);if(!Array.isArray(data)||!data.length)throw new Error('Preço FIPE não encontrado');const rows=data.map(item=>({code:String(item.codigoFipe||normalized),brand:String(item.marca||'').slice(0,80),model:String(item.modelo||'').slice(0,160),modelYear:Number(item.anoModelo)||null,fuel:String(item.combustivel||'').slice(0,40),value:String(item.valor||'').slice(0,40),referenceMonth:String(item.mesReferencia||'').trim().slice(0,80),consultedAt:String(item.dataConsulta||'').slice(0,100),provider:'brasilapi-fipe'}));return rows.find(item=>year&&item.modelYear===Number(year))||rows[0]}
 }
 
 class GoogleGeocodingProvider {
@@ -146,4 +180,4 @@ class GoogleRouteProvider {
 
 function createRouteProvider(options = {}) { const name = options.name || process.env.ROUTE_PROVIDER || 'osrm'; if (name === 'google') return new GoogleRouteProvider({ apiKey: options.apiKey || process.env.GOOGLE_MAPS_API_KEY, fetchImpl: options.fetchImpl }); if (name === 'osrm' || name === 'demo') return new OsrmRouteProvider({ fetchImpl: options.fetchImpl }); throw new Error(`ROUTE_PROVIDER não suportado: ${name}`); }
 
-module.exports = { VehicleRegistryError, VehicleRegistryProvider, ApiBrasilVehicleProvider, PlateLookupProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, MapboxGeocodingProvider, FallbackGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, createRouteProvider, decodePolyline, normalizeManeuver };
+module.exports = { VehicleRegistryError, VehicleRegistryProvider, ApiBrasilVehicleProvider, PlateLookupProvider, AutoDevVehicleImageProvider, FipePriceProvider, PhotonGeocodingProvider, NominatimGeocodingProvider, GoogleGeocodingProvider, MapboxGeocodingProvider, FallbackGeocodingProvider, OsrmRouteProvider, GoogleRouteProvider, createRouteProvider, decodePolyline, normalizeManeuver };
