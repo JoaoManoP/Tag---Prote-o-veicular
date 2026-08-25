@@ -11,6 +11,8 @@ Express + Socket.IO
         |
         +-- SQLite (fonte persistente)
         +-- Providers de mapa, geocodificação, rota, placa e POIs
+        +-- Comunidade, preços, fotos, conversas, PX e notificações
+        +-- Adaptadores Mobile GPS / Demo / Traccar
 ```
 
 O backend é a fonte de verdade persistente. Socket.IO transporta eventos em tempo real. O frontend mantém apenas estado de apresentação, preferências locais não sensíveis e fila GPS offline do dispositivo.
@@ -29,3 +31,5 @@ O backend é a fonte de verdade persistente. Socket.IO transporta eventos em tem
 - Simulação nunca é apresentada como ECU/OBD real.
 - Placa retorna apenas atributos públicos do veículo.
 - POIs e eventos carregam a fonte; ausência de provider não gera dados inventados.
+- Trânsito oficial só é ativado com provider licenciado; relatos comunitários são visualmente identificados.
+- IMEI/identificador externo do rastreador físico não atravessa a fronteira pública da API.

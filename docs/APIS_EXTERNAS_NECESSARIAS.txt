@@ -68,3 +68,30 @@ STATUS: Implementado; sem chave, com cache e fallback quando indisponível
 VARIÁVEIS: FIPE_API_URL
 DOCUMENTAÇÃO: https://brasilapi.com.br/docs#tag/FIPE
 OBSERVAÇÕES: É valor referencial, não oferta, avaliação individual ou preço garantido.
+
+==================================================
+SERVIÇO: TRÂNSITO EM TEMPO REAL
+==================================================
+FUNÇÃO: Camada colorida de fluxo e ETA considerando congestionamento
+PROVEDOR: Google Maps Traffic Layer + Google Routes (opcional)
+STATUS: Código condicional implementado; indisponível sem chave/billing
+VARIÁVEIS: MAP_PROVIDER=google, ROUTE_PROVIDER=google, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_MAP_ID
+OBSERVAÇÕES: No MapLibre padrão são exibidos apenas relatos comunitários rotulados como não oficiais. O sistema não fabrica fluxo de trânsito.
+
+==================================================
+SERVIÇO: RASTREADOR FÍSICO J16
+==================================================
+FUNÇÃO: Receber GPS, velocidade, ignição, bateria e eventos do hardware
+PROVEDOR: Instância Traccar homologada
+STATUS: Adaptador e webhook implementados; homologação de campo pendente
+VARIÁVEIS: TRACCAR_ENABLED, TRACCAR_WEBHOOK_SECRET, TRACCAR_DEVICE_HASH_SECRET
+OBSERVAÇÕES: Consulte TRACCAR_J16.md. Bloqueio remoto permanece desabilitado.
+
+==================================================
+SERVIÇO: NOTIFICAÇÕES PUSH
+==================================================
+FUNÇÃO: Alertas fora do app
+PROVEDOR: Expo Push / FCM / APNs a contratar/configurar
+STATUS: Preferências e caixa interna implementadas; entrega externa pendente
+VARIÁVEIS: Dependem do provedor escolhido
+OBSERVAÇÕES: Não apresentar push como ativo antes de configurar credenciais e consentimento.

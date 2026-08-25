@@ -23,9 +23,16 @@ MapLibre, OpenFreeMap, Photon e OSRM não exigem chave. Se `MAP_PROVIDER=google`
 
 `map-service.js` seleciona o provedor e oferece uma interface compatível às camadas existentes. O padrão é MapLibre com o estilo vetorial Liberty do OpenFreeMap. A geocodificação direta e reversa usa Photon; Google permanece opcional. Nominatim só é habilitado quando `NOMINATIM_BASE_URL` aponta para uma instância própria ou contratada, pois o serviço público proíbe autocomplete e aplicações cuja função principal seja rastreamento. Rotas continuam isoladas no backend e usam OSRM por padrão.
 
-## Próximas etapas
+## Modo 3D e pesquisa Google
 
-- Visão 3D carregada sob demanda com fallback 2D.
+O modo 3D usa o estilo vetorial Liberty, prédios extrudados disponíveis na fonte,
+câmera inclinada e o modelo GLB próprio do veículo. Em economia de dados,
+conexão 2G ou dispositivo com pouca memória, o mapa retorna ao modo padrão.
+
+A avaliação completa da alternativa Google, incluindo Places Autocomplete,
+Routes, Roads, licenciamento de rastreamento e segurança de chaves, está em
+`docs/GOOGLE_MAPS_RESEARCH.md`. Resultados Google não são desenhados sobre
+MapLibre; uma habilitação futura deve trocar a cadeia inteira para Google Maps.
 
 ## Recursos implementados
 

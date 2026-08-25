@@ -4,12 +4,19 @@ class TrackerDeviceProvider {
   authorize() { return false; }
 }
 
-class DemoTrackerDeviceProvider extends TrackerDeviceProvider {
+class MobileGpsProvider extends TrackerDeviceProvider {
   authorize({ role, authenticatedUserId, ownerId, consentId, socketDeviceId, payload }) {
-    if (role === 'dashboard') return authenticatedUserId === ownerId && payload?.source === 'simulation' && payload.deviceId === 'SIMULATOR-LOCAL';
     if (role === 'mobile') return Boolean(consentId) && socketDeviceId === payload?.deviceId && payload?.source === 'mobile-gps';
     return false;
   }
 }
 
-module.exports = { TrackerDeviceProvider, DemoTrackerDeviceProvider };
+class DemoTrackerDeviceProvider extends MobileGpsProvider {
+  authorize(context) {
+    const { role, authenticatedUserId, ownerId, payload } = context;
+    if (role === 'dashboard') return authenticatedUserId === ownerId && payload?.source === 'simulation' && payload.deviceId === 'SIMULATOR-LOCAL';
+    return super.authorize(context);
+  }
+}
+
+module.exports = { TrackerDeviceProvider, MobileGpsProvider, DemoTrackerDeviceProvider };

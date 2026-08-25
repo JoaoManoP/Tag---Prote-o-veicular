@@ -103,9 +103,15 @@ class AutoDevVehicleImageProvider {
 class PhotonGeocodingProvider {
   constructor({ fetchImpl = fetch, baseUrl = 'https://photon.komoot.io', timeoutMs = 12000 } = {}) { this.fetch = fetchImpl; this.baseUrl = baseUrl; this.timeoutMs = timeoutMs; this.cache = new Map(); }
   async search(query, options = {}) {
-    const key = `${query}|${options.language || 'pt'}`.toLowerCase();
+    // A instância pública do Photon aceita apenas default/de/en/fr. Enviar `pt`
+    // faz a API responder HTTP 400 e foi a causa do autocomplete vazio no painel.
+    const language = ['default', 'de', 'en', 'fr'].includes(options.language) ? options.language : 'default';
+    const proximity = Number.isFinite(options.latitude) && Number.isFinite(options.longitude)
+      ? `|${options.latitude.toFixed(3)},${options.longitude.toFixed(3)}`
+      : '';
+    const key = `${query}|${language}|${options.countryCode || 'br'}${proximity}`.toLowerCase();
     if (this.cache.has(key)) return this.cache.get(key);
-    const params = new URLSearchParams({ q: query, limit: '6', lang: options.language || 'pt' });
+    const params = new URLSearchParams({ q: query, limit: '8', lang: language });
     if (Number.isFinite(options.latitude) && Number.isFinite(options.longitude)) { params.set('lat', options.latitude); params.set('lon', options.longitude); }
     const data = await requestJson(this.fetch, `${this.baseUrl}/api/?${params}`, { headers: { 'User-Agent': 'Rastreon/1.0' } }, this.timeoutMs);
     if (!Array.isArray(data?.features)) throw new Error('Resposta de geocodificação inválida');
@@ -116,7 +122,7 @@ class PhotonGeocodingProvider {
     }).filter(item => item.label && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
     this.cache.set(key, results); if (this.cache.size > 200) this.cache.delete(this.cache.keys().next().value); return results;
   }
-  async reverse(latitude,longitude){const params=new URLSearchParams({lat:String(latitude),lon:String(longitude),lang:'pt'}),data=await requestJson(this.fetch,`${this.baseUrl}/reverse?${params}`,{headers:{'User-Agent':'Rastreon/1.0'}},this.timeoutMs),feature=data?.features?.[0],properties=feature?.properties||{};if(!feature)throw new Error('Endereço não encontrado');const label=[properties.name,properties.street,properties.housenumber,properties.district||properties.city,properties.state,properties.country].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).join(', ');return{label:String(label||'Local escolhido').slice(0,240),neighborhood:String(properties.district||properties.locality||''),city:String(properties.city||properties.county||''),state:String(properties.state||''),provider:'photon'}}
+  async reverse(latitude,longitude){const params=new URLSearchParams({lat:String(latitude),lon:String(longitude),lang:'default'}),data=await requestJson(this.fetch,`${this.baseUrl}/reverse?${params}`,{headers:{'User-Agent':'Rastreon/1.0'}},this.timeoutMs),feature=data?.features?.[0],properties=feature?.properties||{};if(!feature)throw new Error('Endereço não encontrado');const label=[properties.name,properties.street,properties.housenumber,properties.district||properties.city,properties.state,properties.country].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).join(', ');return{label:String(label||'Local escolhido').slice(0,240),neighborhood:String(properties.district||properties.locality||''),city:String(properties.city||properties.county||''),state:String(properties.state||''),provider:'photon'}}
 }
 
 class FipePriceProvider{
@@ -132,7 +138,7 @@ class GoogleGeocodingProvider {
 
 class FallbackGeocodingProvider {
   constructor(primary,fallback){this.primary=primary;this.fallback=fallback}
-  async search(query,options){try{return await this.primary.search(query,options)}catch{return this.fallback.search(query,options)}}
+  async search(query,options){try{const results=await this.primary.search(query,options);if(Array.isArray(results)&&results.length)return results}catch{}return this.fallback.search(query,options)}
   async reverse(latitude,longitude){try{return await this.primary.reverse(latitude,longitude)}catch{return this.fallback.reverse(latitude,longitude)}}
 }
 

@@ -85,7 +85,7 @@ test('exclusão de conta exige CSRF, senha e frase e remove dados em cascata',as
 
 test('retenção remove apenas sessões antigas encerradas ou expiradas',async(t)=>{const{database}=setup(t),now=Date.now();database.prepare("INSERT INTO users (name,email,password_hash,created_at) VALUES ('U','u@e.com','hash',?)").run(now);const insert=database.prepare('INSERT INTO tracking_sessions (id,user_id,created_at,expires_at,closed_at) VALUES (?,1,?,?,?)');insert.run('old-closed',now-100*86400000,now-99*86400000,now-99*86400000);insert.run('old-open',now-100*86400000,now+86400000,null);insert.run('recent-closed',now-5*86400000,now+86400000,now-4*86400000);const result=applyDataRetention(database,{now,days:90});assert.equal(result.deletedSessions,1);assert.deepEqual(database.prepare('SELECT id FROM tracking_sessions ORDER BY id').all().map(row=>row.id),['old-open','recent-closed'])});
 
-test('produção exige segredo forte, HTTPS e chaves dos providers externos',()=>{assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'http://exemplo.test'},{sessionSecret:'curto'}),/SESSION_SECRET.*HTTPS/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google'},{sessionSecret:'x'.repeat(32)}),/GOOGLE_MAPS_API_KEY/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',MAP_PROVIDER:'mapbox'},{sessionSecret:'x'.repeat(32)}),/MAPBOX_ACCESS_TOKEN/);assert.deepEqual(validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google',GOOGLE_MAPS_API_KEY:'chave',MAP_PROVIDER:'mapbox',MAPBOX_ACCESS_TOKEN:'pk.test'},{sessionSecret:'x'.repeat(32)}),{valid:true})});
+test('produção exige segredo forte, HTTPS e chaves dos providers externos',()=>{assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'http://exemplo.test'},{sessionSecret:'curto'}),/SESSION_SECRET.*HTTPS/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google'},{sessionSecret:'x'.repeat(32)}),/GOOGLE_MAPS_API_KEY/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',MAP_PROVIDER:'mapbox'},{sessionSecret:'x'.repeat(32)}),/MAPBOX_ACCESS_TOKEN/);assert.throws(()=>validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google',GOOGLE_MAPS_API_KEY:'chave',MAP_PROVIDER:'mapbox',MAPBOX_ACCESS_TOKEN:'pk.test'},{sessionSecret:'x'.repeat(32)}),/MAP_PROVIDER=google/);assert.deepEqual(validateProductionConfig({NODE_ENV:'production',PUBLIC_URL:'https://exemplo.test',ROUTE_PROVIDER:'google',GOOGLE_MAPS_API_KEY:'chave',MAP_PROVIDER:'google'},{sessionSecret:'x'.repeat(32)}),{valid:true})});
 
 test('veículos possuem CRUD persistente e seleção por proprietário', async (t) => {
   const { app, database } = setup(t);
@@ -168,6 +168,7 @@ test('Photon normaliza resultados GeoJSON sem exigir chave', async () => {
   assert.equal(places[0].latitude,-19.58);
   assert.match(places[0].label,/Timóteo, Minas Gerais, Brasil/);
   assert.match(requestedUrl,/photon\.komoot\.io\/api/);
+  assert.match(requestedUrl,/lang=default/);
 });
 
 test('Mapbox normaliza busca direta e reversa usando Geocoding v6', async () => {

@@ -14,7 +14,14 @@ async function request<T>(path:string,options:RequestInit={}){
   throw error;
  }finally{clearTimeout(timeout)}
 }
+let csrfToken:string|null=null;
+async function secureRequest<T>(path:string,method:'POST'|'PUT'|'PATCH'|'DELETE',body?:unknown){
+ if(!csrfToken)csrfToken=(await request<{token:string}>('/api/auth/csrf')).token;
+ try{return await request<T>(path,{method,headers:{'X-CSRF-Token':csrfToken},body:body===undefined?undefined:JSON.stringify(body)})}
+ catch(error){if(error instanceof ApiError&&error.status===403){csrfToken=(await request<{token:string}>('/api/auth/csrf')).token;return request<T>(path,{method,headers:{'X-CSRF-Token':csrfToken},body:body===undefined?undefined:JSON.stringify(body)})}throw error}
+}
 export const api={
  get:<T>(path:string)=>request<T>(path),post:<T>(path:string,body?:unknown)=>request<T>(path,{method:'POST',body:body===undefined?undefined:JSON.stringify(body)}),put:<T>(path:string,body:unknown)=>request<T>(path,{method:'PUT',body:JSON.stringify(body)}),patch:<T>(path:string,body:unknown)=>request<T>(path,{method:'PATCH',body:JSON.stringify(body)}),delete:<T>(path:string,headers?:Record<string,string>,body?:unknown)=>request<T>(path,{method:'DELETE',headers,body:body?JSON.stringify(body):undefined}),
+ securePost:<T>(path:string,body?:unknown)=>secureRequest<T>(path,'POST',body),securePut:<T>(path:string,body?:unknown)=>secureRequest<T>(path,'PUT',body),securePatch:<T>(path:string,body?:unknown)=>secureRequest<T>(path,'PATCH',body),secureDelete:<T>(path:string,body?:unknown)=>secureRequest<T>(path,'DELETE',body),
  url:(path:string)=>`${API_URL}${path}`
 };

@@ -63,6 +63,7 @@
       bindTooltip(text){this.tooltip=text;return this}
       bindPopup(text){this.tooltip=text;this.on('click',()=>{this.info?.close();this.info=new maps.InfoWindow({content:String(text)});this.info.open({map:this.map,anchor:this.object})});return this}
       openTooltip(){return this}
+      openPopup(){this.object?.togglePopup?.();return this}
       setLatLng(value){this.value=value;if(this.kind==='marker')this.object.setPosition?this.object.setPosition(point(value)):this.object.position=point(value);else this.object.setCenter(point(value));return this}
       getLatLng(){const p=this.kind==='marker'?this.object.position:this.object.getCenter();return{lat:typeof p.lat==='function'?p.lat():p.lat,lng:typeof p.lng==='function'?p.lng():p.lng}}
       setRadius(radius){this.options.radius=radius;this.object?.setRadius(radius);return this}
@@ -88,6 +89,7 @@
       setTilt(value){this._map.setTilt(value);return this}
       setHeading(value){this._map.setHeading(value);return this}
       invalidateSize(){maps.event.trigger(this._map,'resize');return this}
+      getNativeMap(){return this._map}
       on(name,handler){return this._map.addListener(name==='moveend'?'idle':name,event=>handler(event?.latLng?{latlng:eventPoint(event.latLng),originalEvent:event.domEvent}:event))}
       once(name,handler){const listener=this.on(name,event=>{listener.remove();handler(event)});return listener}
       off(name){maps.event.clearListeners(this._map,name==='moveend'?'idle':name);return this}
@@ -139,6 +141,7 @@
       bindTooltip(text){this.tooltip=text;return this}
       bindPopup(text){this.popup=text;return this}
       openTooltip(){return this}
+      openPopup(){if(this.object?.getPopup?.()&&!this.object.getPopup().isOpen())this.object.togglePopup();return this}
       setLatLng(value){this.value=value;this.object?.setLngLat(lngLat(value));return this}
       setIcon(icon){this.options.icon=icon;const element=this.object?.getElement?.();if(element){element.className=icon?.options?.className||'map-pin';element.innerHTML=icon?.options?.html||''}return this}
       getLatLng(){const value=this.object?.getLngLat()||point(this.value);return{lat:value.lat,lng:value.lng}}
@@ -149,7 +152,7 @@
       remove(){if(this.object){this.object.remove();this.object=null}if(this.map?.getLayer(this.id))this.map.removeLayer(this.id);if(this.map?.getSource(this.id))this.map.removeSource(this.id);return this}
     }
     class MapWrapper{
-      constructor(id){this._map=new maplibregl.Map({container:id,style:config.mapStyleUrl||'https://tiles.openfreemap.org/styles/liberty',center:[-42.54,-19.47],zoom:10,pitch:0,attributionControl:true});this.ready=new Promise(resolve=>this._map.once('load',resolve));mapInstance=this}
+      constructor(id){this._map=new maplibregl.Map({container:id,style:config.mapStyleUrl||'https://tiles.openfreemap.org/styles/liberty',center:[-42.54,-19.47],zoom:10,pitch:0,maxPitch:70,antialias:true,pixelRatio:Math.min(1.75,window.devicePixelRatio||1),fadeDuration:180,attributionControl:true});this.ready=new Promise(resolve=>this._map.once('load',resolve));mapInstance=this}
       setView(center,zoom){this._map.jumpTo({center:lngLat(center),zoom:Number.isFinite(zoom)?zoom:this.getZoom()});return this}
       fitBounds(bounds,options={}){this._map.fitBounds(bounds,{padding:options.padding?.[0]||30,maxZoom:options.maxZoom});return this}
       removeLayer(layer){layer?.remove?.();return this}
@@ -160,6 +163,7 @@
       setTilt(value){this._map.easeTo({pitch:value});return this}
       setHeading(value){this._map.easeTo({bearing:value});return this}
       invalidateSize(){this._map.resize();return this}
+      getNativeMap(){return this._map}
       on(name,handler){const normalized=name==='moveend'?'moveend':name;this._map.on(normalized,event=>handler(event.lngLat?{latlng:{lat:event.lngLat.lat,lng:event.lngLat.lng},originalEvent:event.originalEvent}:event));return this}
       once(name,handler){this._map.once(name==='moveend'?'moveend':name,event=>handler(event.lngLat?{latlng:{lat:event.lngLat.lat,lng:event.lngLat.lng},originalEvent:event.originalEvent}:event));return this}
       off(name,handler){this._map.off(name==='moveend'?'moveend':name,handler);return this}
@@ -171,7 +175,7 @@
     if(config.provider==='maplibre'||config.provider==='mapbox'){
       try{
         const maplibregl=window.maplibregl||await window.RastroMapLibre;
-        if(maplibregl) return{L:mapLibreFacade(maplibregl),mapProvider:config.provider};
+        if(maplibregl) return{L:mapLibreFacade(maplibregl),mapProvider:config.provider,maplibregl};
         throw new Error('MapLibre indisponível.');
       }catch(error){
         console.warn('[Rastreon Map] MapLibre indisponível, usando Leaflet como fallback.', error);

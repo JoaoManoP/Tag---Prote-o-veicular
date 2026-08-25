@@ -69,6 +69,8 @@
     if (mapCard) {
       mapCard.insertAdjacentHTML('beforeend', trackingMarkup());
       const actions = mapCard.querySelector('.map-toolbar .actions');
+      if (!byId('exploreBtn')) { const explore = document.createElement('button'); explore.id = 'exploreBtn'; explore.className = 'secondary'; explore.type = 'button'; explore.textContent = 'Locais'; explore.setAttribute('aria-expanded', 'false'); actions?.insertBefore(explore, byId('locateMeBtn')); }
+      if (!byId('trafficBtn')) { const traffic = document.createElement('button'); traffic.id = 'trafficBtn'; traffic.className = 'secondary'; traffic.type = 'button'; traffic.textContent = 'Trânsito'; traffic.setAttribute('aria-pressed', 'false'); actions?.insertBefore(traffic, byId('locateMeBtn')); }
       if (!devToolsEnabled) {
         if (!byId('tripPlannerBtn')) { const trip = document.createElement('button'); trip.id = 'tripPlannerBtn'; trip.className = 'secondary'; trip.textContent = 'Viagem'; actions?.appendChild(trip); }
       } else {
@@ -252,6 +254,7 @@
     } catch (_) { document.dispatchEvent(new CustomEvent('rastreon:notice', { detail:'A simulação foi mantida neste dispositivo.' })); }
   }
 
+  function poiIconId(category) { const value=String(category||'').toLowerCase();if(value==='fuel'||value.includes('posto'))return'fuel';if(value==='food'||value.includes('restaurante')||value.includes('lanche'))return'food';if(value==='supermarket'||value.includes('shopping')||value.includes('mercado'))return'shopping';if(value==='mechanic'||value.includes('oficina'))return'mechanic';if(value==='parking'||value.includes('estacion'))return'parking';if(['hospital','pharmacy'].includes(value)||value.includes('hospital')||value.includes('farm'))return'hospital';if(value==='police'||value.includes('pol'))return'police';if(value==='camera'||value.includes('radar'))return'camera';return'hazard' }
   function renderPois(places, category) {
     const api = window.rastreonMap;
     if (!api) return;
@@ -265,22 +268,22 @@
     }
     for (const group of groups.values()) {
       const lat = group.reduce((n,p) => n + p.latitude, 0) / group.length, lng = group.reduce((n,p) => n + p.longitude, 0) / group.length;
-      const marker = api.L.circleMarker([lat,lng], { radius:group.length > 1 ? 16 : 8, color:'#fff', weight:2, fillColor:'#ff5a0a', fillOpacity:.95 }).addTo(api.layers.pois);
+      const iconId=group.length>1?'comment':poiIconId(group[0].category||category),marker=api.L.marker([lat,lng],{icon:api.L.divIcon({className:'map-symbol-host',html:`<span class="map-symbol ${group.length>1?'map-symbol--cluster':''}" aria-label="${group.length>1?`${group.length} locais`:escapeHtml(group[0].categoryLabel||category)}"><svg aria-hidden="true"><use href="/images/map-icons.svg#${iconId}"></use></svg>${group.length>1?`<b>${group.length}</b>`:''}</span>`})}).addTo(api.layers.pois);
       marker.bindTooltip(group.length > 1 ? `${group.length} locais` : group[0].name, { permanent:group.length > 1, direction:'center', className:'poi-cluster-label' });
-      const popupName=group.length>1?`${group.length} locais próximos`:group[0].name,stopButton=group.length===1?`<br><button type="button" data-poi-stop="true" data-latitude="${group[0].latitude}" data-longitude="${group[0].longitude}" data-name="${encodeURIComponent(group[0].name)}">Adicionar como parada</button>`:'';marker.bindPopup(`<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(category)}</small>${stopButton}`);
+      const popupName=group.length>1?`${group.length} locais próximos`:group[0].name,place=group[0],stopButton=group.length===1?`<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Adicionar como parada</button>`:'',reviewButton=group.length===1?` <button type="button" data-poi-review="true" data-place-key="${encodeURIComponent(`osm:${place.id}`)}" data-name="${encodeURIComponent(place.name)}" data-address="${encodeURIComponent(place.address||'')}" data-latitude="${place.latitude}" data-longitude="${place.longitude}">Comentários e avaliações</button>`:'';marker.bindPopup(`<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel||category)} · OpenStreetMap</small>${stopButton}${reviewButton}`);
       if (group.length > 1) marker.on('click', () => api.map.setView([lat,lng], Math.min(18, zoom + 2)));
     }
   }
 
-  async function loadPois(input) {
+  async function loadPois() {
     const api = window.rastreonMap; if (!api) return;
-    if (!input.checked) { api.layers.pois?.clearLayers(); return; }
+    const selected=[...document.querySelectorAll('#exploreMenu input:checked')];
+    if (!selected.length) { api.layers.pois?.clearLayers(); return; }
     poiRequest?.abort(); poiRequest = new AbortController();
     const current = window.rastreonLocation?.current(), center = current ? {lat:current.latitude,lng:current.longitude} : api.map.getCenter();
     try {
-      const scope=byId('poiScope')?.value||'nearby';if(scope==='route'&&activeRoute.length<2)throw new Error('Calcule uma rota antes de buscar no corredor.');const sample=activeRoute.length>30?Array.from({length:30},(_,index)=>activeRoute[Math.round(index*(activeRoute.length-1)/29)]):activeRoute,route=scope==='route'?`&route=${encodeURIComponent(sample.map(point=>`${point[1]},${point[0]}`).join(';'))}`:'';const response = await fetch(`/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}${route}`, { signal:poiRequest.signal });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error);
-      renderPois(data.places, input.parentElement.textContent.trim());
+      const scope=byId('poiScope')?.value||'nearby';if(scope==='route'&&activeRoute.length<2)throw new Error('Calcule uma rota antes de buscar no corredor.');const sample=activeRoute.length>30?Array.from({length:30},(_,index)=>activeRoute[Math.round(index*(activeRoute.length-1)/29)]):activeRoute,route=scope==='route'?`&route=${encodeURIComponent(sample.map(point=>`${point[1]},${point[0]}`).join(';'))}`:'';const payloads=await Promise.all(selected.map(async input=>{const response=await fetch(`/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}${route}`,{signal:poiRequest.signal}),data=await response.json();if(!response.ok)throw new Error(data.error);const categoryLabel=input.parentElement.textContent.trim();return(data.places||[]).map(place=>({...place,categoryLabel}))}));
+      renderPois(payloads.flat(), 'Locais próximos');
     } catch (error) { if (error.name !== 'AbortError' && byId('toast')) { byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.'; byId('toast').classList.add('show'); setTimeout(() => byId('toast').classList.remove('show'), 2600); } }
   }
 
@@ -325,6 +328,7 @@
   function bindEvents() {
     document.addEventListener('click', event => {
       const poiStop=event.target.closest('[data-poi-stop]');if(poiStop){window.dispatchEvent(new CustomEvent('rastreon:add-route-stop',{detail:{latitude:Number(poiStop.dataset.latitude),longitude:Number(poiStop.dataset.longitude),label:decodeURIComponent(poiStop.dataset.name)}}));return}
+      const poiReview=event.target.closest('[data-poi-review]');if(poiReview){window.RastreonCommunity?.openPlace({placeKey:decodeURIComponent(poiReview.dataset.placeKey),provider:'osm',name:decodeURIComponent(poiReview.dataset.name),address:decodeURIComponent(poiReview.dataset.address),latitude:Number(poiReview.dataset.latitude),longitude:Number(poiReview.dataset.longitude)});return}
       if(event.target.closest('.search-results [data-index]')){const box=event.target.closest('.search-results'),input=box?.closest('.field')?.querySelector('input');if(input?.dataset.cepSearch==='true')setTimeout(()=>requestNumberComplement(input),0);}
       const nav = event.target.closest('[data-view]');
       if (nav) setTimeout(() => setPage(nav.dataset.view), 0);
@@ -358,6 +362,7 @@
         if (exploreMenu && exploreBtn) {
           exploreMenu.classList.toggle('hidden');
           exploreBtn.setAttribute('aria-expanded', String(!exploreMenu.classList.contains('hidden')));
+          if (!exploreMenu.classList.contains('hidden') && !exploreMenu.querySelector('input:checked')) { for (const value of ['fuel', 'food']) { const input=exploreMenu.querySelector(`input[value="${value}"]`); if(input)input.checked=true; } loadPois(); }
         }
       }
       if (event.target.closest('#healthBadgeBtn')) {
@@ -391,11 +396,8 @@
     const fenceCustomSize = byId('fenceCustomSize'); const fenceSizeOutput = byId('fenceSizeOutput'); if (fenceCustomSize && fenceSizeOutput) { fenceCustomSize.oninput=event=>{fenceSizeOutput.textContent=`${event.target.value} m`;document.querySelectorAll('[name="fenceSize"]').forEach(input=>input.checked=false);fencePoint&&chooseFencePoint(fencePoint,fencePoint.label);}; }
     document.querySelectorAll('[data-save-place]').forEach(button=>button.onclick=()=>savePlace(button.dataset.savePlace));
     const simFuelLevel = byId('simFuelLevel'); const simFuelOutput = byId('simFuelOutput'); if (simFuelLevel && simFuelOutput) { simFuelLevel.oninput = event => { simFuelOutput.textContent = `${event.target.value}%`; renderHealth(); }; }
-    document.querySelectorAll('#exploreMenu input').forEach(input => input.onchange = () => {
-      if (input.checked) document.querySelectorAll('#exploreMenu input').forEach(other => { if (other !== input) other.checked = false; });
-      loadPois(input);
-    });
-    byId('poiScope').onchange=()=>{const selected=document.querySelector('#exploreMenu input:checked');if(selected)loadPois(selected)};
+    document.querySelectorAll('#exploreMenu input').forEach(input => input.onchange = loadPois);
+    byId('poiScope').onchange=loadPois;
     window.addEventListener('rastreon:route-selected',event=>{activeRoute=Array.isArray(event.detail?.geometry)?event.detail.geometry:[]});
     new MutationObserver(syncSummary).observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class']});
     window.rastreonSocket?.on('vehicle-health:update', payload => {
