@@ -566,6 +566,23 @@ const migrations = [
       }
       database.exec('PRAGMA optimize');
     }
+  },
+  {
+    version: 14,
+    name: 'professional-radar-metadata',
+    up(database) {
+      addColumn(database, 'road_events', 'address TEXT');
+      addColumn(database, 'road_events', 'road TEXT');
+      addColumn(database, 'road_events', 'road_km TEXT');
+      addColumn(database, 'road_events', 'city TEXT');
+      addColumn(database, 'road_events', 'state TEXT');
+      addColumn(database, 'road_events', "source_kind TEXT NOT NULL DEFAULT 'OFFICIAL'");
+      addColumn(database, 'road_events', 'verified INTEGER NOT NULL DEFAULT 0');
+      addColumn(database, 'road_events', 'last_verified_at INTEGER');
+      addColumn(database, 'road_events', 'confidence REAL NOT NULL DEFAULT 0.5');
+      addColumn(database, 'road_events', "status TEXT NOT NULL DEFAULT 'ACTIVE'");
+      database.exec('CREATE INDEX IF NOT EXISTS idx_road_events_status_bounds ON road_events(status, latitude, longitude)');
+    }
   }
 ];
 
