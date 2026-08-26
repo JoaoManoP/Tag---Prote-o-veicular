@@ -1,2 +1,36 @@
-import React from 'react';import { Text } from 'react-native';import { Button,Card,Header,Screen } from '../src/components/ui';import { useApp } from '../src/state/AppContext';import type { ThemePreference } from '../src/theme/tokens';
-export default function Settings(){const{themePreference,setThemePreference,theme}=useApp();const option=(value:ThemePreference,label:string)=><Button secondary={themePreference!==value} title={`${themePreference===value?'✓ ':''}${label}`} onPress={()=>setThemePreference(value)}/>;return <Screen><Header title="Configurações" subtitle="Preferências deste aparelho"/><Card><Text style={{color:theme.colors.text,fontWeight:'900'}}>Tema</Text>{option('light','Claro')}{option('dark','Escuro')}{option('system','Sistema')}</Card><Card><Text style={{color:theme.colors.text,fontWeight:'900'}}>Unidades</Text><Text style={{color:theme.colors.muted}}>Métrico · km, km/h e litros</Text></Card><Card><Text style={{color:theme.colors.text,fontWeight:'900'}}>Notificações</Text><Text style={{color:theme.colors.muted}}>Push será registrado quando as credenciais Expo do projeto forem configuradas.</Text></Card></Screen>}
+import React from 'react';
+import { Text } from 'react-native';
+import { Button, Card, Header, Screen } from '../src/components/ui';
+import { useApp } from '../src/state/AppContext';
+import type { ThemePreference } from '../src/theme/tokens';
+export default function Settings() {
+  const { themePreference, setThemePreference, theme } = useApp();
+  const option = (value: ThemePreference, label: string) => (
+    <Button
+      secondary={themePreference !== value}
+      title={`${themePreference === value ? '✓ ' : ''}${label}`}
+      onPress={() => setThemePreference(value)}
+    />
+  );
+  return (
+    <Screen>
+      <Header title="Configurações" subtitle="Preferências deste aparelho" />
+      <Card>
+        <Text style={{ color: theme.colors.text, fontWeight: '900' }}>Tema</Text>
+        {option('light', 'Claro')}
+        {option('dark', 'Escuro')}
+        {option('system', 'Sistema')}
+      </Card>
+      <Card>
+        <Text style={{ color: theme.colors.text, fontWeight: '900' }}>Unidades</Text>
+        <Text style={{ color: theme.colors.muted }}>Métrico · km, km/h e litros</Text>
+      </Card>
+      <Card>
+        <Text style={{ color: theme.colors.text, fontWeight: '900' }}>Notificações</Text>
+        <Text style={{ color: theme.colors.muted }}>
+          Push será registrado quando as credenciais Expo do projeto forem configuradas.
+        </Text>
+      </Card>
+    </Screen>
+  );
+}

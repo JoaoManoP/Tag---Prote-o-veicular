@@ -12,6 +12,8 @@
     "bundle:3d": "esbuild public/js/vehicle-3d-layer.js --bundle --format=esm --minify --outfile=public/js/vehicle-3d-layer.bundle.js",
     "model:vehicle": "node scripts/generate-vehicle-model.mjs",
     "build": "npm run bundle:3d && npm run lint",
+    "format": "prettier --write \"{.github,deploy,mobile,public,scripts,server,tests}/**/*.{html,css,js,mjs,cjs,ts,tsx,json,yml,yaml}\" \"*.{json,js,mjs,cjs}\"",
+    "format:check": "prettier --check \"{.github,deploy,mobile,public,scripts,server,tests}/**/*.{html,css,js,mjs,cjs,ts,tsx,json,yml,yaml}\" \"*.{json,js,mjs,cjs}\"",
     "db:init": "node server/init-database.js",
     "db:backup": "node server/backup-database.js",
     "demo:seed": "node server/seed-demo-accounts.js",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.9",
+    "prettier": "3.6.2",
     "socket.io-client": "^4.8.3",
     "supertest": "^7.0.0"
   }

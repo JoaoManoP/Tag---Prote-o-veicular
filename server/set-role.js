@@ -18,7 +18,11 @@ if (!email || !Object.values(ROLES).includes(role)) {
   } else {
     database.transaction(() => {
       database.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, user.id);
-      database.prepare("INSERT INTO audit_events (actor_user_id, action, target_type, target_id, reason, created_at) VALUES (NULL, 'ROLE_CHANGED_LOCALLY', 'USER', ?, 'Operação local autorizada pelo mantenedor', ?)").run(String(user.id), Date.now());
+      database
+        .prepare(
+          "INSERT INTO audit_events (actor_user_id, action, target_type, target_id, reason, created_at) VALUES (NULL, 'ROLE_CHANGED_LOCALLY', 'USER', ?, 'Operação local autorizada pelo mantenedor', ?)"
+        )
+        .run(String(user.id), Date.now());
     })();
     console.log(`Função atualizada para ${role}.`);
   }

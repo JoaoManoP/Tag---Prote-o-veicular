@@ -46,17 +46,24 @@ function validatePlace(value, placeId) {
   }
   if (name.length < 2) return { error: 'Nome do local inválido.' };
 
-  const hasLatitude = value.latitude !== undefined && value.latitude !== null && value.latitude !== '';
-  const hasLongitude = value.longitude !== undefined && value.longitude !== null && value.longitude !== '';
-  if (hasLatitude !== hasLongitude) return { error: 'Informe latitude e longitude do local juntas.' };
+  const hasLatitude =
+    value.latitude !== undefined && value.latitude !== null && value.latitude !== '';
+  const hasLongitude =
+    value.longitude !== undefined && value.longitude !== null && value.longitude !== '';
+  if (hasLatitude !== hasLongitude)
+    return { error: 'Informe latitude e longitude do local juntas.' };
 
   let latitude = null;
   let longitude = null;
   if (hasLatitude) {
     latitude = Number(value.latitude);
     longitude = Number(value.longitude);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
-      || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 ||
+      Math.abs(longitude) > 180
+    ) {
       return { error: 'Coordenadas do local inválidas.' };
     }
   }
@@ -70,8 +77,10 @@ function validateReview(value, { partial = false } = {}) {
   const body = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const hasRating = Object.prototype.hasOwnProperty.call(body, 'rating');
   const hasComment = Object.prototype.hasOwnProperty.call(body, 'comment');
-  if (partial && !hasRating && !hasComment) return { error: 'Informe uma nota ou um comentário para atualizar.' };
-  if (!partial && (!hasRating || !hasComment)) return { error: 'Nota e comentário são obrigatórios.' };
+  if (partial && !hasRating && !hasComment)
+    return { error: 'Informe uma nota ou um comentário para atualizar.' };
+  if (!partial && (!hasRating || !hasComment))
+    return { error: 'Nota e comentário são obrigatórios.' };
 
   let rating;
   if (hasRating) {
@@ -207,7 +216,7 @@ function createCommunityWriteLimiter({ windowMs = 60_000, limit = 10 } = {}) {
     limit: Math.max(1, Math.floor(Number(limit) || 10)),
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => `community-user:${Number(req.session?.userId) || 'anonymous'}`,
+    keyGenerator: req => `community-user:${Number(req.session?.userId) || 'anonymous'}`,
     message: {
       error: 'Muitas contribuições em pouco tempo. Aguarde um minuto.',
       code: 'COMMUNITY_RATE_LIMIT'
@@ -224,22 +233,32 @@ function safeTokenEqual(left, right) {
 
 function requireCommunityCsrf(req, res, next) {
   if (!safeTokenEqual(req.session?.csrfToken, req.get('x-csrf-token'))) {
-    return res.status(403).json({ error: 'Token de segurança inválido.', code: 'INVALID_CSRF_TOKEN' });
+    return res
+      .status(403)
+      .json({ error: 'Token de segurança inválido.', code: 'INVALID_CSRF_TOKEN' });
   }
   next();
 }
 
 function writeAudit(database, { userId, action, targetType, targetId, reason, now }) {
-  const auditTable = database.prepare("SELECT 1 AS found FROM sqlite_schema WHERE type = 'table' AND name = 'audit_events'").get();
+  const auditTable = database
+    .prepare("SELECT 1 AS found FROM sqlite_schema WHERE type = 'table' AND name = 'audit_events'")
+    .get();
   if (!auditTable) return;
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO audit_events (actor_user_id, action, target_type, target_id, reason, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, action, targetType, targetId, normalizeText(reason, 300) || null, now);
+  `
+    )
+    .run(userId, action, targetType, targetId, normalizeText(reason, 300) || null, now);
 }
 
 function upsertPlace(database, place, now) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO community_places (id, provider, name, address, latitude, longitude, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
@@ -247,20 +266,37 @@ function upsertPlace(database, place, now) {
       latitude = COALESCE(community_places.latitude, excluded.latitude),
       longitude = COALESCE(community_places.longitude, excluded.longitude),
       updated_at = excluded.updated_at
-  `).run(place.id, place.provider, place.name, place.address, place.latitude, place.longitude, now, now);
+  `
+    )
+    .run(
+      place.id,
+      place.provider,
+      place.name,
+      place.address,
+      place.latitude,
+      place.longitude,
+      now,
+      now
+    );
 }
 
 function readReview(database, reviewId) {
-  return database.prepare(`
+  return database
+    .prepare(
+      `
     SELECT r.*, u.name AS author_name, u.avatar_data, u.public_contact_id, u.chat_enabled
     FROM community_place_reviews r
     JOIN users u ON u.id = r.user_id
     WHERE r.id = ?
-  `).get(reviewId);
+  `
+    )
+    .get(reviewId);
 }
 
 function listSummary(database, placeId) {
-  const row = database.prepare(`
+  const row = database
+    .prepare(
+      `
     SELECT COUNT(*) AS review_count, AVG(rating) AS average_rating,
       SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) AS rating_1,
       SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) AS rating_2,
@@ -269,7 +305,9 @@ function listSummary(database, placeId) {
       SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) AS rating_5
     FROM community_place_reviews
     WHERE place_id = ? AND status = 'PUBLISHED'
-  `).get(placeId);
+  `
+    )
+    .get(placeId);
   const count = Number(row.review_count || 0);
   return {
     count,
@@ -292,8 +330,10 @@ function createCommunityRouter({
   now = () => Date.now()
 } = {}) {
   if (!database) throw new TypeError('database é obrigatório.');
-  if (typeof writeLimiter !== 'function') throw new TypeError('writeLimiter deve ser um middleware Express.');
-  if (typeof csrfMiddleware !== 'function') throw new TypeError('csrfMiddleware deve ser um middleware Express.');
+  if (typeof writeLimiter !== 'function')
+    throw new TypeError('writeLimiter deve ser um middleware Express.');
+  if (typeof csrfMiddleware !== 'function')
+    throw new TypeError('csrfMiddleware deve ser um middleware Express.');
 
   const active = parseFeatureFlag(enabled, false);
   const router = express.Router();
@@ -301,10 +341,12 @@ function createCommunityRouter({
     res.set('Cache-Control', 'no-store').json({ enabled: active, version: 1 });
   });
   if (!active) {
-    router.use((_req, res) => res.status(404).json({
-      error: 'Comentários e avaliações estão desativados.',
-      code: 'COMMUNITY_FEATURE_DISABLED'
-    }));
+    router.use((_req, res) =>
+      res.status(404).json({
+        error: 'Comentários e avaliações estão desativados.',
+        code: 'COMMUNITY_FEATURE_DISABLED'
+      })
+    );
     return router;
   }
 
@@ -318,20 +360,31 @@ function createCommunityRouter({
     if (!placeId) return res.status(400).json({ error: 'Identificador do local inválido.' });
     const limit = Math.min(50, Math.max(1, Math.floor(Number(req.query.limit) || 20)));
     const offset = Math.min(10_000, Math.max(0, Math.floor(Number(req.query.offset) || 0)));
-    const rows = database.prepare(`
+    const rows = database
+      .prepare(
+        `
       SELECT r.*, u.name AS author_name, u.avatar_data, u.public_contact_id, u.chat_enabled
       FROM community_place_reviews r
       JOIN users u ON u.id = r.user_id
       WHERE r.place_id = ? AND r.status = 'PUBLISHED'
       ORDER BY r.created_at DESC, r.id DESC
       LIMIT ? OFFSET ?
-    `).all(placeId, limit, offset);
+    `
+      )
+      .all(placeId, limit, offset);
     const summary = listSummary(database, placeId);
     res.set('Cache-Control', 'private, no-store').json({
-      place: serializePlace(database.prepare('SELECT * FROM community_places WHERE id = ?').get(placeId)),
+      place: serializePlace(
+        database.prepare('SELECT * FROM community_places WHERE id = ?').get(placeId)
+      ),
       summary,
-      reviews: rows.map((row) => serializeReview(row, req.session.userId)),
-      pagination: { limit, offset, total: summary.count, hasMore: offset + rows.length < summary.count }
+      reviews: rows.map(row => serializeReview(row, req.session.userId)),
+      pagination: {
+        limit,
+        offset,
+        total: summary.count,
+        hasMore: offset + rows.length < summary.count
+      }
     });
   });
 
@@ -343,30 +396,51 @@ function createCommunityRouter({
     const reviewValidation = validateReview(req.body);
     if (reviewValidation.error) return res.status(400).json({ error: reviewValidation.error });
     const userId = Number(req.session.userId);
-    const existing = database.prepare(`
+    const existing = database
+      .prepare(
+        `
       SELECT id, status FROM community_place_reviews WHERE place_id = ? AND user_id = ?
-    `).get(placeId, userId);
-    if (existing) return res.status(409).json({
-      error: existing.status === 'REMOVED'
-        ? 'Uma avaliação removida para este local não pode ser recriada.'
-        : 'Você já avaliou este local. Edite sua avaliação existente.',
-      code: 'REVIEW_ALREADY_EXISTS',
-      reviewId: existing.id
-    });
+    `
+      )
+      .get(placeId, userId);
+    if (existing)
+      return res.status(409).json({
+        error:
+          existing.status === 'REMOVED'
+            ? 'Uma avaliação removida para este local não pode ser recriada.'
+            : 'Você já avaliou este local. Edite sua avaliação existente.',
+        code: 'REVIEW_ALREADY_EXISTS',
+        reviewId: existing.id
+      });
 
     const timestamp = Number(now());
     const reviewId = crypto.randomUUID();
     database.transaction(() => {
       upsertPlace(database, placeValidation.place, timestamp);
-      database.prepare(`
+      database
+        .prepare(
+          `
         INSERT INTO community_place_reviews
           (id, place_id, user_id, rating, comment, status, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, 'PUBLISHED', ?, ?)
-      `).run(reviewId, placeId, userId, reviewValidation.review.rating,
-        reviewValidation.review.comment, timestamp, timestamp);
+      `
+        )
+        .run(
+          reviewId,
+          placeId,
+          userId,
+          reviewValidation.review.rating,
+          reviewValidation.review.comment,
+          timestamp,
+          timestamp
+        );
       writeAudit(database, {
-        userId, action: 'COMMUNITY_REVIEW_CREATED', targetType: 'PLACE_REVIEW',
-        targetId: reviewId, reason: `Avaliação criada para ${placeId}`, now: timestamp
+        userId,
+        action: 'COMMUNITY_REVIEW_CREATED',
+        targetType: 'PLACE_REVIEW',
+        targetId: reviewId,
+        reason: `Avaliação criada para ${placeId}`,
+        now: timestamp
       });
     })();
     res.status(201).json({
@@ -385,15 +459,29 @@ function createCommunityRouter({
     if (Number(stored.user_id) !== Number(req.session.userId)) {
       return res.status(403).json({ error: 'Você só pode editar sua própria avaliação.' });
     }
-    if (stored.status === 'REMOVED') return res.status(409).json({ error: 'A avaliação já foi removida.' });
+    if (stored.status === 'REMOVED')
+      return res.status(409).json({ error: 'A avaliação já foi removida.' });
 
     const timestamp = Number(now());
-    database.prepare(`
+    database
+      .prepare(
+        `
       UPDATE community_place_reviews SET rating = ?, comment = ?, updated_at = ? WHERE id = ?
-    `).run(validation.review.rating ?? stored.rating, validation.review.comment ?? stored.comment, timestamp, reviewId);
+    `
+      )
+      .run(
+        validation.review.rating ?? stored.rating,
+        validation.review.comment ?? stored.comment,
+        timestamp,
+        reviewId
+      );
     writeAudit(database, {
-      userId: Number(req.session.userId), action: 'COMMUNITY_REVIEW_UPDATED', targetType: 'PLACE_REVIEW',
-      targetId: reviewId, reason: 'Avaliação atualizada pelo autor', now: timestamp
+      userId: Number(req.session.userId),
+      action: 'COMMUNITY_REVIEW_UPDATED',
+      targetType: 'PLACE_REVIEW',
+      targetId: reviewId,
+      reason: 'Avaliação atualizada pelo autor',
+      now: timestamp
     });
     res.json({
       review: serializeReview(readReview(database, reviewId), req.session.userId),
@@ -412,19 +500,31 @@ function createCommunityRouter({
     if (stored.status === 'REMOVED') return res.status(204).end();
     const timestamp = Number(now());
     database.transaction(() => {
-      database.prepare(`
+      database
+        .prepare(
+          `
         UPDATE community_place_reviews
         SET status = 'REMOVED', comment = '[removido pelo autor]', moderation_reason = NULL,
           moderated_by = NULL, moderated_at = NULL, updated_at = ?, removed_at = ?
         WHERE id = ?
-      `).run(timestamp, timestamp, reviewId);
-      database.prepare(`
+      `
+        )
+        .run(timestamp, timestamp, reviewId);
+      database
+        .prepare(
+          `
         UPDATE community_review_reports SET status = 'DISMISSED', resolved_by = ?, resolved_at = ?
         WHERE review_id = ? AND status = 'OPEN'
-      `).run(req.session.userId, timestamp, reviewId);
+      `
+        )
+        .run(req.session.userId, timestamp, reviewId);
       writeAudit(database, {
-        userId: Number(req.session.userId), action: 'COMMUNITY_REVIEW_REMOVED', targetType: 'PLACE_REVIEW',
-        targetId: reviewId, reason: 'Avaliação removida pelo autor', now: timestamp
+        userId: Number(req.session.userId),
+        action: 'COMMUNITY_REVIEW_REMOVED',
+        targetType: 'PLACE_REVIEW',
+        targetId: reviewId,
+        reason: 'Avaliação removida pelo autor',
+        now: timestamp
       });
     })();
     res.status(204).end();
@@ -436,35 +536,65 @@ function createCommunityRouter({
     const validation = validateReport(req.body);
     if (validation.error) return res.status(400).json({ error: validation.error });
     const review = readReview(database, reviewId);
-    if (!review || review.status !== 'PUBLISHED') return res.status(404).json({ error: 'Avaliação não encontrada.' });
+    if (!review || review.status !== 'PUBLISHED')
+      return res.status(404).json({ error: 'Avaliação não encontrada.' });
     const userId = Number(req.session.userId);
-    if (Number(review.user_id) === userId) return res.status(400).json({ error: 'Você não pode denunciar sua própria avaliação.' });
-    const existing = database.prepare(`
+    if (Number(review.user_id) === userId)
+      return res.status(400).json({ error: 'Você não pode denunciar sua própria avaliação.' });
+    const existing = database
+      .prepare(
+        `
       SELECT id FROM community_review_reports WHERE review_id = ? AND reporter_user_id = ?
-    `).get(reviewId, userId);
-    if (existing) return res.status(409).json({ error: 'Esta avaliação já foi denunciada por você.', code: 'REPORT_ALREADY_EXISTS' });
+    `
+      )
+      .get(reviewId, userId);
+    if (existing)
+      return res.status(409).json({
+        error: 'Esta avaliação já foi denunciada por você.',
+        code: 'REPORT_ALREADY_EXISTS'
+      });
 
     const timestamp = Number(now());
     const reportId = crypto.randomUUID();
     database.transaction(() => {
-      database.prepare(`
+      database
+        .prepare(
+          `
         INSERT INTO community_review_reports
           (id, review_id, reporter_user_id, reason, details, status, created_at)
         VALUES (?, ?, ?, ?, ?, 'OPEN', ?)
-      `).run(reportId, reviewId, userId, validation.report.reason, validation.report.details, timestamp);
+      `
+        )
+        .run(
+          reportId,
+          reviewId,
+          userId,
+          validation.report.reason,
+          validation.report.details,
+          timestamp
+        );
       writeAudit(database, {
-        userId, action: 'COMMUNITY_REVIEW_REPORTED', targetType: 'PLACE_REVIEW', targetId: reviewId,
-        reason: validation.report.reason, now: timestamp
+        userId,
+        action: 'COMMUNITY_REVIEW_REPORTED',
+        targetType: 'PLACE_REVIEW',
+        targetId: reviewId,
+        reason: validation.report.reason,
+        now: timestamp
       });
     })();
-    res.status(201).json({ report: { id: reportId, reviewId, status: 'OPEN', createdAt: timestamp } });
+    res
+      .status(201)
+      .json({ report: { id: reportId, reviewId, status: 'OPEN', createdAt: timestamp } });
   });
 
   router.get('/moderation/reviews', administratorOnly, (req, res) => {
     const status = normalizeText(req.query.status || 'PUBLISHED', 20).toUpperCase();
-    if (!['PUBLISHED', 'HIDDEN', 'REMOVED'].includes(status)) return res.status(400).json({ error: 'Status inválido.' });
+    if (!['PUBLISHED', 'HIDDEN', 'REMOVED'].includes(status))
+      return res.status(400).json({ error: 'Status inválido.' });
     const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 50)));
-    const rows = database.prepare(`
+    const rows = database
+      .prepare(
+        `
       SELECT r.*, u.name AS author_name, u.avatar_data, u.public_contact_id, u.chat_enabled,
         SUM(CASE WHEN reports.status = 'OPEN' THEN 1 ELSE 0 END) AS open_reports
       FROM community_place_reviews r
@@ -474,9 +604,11 @@ function createCommunityRouter({
       GROUP BY r.id
       ORDER BY open_reports DESC, r.updated_at DESC
       LIMIT ?
-    `).all(status, limit);
+    `
+      )
+      .all(status, limit);
     res.set('Cache-Control', 'private, no-store').json({
-      reviews: rows.map((row) => serializeReview(row, req.session.userId, { moderation: true }))
+      reviews: rows.map(row => serializeReview(row, req.session.userId, { moderation: true }))
     });
   });
 
@@ -485,26 +617,47 @@ function createCommunityRouter({
     if (!reviewId) return res.status(400).json({ error: 'Identificador da avaliação inválido.' });
     const status = normalizeText(req.body?.status, 20).toUpperCase();
     const reason = normalizeText(req.body?.reason, 300);
-    if (!MODERATION_STATUSES.has(status)) return res.status(400).json({ error: 'Ação de moderação inválida.' });
-    if (status === 'HIDDEN' && reason.length < 3) return res.status(400).json({ error: 'Informe o motivo da ocultação.' });
+    if (!MODERATION_STATUSES.has(status))
+      return res.status(400).json({ error: 'Ação de moderação inválida.' });
+    if (status === 'HIDDEN' && reason.length < 3)
+      return res.status(400).json({ error: 'Informe o motivo da ocultação.' });
     const stored = readReview(database, reviewId);
-    if (!stored || stored.status === 'REMOVED') return res.status(404).json({ error: 'Avaliação não encontrada.' });
+    if (!stored || stored.status === 'REMOVED')
+      return res.status(404).json({ error: 'Avaliação não encontrada.' });
     const timestamp = Number(now());
     database.transaction(() => {
-      database.prepare(`
+      database
+        .prepare(
+          `
         UPDATE community_place_reviews SET status = ?, moderation_reason = ?, moderated_by = ?,
           moderated_at = ?, updated_at = ? WHERE id = ?
-      `).run(status, status === 'HIDDEN' ? reason : null, req.session.userId, timestamp, timestamp, reviewId);
+      `
+        )
+        .run(
+          status,
+          status === 'HIDDEN' ? reason : null,
+          req.session.userId,
+          timestamp,
+          timestamp,
+          reviewId
+        );
       if (status === 'HIDDEN') {
-        database.prepare(`
+        database
+          .prepare(
+            `
           UPDATE community_review_reports SET status = 'RESOLVED', resolved_by = ?, resolved_at = ?
           WHERE review_id = ? AND status = 'OPEN'
-        `).run(req.session.userId, timestamp, reviewId);
+        `
+          )
+          .run(req.session.userId, timestamp, reviewId);
       }
       writeAudit(database, {
-        userId: Number(req.session.userId), action: `COMMUNITY_REVIEW_${status}`,
-        targetType: 'PLACE_REVIEW', targetId: reviewId,
-        reason: reason || 'Avaliação restaurada pela moderação', now: timestamp
+        userId: Number(req.session.userId),
+        action: `COMMUNITY_REVIEW_${status}`,
+        targetType: 'PLACE_REVIEW',
+        targetId: reviewId,
+        reason: reason || 'Avaliação restaurada pela moderação',
+        now: timestamp
       });
     })();
     const updated = readReview(database, reviewId);
@@ -513,8 +666,11 @@ function createCommunityRouter({
 
   router.get('/moderation/reports', administratorOnly, (req, res) => {
     const status = normalizeText(req.query.status || 'OPEN', 20).toUpperCase();
-    if (!['OPEN', 'RESOLVED', 'DISMISSED'].includes(status)) return res.status(400).json({ error: 'Status inválido.' });
-    const rows = database.prepare(`
+    if (!['OPEN', 'RESOLVED', 'DISMISSED'].includes(status))
+      return res.status(400).json({ error: 'Status inválido.' });
+    const rows = database
+      .prepare(
+        `
       SELECT reports.id, reports.review_id, reports.reason, reports.details, reports.status,
         reports.created_at, reports.resolved_at, places.id AS place_id, places.name AS place_name
       FROM community_review_reports reports
@@ -523,9 +679,11 @@ function createCommunityRouter({
       WHERE reports.status = ?
       ORDER BY reports.created_at DESC
       LIMIT 100
-    `).all(status);
+    `
+      )
+      .all(status);
     res.set('Cache-Control', 'private, no-store').json({
-      reports: rows.map((row) => ({
+      reports: rows.map(row => ({
         id: row.id,
         reviewId: row.review_id,
         reason: row.reason,
@@ -542,19 +700,31 @@ function createCommunityRouter({
     const reportId = validatePlaceId(req.params.reportId);
     const status = normalizeText(req.body?.status, 20).toUpperCase();
     if (!reportId) return res.status(400).json({ error: 'Identificador da denúncia inválido.' });
-    if (!REPORT_STATUSES.has(status)) return res.status(400).json({ error: 'Resolução da denúncia inválida.' });
-    const stored = database.prepare('SELECT id, review_id FROM community_review_reports WHERE id = ?').get(reportId);
+    if (!REPORT_STATUSES.has(status))
+      return res.status(400).json({ error: 'Resolução da denúncia inválida.' });
+    const stored = database
+      .prepare('SELECT id, review_id FROM community_review_reports WHERE id = ?')
+      .get(reportId);
     if (!stored) return res.status(404).json({ error: 'Denúncia não encontrada.' });
     const timestamp = Number(now());
-    database.prepare(`
+    database
+      .prepare(
+        `
       UPDATE community_review_reports SET status = ?, resolved_by = ?, resolved_at = ? WHERE id = ?
-    `).run(status, req.session.userId, timestamp, reportId);
+    `
+      )
+      .run(status, req.session.userId, timestamp, reportId);
     writeAudit(database, {
-      userId: Number(req.session.userId), action: `COMMUNITY_REPORT_${status}`,
-      targetType: 'PLACE_REVIEW_REPORT', targetId: reportId,
-      reason: `Denúncia ${status.toLowerCase()}`, now: timestamp
+      userId: Number(req.session.userId),
+      action: `COMMUNITY_REPORT_${status}`,
+      targetType: 'PLACE_REVIEW_REPORT',
+      targetId: reportId,
+      reason: `Denúncia ${status.toLowerCase()}`,
+      now: timestamp
     });
-    res.json({ report: { id: reportId, reviewId: stored.review_id, status, resolvedAt: timestamp } });
+    res.json({
+      report: { id: reportId, reviewId: stored.review_id, status, resolvedAt: timestamp }
+    });
   });
 
   return router;

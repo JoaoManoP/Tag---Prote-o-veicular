@@ -23,13 +23,19 @@ export default function MapScreen() {
     <Screen scroll={false}>
       <Header
         title="Mapa"
-        subtitle={selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Selecione um veículo'}
+        subtitle={
+          selectedVehicle
+            ? `${selectedVehicle.brand} ${selectedVehicle.model}`
+            : 'Selecione um veículo'
+        }
         action={<StatusBadge status={connection === 'ONLINE' ? 'AO VIVO' : connection} />}
       />
       {position ? (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <Card>
-            <Text style={[styles.caption, { color: theme.colors.muted }]}>LOCALIZAÇÃO DO VEÍCULO</Text>
+            <Text style={[styles.caption, { color: theme.colors.muted }]}>
+              LOCALIZAÇÃO DO VEÍCULO
+            </Text>
             <Text style={{ fontSize: 18, fontWeight: '900', color: theme.colors.text }}>
               Posição confirmada pelo GPS
             </Text>
@@ -41,7 +47,9 @@ export default function MapScreen() {
                 {Math.max(0, position.speed * 3.6).toFixed(0)} km/h
               </Text>
             )}
-            <Text style={[styles.caption, { color: theme.colors.muted }]}>O mapa interativo está disponível no aplicativo Android/iOS.</Text>
+            <Text style={[styles.caption, { color: theme.colors.muted }]}>
+              O mapa interativo está disponível no aplicativo Android/iOS.
+            </Text>
           </Card>
         </View>
       ) : (

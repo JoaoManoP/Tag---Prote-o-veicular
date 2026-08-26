@@ -1,10 +1,161 @@
 'use strict';
-const byId=id=>document.getElementById(id);let csrfToken=null;
-function showError(message){byId('restrictedError').textContent=message;byId('restrictedError').classList.remove('hidden')}
-function toast(message){const host=byId('toast');host.textContent=message;host.classList.add('show');setTimeout(()=>host.classList.remove('show'),2800)}
-async function csrf(){if(csrfToken)return csrfToken;const response=await fetch('/api/auth/csrf'),data=await response.json();if(!response.ok)throw new Error(data.error);csrfToken=data.token;return csrfToken}
-async function api(path,{method='GET',body,critical=false}={}){const headers={Accept:'application/json'};if(body)headers['Content-Type']='application/json';if(method!=='GET')headers['X-CSRF-Token']=await csrf();if(critical){const code=prompt('Código 2FA ou recuperação:');if(!code)throw new Error('A vinculação exige 2FA.');headers['X-Two-Factor-Code']=code}const response=await fetch(path,{method,headers,body:body?JSON.stringify(body):undefined}),data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Operação indisponível.');return data}
-async function load(){const[info,vehicles,bindings]=await Promise.all([api('/api/lab/info'),api('/api/platform/developer/vehicles'),api('/api/platform/developer/tracker-bindings')]);byId('labCode').textContent=info.code;byId('labVersion').textContent=info.version;byId('labEnvironment').textContent=info.environment;byId('labPhysicalTag').textContent=info.physicalTagEnabled?'Ativado':'Desativado';byId('trackerVehicle').replaceChildren(...vehicles.vehicles.map(vehicle=>{const option=document.createElement('option');option.value=vehicle.id;option.textContent=`${vehicle.nickname} · ${vehicle.brand} ${vehicle.model}`;return option}));const host=byId('trackerBindings');host.replaceChildren();for(const binding of bindings.bindings){const row=document.createElement('article');row.className='platform-item';const title=document.createElement('strong');title.textContent=binding.label;const copy=document.createElement('p');copy.textContent=`${binding.provider} · ${binding.status} · último contato ${binding.lastSeenAt?new Date(binding.lastSeenAt).toLocaleString('pt-BR'):'nunca'}`;row.append(title,copy);host.append(row)}if(!bindings.bindings.length){const empty=document.createElement('div');empty.className='empty-state';empty.textContent='Nenhum rastreador físico vinculado.';host.append(empty)}}
-async function sendPoint(invalid=false){const point={deviceId:'LAB-VIRTUAL-TAG',timestamp:Date.now(),latitude:invalid?120:-19.923456,longitude:-43.934567,accuracy:Number(byId('labAccuracy').value),altitude:852.3,altitudeAccuracy:12,speed:11.5,heading:180,source:'simulation',sequence:Number(byId('labSequence').value)},response=await fetch('/api/lab/telemetry/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(point)}),body=await response.json();byId('labResult').textContent=JSON.stringify(body,null,2)}
-async function loadFlags(){const data=await api('/api/platform/developer/feature-flags');let card=byId('featureFlagCard');if(!card){card=document.createElement('section');card.id='featureFlagCard';card.className='card';card.innerHTML='<h3>Feature flags centrais</h3><p>Alterações são auditadas e exigem reinício para entrar em vigor.</p><div id="featureFlagList" class="platform-list"></div>';document.querySelector('.restricted-shell')?.append(card)}const host=byId('featureFlagList');host.replaceChildren();for(const flag of data.flags){const row=document.createElement('label');row.className='toggle-row';const input=document.createElement('input');input.type='checkbox';input.checked=flag.enabled;input.disabled=flag.safetyLocked;input.onchange=async()=>{input.disabled=true;try{await api(`/api/platform/developer/feature-flags/${flag.key}`,{method:'PATCH',critical:true,body:{enabled:input.checked}});toast('Flag salva; reinicie o serviço para aplicar.')}catch(error){input.checked=!input.checked;toast(error.message)}finally{input.disabled=flag.safetyLocked}};const text=document.createElement('span');text.textContent=`${flag.key}${flag.safetyLocked?' · bloqueada por segurança':''}`;row.append(input,text);host.append(row)}}
-byId('validateLabPoint').onclick=()=>sendPoint(false);byId('generateInvalidPoint').onclick=()=>sendPoint(true);byId('createTrackerBinding').onclick=async()=>{try{await api('/api/platform/developer/tracker-bindings',{method:'POST',critical:true,body:{vehicleId:Number(byId('trackerVehicle').value),externalDeviceId:byId('trackerExternalId').value,label:byId('trackerLabel').value}});byId('trackerExternalId').value='';toast('Rastreador vinculado sem expor o identificador.');await load()}catch(error){toast(error.message)}};Promise.all([load(),loadFlags()]).catch(error=>showError(error.message));
+const byId = id => document.getElementById(id);
+let csrfToken = null;
+function showError(message) {
+  byId('restrictedError').textContent = message;
+  byId('restrictedError').classList.remove('hidden');
+}
+function toast(message) {
+  const host = byId('toast');
+  host.textContent = message;
+  host.classList.add('show');
+  setTimeout(() => host.classList.remove('show'), 2800);
+}
+async function csrf() {
+  if (csrfToken) return csrfToken;
+  const response = await fetch('/api/auth/csrf'),
+    data = await response.json();
+  if (!response.ok) throw new Error(data.error);
+  csrfToken = data.token;
+  return csrfToken;
+}
+async function api(path, { method = 'GET', body, critical = false } = {}) {
+  const headers = { Accept: 'application/json' };
+  if (body) headers['Content-Type'] = 'application/json';
+  if (method !== 'GET') headers['X-CSRF-Token'] = await csrf();
+  if (critical) {
+    const code = prompt('Código 2FA ou recuperação:');
+    if (!code) throw new Error('A vinculação exige 2FA.');
+    headers['X-Two-Factor-Code'] = code;
+  }
+  const response = await fetch(path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    }),
+    data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Operação indisponível.');
+  return data;
+}
+async function load() {
+  const [info, vehicles, bindings] = await Promise.all([
+    api('/api/lab/info'),
+    api('/api/platform/developer/vehicles'),
+    api('/api/platform/developer/tracker-bindings')
+  ]);
+  byId('labCode').textContent = info.code;
+  byId('labVersion').textContent = info.version;
+  byId('labEnvironment').textContent = info.environment;
+  byId('labPhysicalTag').textContent = info.physicalTagEnabled ? 'Ativado' : 'Desativado';
+  byId('trackerVehicle').replaceChildren(
+    ...vehicles.vehicles.map(vehicle => {
+      const option = document.createElement('option');
+      option.value = vehicle.id;
+      option.textContent = `${vehicle.nickname} · ${vehicle.brand} ${vehicle.model}`;
+      return option;
+    })
+  );
+  const host = byId('trackerBindings');
+  host.replaceChildren();
+  for (const binding of bindings.bindings) {
+    const row = document.createElement('article');
+    row.className = 'platform-item';
+    const title = document.createElement('strong');
+    title.textContent = binding.label;
+    const copy = document.createElement('p');
+    copy.textContent = `${binding.provider} · ${binding.status} · último contato ${binding.lastSeenAt ? new Date(binding.lastSeenAt).toLocaleString('pt-BR') : 'nunca'}`;
+    row.append(title, copy);
+    host.append(row);
+  }
+  if (!bindings.bindings.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'Nenhum rastreador físico vinculado.';
+    host.append(empty);
+  }
+}
+async function sendPoint(invalid = false) {
+  const point = {
+      deviceId: 'LAB-VIRTUAL-TAG',
+      timestamp: Date.now(),
+      latitude: invalid ? 120 : -19.923456,
+      longitude: -43.934567,
+      accuracy: Number(byId('labAccuracy').value),
+      altitude: 852.3,
+      altitudeAccuracy: 12,
+      speed: 11.5,
+      heading: 180,
+      source: 'simulation',
+      sequence: Number(byId('labSequence').value)
+    },
+    response = await fetch('/api/lab/telemetry/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(point)
+    }),
+    body = await response.json();
+  byId('labResult').textContent = JSON.stringify(body, null, 2);
+}
+async function loadFlags() {
+  const data = await api('/api/platform/developer/feature-flags');
+  let card = byId('featureFlagCard');
+  if (!card) {
+    card = document.createElement('section');
+    card.id = 'featureFlagCard';
+    card.className = 'card';
+    card.innerHTML =
+      '<h3>Feature flags centrais</h3><p>Alterações são auditadas e exigem reinício para entrar em vigor.</p><div id="featureFlagList" class="platform-list"></div>';
+    document.querySelector('.restricted-shell')?.append(card);
+  }
+  const host = byId('featureFlagList');
+  host.replaceChildren();
+  for (const flag of data.flags) {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = flag.enabled;
+    input.disabled = flag.safetyLocked;
+    input.onchange = async () => {
+      input.disabled = true;
+      try {
+        await api(`/api/platform/developer/feature-flags/${flag.key}`, {
+          method: 'PATCH',
+          critical: true,
+          body: { enabled: input.checked }
+        });
+        toast('Flag salva; reinicie o serviço para aplicar.');
+      } catch (error) {
+        input.checked = !input.checked;
+        toast(error.message);
+      } finally {
+        input.disabled = flag.safetyLocked;
+      }
+    };
+    const text = document.createElement('span');
+    text.textContent = `${flag.key}${flag.safetyLocked ? ' · bloqueada por segurança' : ''}`;
+    row.append(input, text);
+    host.append(row);
+  }
+}
+byId('validateLabPoint').onclick = () => sendPoint(false);
+byId('generateInvalidPoint').onclick = () => sendPoint(true);
+byId('createTrackerBinding').onclick = async () => {
+  try {
+    await api('/api/platform/developer/tracker-bindings', {
+      method: 'POST',
+      critical: true,
+      body: {
+        vehicleId: Number(byId('trackerVehicle').value),
+        externalDeviceId: byId('trackerExternalId').value,
+        label: byId('trackerLabel').value
+      }
+    });
+    byId('trackerExternalId').value = '';
+    toast('Rastreador vinculado sem expor o identificador.');
+    await load();
+  } catch (error) {
+    toast(error.message);
+  }
+};
+Promise.all([load(), loadFlags()]).catch(error => showError(error.message));

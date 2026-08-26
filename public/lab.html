@@ -1,1 +1,91 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1724"><script src="/js/theme-init.js"></script><title>Laboratório — RASTREON</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/platform-features.css"></head><body class="restricted-page" data-area="lab"><header class="restricted-topbar"><a href="/dashboard" class="back-link">← Painel</a><div><span>DESENVOLVIMENTO RESTRITO</span><h1>Laboratório RASTREON</h1></div></header><main class="restricted-shell platform-page"><section class="lab-banner"><div><p class="kicker">AMBIENTE DE TESTE</p><h2>Traccar/J16 e telemetria</h2><p>Use apenas identificadores e payloads de teste. IMEI nunca aparece na interface ou nos logs.</p></div><span id="labCode">LAB-DEMO</span></section><div id="restrictedError" class="alert-box hidden" role="alert"></div><div class="platform-grid"><section class="card"><h3>Contrato da telemetria</h3><p>Valida as mesmas regras usadas no rastreamento móvel.</p><div class="form-grid"><label>Precisão (m)<input id="labAccuracy" type="number" min="0" value="8"></label><label>Sequência<input id="labSequence" type="number" min="0" value="1"></label></div><div class="lab-actions"><button id="validateLabPoint">Validar posição fictícia</button><button id="generateInvalidPoint" class="secondary">Gerar coordenada inválida</button></div><pre id="labResult" class="contract-output">Aguardando teste.</pre></section><section class="card"><h3>Vincular gateway Traccar</h3><p>Arquitetura: J16 4G → GT06/TCP → Traccar → webhook autenticado → RASTREON.</p><label class="field">Veículo<select id="trackerVehicle"></select></label><label class="field">Identificador externo de teste<input id="trackerExternalId" autocomplete="off" placeholder="Não use IMEI real nesta tela"></label><label class="field">Rótulo público<input id="trackerLabel" value="J16 via Traccar" maxlength="100"></label><button id="createTrackerBinding" class="wide">Vincular rastreador</button><p class="notice">Bloqueio remoto por relé permanece indisponível.</p><div id="trackerBindings" class="platform-list"></div></section></div><section class="card"><h3>Estado do ambiente</h3><dl class="telemetry-list"><div><dt>Versão</dt><dd id="labVersion">—</dd></div><div><dt>Ambiente</dt><dd id="labEnvironment">—</dd></div><div><dt>Traccar</dt><dd id="labPhysicalTag">Desativado</dd></div><div><dt>Bloqueio físico</dt><dd>Desativado</dd></div></dl></section></main><div id="toast" class="toast" role="status"></div><script src="/js/lab.js?v=20260825-1"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b1724" />
+    <script src="/js/theme-init.js"></script>
+    <title>Laboratório — RASTREON</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/platform-features.css" />
+  </head>
+  <body class="restricted-page" data-area="lab">
+    <header class="restricted-topbar">
+      <a href="/dashboard" class="back-link">← Painel</a>
+      <div>
+        <span>DESENVOLVIMENTO RESTRITO</span>
+        <h1>Laboratório RASTREON</h1>
+      </div>
+    </header>
+    <main class="restricted-shell platform-page">
+      <section class="lab-banner">
+        <div>
+          <p class="kicker">AMBIENTE DE TESTE</p>
+          <h2>Traccar/J16 e telemetria</h2>
+          <p>
+            Use apenas identificadores e payloads de teste. IMEI nunca aparece na interface ou nos
+            logs.
+          </p>
+        </div>
+        <span id="labCode">LAB-DEMO</span>
+      </section>
+      <div id="restrictedError" class="alert-box hidden" role="alert"></div>
+      <div class="platform-grid">
+        <section class="card">
+          <h3>Contrato da telemetria</h3>
+          <p>Valida as mesmas regras usadas no rastreamento móvel.</p>
+          <div class="form-grid">
+            <label>Precisão (m)<input id="labAccuracy" type="number" min="0" value="8" /></label
+            ><label>Sequência<input id="labSequence" type="number" min="0" value="1" /></label>
+          </div>
+          <div class="lab-actions">
+            <button id="validateLabPoint">Validar posição fictícia</button
+            ><button id="generateInvalidPoint" class="secondary">Gerar coordenada inválida</button>
+          </div>
+          <pre id="labResult" class="contract-output">Aguardando teste.</pre>
+        </section>
+        <section class="card">
+          <h3>Vincular gateway Traccar</h3>
+          <p>Arquitetura: J16 4G → GT06/TCP → Traccar → webhook autenticado → RASTREON.</p>
+          <label class="field">Veículo<select id="trackerVehicle"></select></label
+          ><label class="field"
+            >Identificador externo de teste<input
+              id="trackerExternalId"
+              autocomplete="off"
+              placeholder="Não use IMEI real nesta tela" /></label
+          ><label class="field"
+            >Rótulo público<input
+              id="trackerLabel"
+              value="J16 via Traccar"
+              maxlength="100" /></label
+          ><button id="createTrackerBinding" class="wide">Vincular rastreador</button>
+          <p class="notice">Bloqueio remoto por relé permanece indisponível.</p>
+          <div id="trackerBindings" class="platform-list"></div>
+        </section>
+      </div>
+      <section class="card">
+        <h3>Estado do ambiente</h3>
+        <dl class="telemetry-list">
+          <div>
+            <dt>Versão</dt>
+            <dd id="labVersion">—</dd>
+          </div>
+          <div>
+            <dt>Ambiente</dt>
+            <dd id="labEnvironment">—</dd>
+          </div>
+          <div>
+            <dt>Traccar</dt>
+            <dd id="labPhysicalTag">Desativado</dd>
+          </div>
+          <div>
+            <dt>Bloqueio físico</dt>
+            <dd>Desativado</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status"></div>
+    <script src="/js/lab.js?v=20260825-1"></script>
+  </body>
+</html>

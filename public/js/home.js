@@ -16,7 +16,7 @@ helpClose.addEventListener('click', () => {
   helpToggle.focus();
 });
 
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !helpPanel.hidden) {
     setHelpOpen(false);
     helpToggle.focus();

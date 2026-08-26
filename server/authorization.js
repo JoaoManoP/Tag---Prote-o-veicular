@@ -18,7 +18,8 @@ function requireRole(database, ...allowedRoles) {
   return (req, res, next) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Autenticação necessária.' });
     const role = getUserRole(database, req.session.userId);
-    if (!role || !allowed.has(role)) return res.status(403).json({ error: 'Permissão insuficiente.' });
+    if (!role || !allowed.has(role))
+      return res.status(403).json({ error: 'Permissão insuficiente.' });
     req.auth = { userId: Number(req.session.userId), role };
     next();
   };
@@ -26,10 +27,11 @@ function requireRole(database, ...allowedRoles) {
 
 function requirePageRole(database, ...allowedRoles) {
   const guard = requireRole(database, ...allowedRoles);
-  return (req, res, next) => guard(req, res, (error) => {
-    if (error) return next(error);
-    next();
-  });
+  return (req, res, next) =>
+    guard(req, res, error => {
+      if (error) return next(error);
+      next();
+    });
 }
 
 module.exports = { ROLES, normalizeRole, getUserRole, requireRole, requirePageRole };

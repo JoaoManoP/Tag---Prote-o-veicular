@@ -1,8 +1,136 @@
 'use strict';
-const radians = value => value * Math.PI / 180;
-function distanceMeters(a, b) { const dLat = radians(b.latitude - a.latitude), dLng = radians(b.longitude - a.longitude), value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2; return 6371000 * 2 * Math.asin(Math.sqrt(value)); }
-function validateGeofence(value) { if (!value || typeof value !== 'object') return null; const name = typeof value.name === 'string' ? value.name.trim().slice(0, 80) : ''; if (!name) return null; if (value.type === 'polygon') { const points=(Array.isArray(value.points)?value.points:[]).slice(0,50).map(point=>({latitude:Number(point.latitude),longitude:Number(point.longitude)})); if(points.length<3||points.some(point=>!Number.isFinite(point.latitude)||Math.abs(point.latitude)>90||!Number.isFinite(point.longitude)||Math.abs(point.longitude)>180))return null; const centerLat=points.reduce((n,p)=>n+p.latitude,0)/points.length,centerLng=points.reduce((n,p)=>n+p.longitude,0)/points.length,radiusMeters=Math.max(...points.map(point=>distanceMeters({latitude:centerLat,longitude:centerLng},point))); return {name,type:'polygon',centerLat,centerLng,radiusMeters:Math.max(50,radiusMeters),points,enabled:value.enabled!==false}; } const type = value.type === 'circle' ? 'circle' : null, centerLat = Number(value.centerLat), centerLng = Number(value.centerLng), radiusMeters = Number(value.radiusMeters); if (!type || !Number.isFinite(centerLat) || Math.abs(centerLat) > 90 || !Number.isFinite(centerLng) || Math.abs(centerLng) > 180 || !(radiusMeters >= 50 && radiusMeters <= 50000)) return null; return { name, type, centerLat, centerLng, radiusMeters, enabled: value.enabled !== false }; }
-function classifyCirclePosition(position, geofence, toleranceMeters = 15) { const accuracy = Math.max(0, Number(position.accuracy) || 0), distance = distanceMeters({ latitude: geofence.centerLat, longitude: geofence.centerLng }, position), innerBoundary = geofence.radiusMeters - toleranceMeters, outerBoundary = geofence.radiusMeters + toleranceMeters; if (accuracy > 80 || distance - accuracy <= outerBoundary && distance + accuracy >= innerBoundary) return { state: 'uncertain', distance, accuracy }; if (distance - accuracy > outerBoundary) return { state: 'outside', distance, accuracy }; return { state: 'inside', distance, accuracy }; }
-function nextGeofenceState(previous = {}, classification, timestamp, options = {}) { const required = options.requiredConsecutive || 2, cooldownMs = options.cooldownMs || 15 * 60000; let outsideCount = previous.outsideCount || 0, confirmedOutside = Boolean(previous.confirmedOutside), event = null; if (classification.state === 'uncertain') return { ...previous, event: 'PENDING', updatedAt: timestamp }; if (classification.state === 'outside') { outsideCount++; if (!confirmedOutside && outsideCount >= required && timestamp - (previous.lastAlertAt || 0) >= cooldownMs) { confirmedOutside = true; event = 'GEOFENCE_EXIT'; } } else { outsideCount = 0; if (confirmedOutside) { confirmedOutside = false; event = 'GEOFENCE_ENTER'; } } return { outsideCount, confirmedOutside, lastAlertAt: event === 'GEOFENCE_EXIT' ? timestamp : previous.lastAlertAt || null, event, updatedAt: timestamp }; }
-function classifyPolygonPosition(position, geofence) { const points=geofence.points||[],x=position.longitude,y=position.latitude;let inside=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const xi=points[i].longitude,yi=points[i].latitude,xj=points[j].longitude,yj=points[j].latitude;if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;}return {state:Number(position.accuracy)>80?'uncertain':inside?'inside':'outside',distance:distanceMeters({latitude:geofence.centerLat,longitude:geofence.centerLng},position),accuracy:Number(position.accuracy)||0};}
-module.exports = { distanceMeters, validateGeofence, classifyCirclePosition, classifyPolygonPosition, nextGeofenceState };
+const radians = value => (value * Math.PI) / 180;
+function distanceMeters(a, b) {
+  const dLat = radians(b.latitude - a.latitude),
+    dLng = radians(b.longitude - a.longitude),
+    value =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.sqrt(value));
+}
+function validateGeofence(value) {
+  if (!value || typeof value !== 'object') return null;
+  const name = typeof value.name === 'string' ? value.name.trim().slice(0, 80) : '';
+  if (!name) return null;
+  if (value.type === 'polygon') {
+    const points = (Array.isArray(value.points) ? value.points : [])
+      .slice(0, 50)
+      .map(point => ({ latitude: Number(point.latitude), longitude: Number(point.longitude) }));
+    if (
+      points.length < 3 ||
+      points.some(
+        point =>
+          !Number.isFinite(point.latitude) ||
+          Math.abs(point.latitude) > 90 ||
+          !Number.isFinite(point.longitude) ||
+          Math.abs(point.longitude) > 180
+      )
+    )
+      return null;
+    const centerLat = points.reduce((n, p) => n + p.latitude, 0) / points.length,
+      centerLng = points.reduce((n, p) => n + p.longitude, 0) / points.length,
+      radiusMeters = Math.max(
+        ...points.map(point => distanceMeters({ latitude: centerLat, longitude: centerLng }, point))
+      );
+    return {
+      name,
+      type: 'polygon',
+      centerLat,
+      centerLng,
+      radiusMeters: Math.max(50, radiusMeters),
+      points,
+      enabled: value.enabled !== false
+    };
+  }
+  const type = value.type === 'circle' ? 'circle' : null,
+    centerLat = Number(value.centerLat),
+    centerLng = Number(value.centerLng),
+    radiusMeters = Number(value.radiusMeters);
+  if (
+    !type ||
+    !Number.isFinite(centerLat) ||
+    Math.abs(centerLat) > 90 ||
+    !Number.isFinite(centerLng) ||
+    Math.abs(centerLng) > 180 ||
+    !(radiusMeters >= 50 && radiusMeters <= 50000)
+  )
+    return null;
+  return { name, type, centerLat, centerLng, radiusMeters, enabled: value.enabled !== false };
+}
+function classifyCirclePosition(position, geofence, toleranceMeters = 15) {
+  const accuracy = Math.max(0, Number(position.accuracy) || 0),
+    distance = distanceMeters(
+      { latitude: geofence.centerLat, longitude: geofence.centerLng },
+      position
+    ),
+    innerBoundary = geofence.radiusMeters - toleranceMeters,
+    outerBoundary = geofence.radiusMeters + toleranceMeters;
+  if (
+    accuracy > 80 ||
+    (distance - accuracy <= outerBoundary && distance + accuracy >= innerBoundary)
+  )
+    return { state: 'uncertain', distance, accuracy };
+  if (distance - accuracy > outerBoundary) return { state: 'outside', distance, accuracy };
+  return { state: 'inside', distance, accuracy };
+}
+function nextGeofenceState(previous = {}, classification, timestamp, options = {}) {
+  const required = options.requiredConsecutive || 2,
+    cooldownMs = options.cooldownMs || 15 * 60000;
+  let outsideCount = previous.outsideCount || 0,
+    confirmedOutside = Boolean(previous.confirmedOutside),
+    event = null;
+  if (classification.state === 'uncertain')
+    return { ...previous, event: 'PENDING', updatedAt: timestamp };
+  if (classification.state === 'outside') {
+    outsideCount++;
+    if (
+      !confirmedOutside &&
+      outsideCount >= required &&
+      timestamp - (previous.lastAlertAt || 0) >= cooldownMs
+    ) {
+      confirmedOutside = true;
+      event = 'GEOFENCE_EXIT';
+    }
+  } else {
+    outsideCount = 0;
+    if (confirmedOutside) {
+      confirmedOutside = false;
+      event = 'GEOFENCE_ENTER';
+    }
+  }
+  return {
+    outsideCount,
+    confirmedOutside,
+    lastAlertAt: event === 'GEOFENCE_EXIT' ? timestamp : previous.lastAlertAt || null,
+    event,
+    updatedAt: timestamp
+  };
+}
+function classifyPolygonPosition(position, geofence) {
+  const points = geofence.points || [],
+    x = position.longitude,
+    y = position.latitude;
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = points[i].longitude,
+      yi = points[i].latitude,
+      xj = points[j].longitude,
+      yj = points[j].latitude;
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return {
+    state: Number(position.accuracy) > 80 ? 'uncertain' : inside ? 'inside' : 'outside',
+    distance: distanceMeters(
+      { latitude: geofence.centerLat, longitude: geofence.centerLng },
+      position
+    ),
+    accuracy: Number(position.accuracy) || 0
+  };
+}
+module.exports = {
+  distanceMeters,
+  validateGeofence,
+  classifyCirclePosition,
+  classifyPolygonPosition,
+  nextGeofenceState
+};

@@ -1,1 +1,70 @@
-.home-help-toggle{width:58px;height:58px;padding:0;display:grid;place-items:center;background:linear-gradient(135deg,#ff7208,#ff480c);box-shadow:0 12px 32px #ff5a1647,0 0 0 0 #ff5a1638;transition:.2s;animation:helpPulse 2.8s infinite}.home-help-toggle:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 16px 35px #ff5a1659}.home-help-toggle span{width:34px;height:34px;border:2px solid #fff;background:transparent;color:#fff;font-size:20px}.home-help-panel[hidden]{display:none}.home-help-panel{animation:helpOpen .2s ease-out}.home-help-panel summary:focus-visible,.home-help-toggle:focus-visible,.home-help-panel button:focus-visible{outline:3px solid #ffb48e;outline-offset:3px}@keyframes helpPulse{0%,70%,100%{box-shadow:0 12px 32px #ff5a1647,0 0 0 0 #ff5a162b}85%{box-shadow:0 12px 32px #ff5a1647,0 0 0 11px transparent}}@keyframes helpOpen{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}@media(max-width:560px){.home-help-toggle{width:54px;height:54px}.home-help-panel{bottom:64px}}
+.home-help-toggle {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ff7208, #ff480c);
+  box-shadow:
+    0 12px 32px #ff5a1647,
+    0 0 0 0 #ff5a1638;
+  transition: 0.2s;
+  animation: helpPulse 2.8s infinite;
+}
+.home-help-toggle:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 16px 35px #ff5a1659;
+}
+.home-help-toggle span {
+  width: 34px;
+  height: 34px;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+}
+.home-help-panel[hidden] {
+  display: none;
+}
+.home-help-panel {
+  animation: helpOpen 0.2s ease-out;
+}
+.home-help-panel summary:focus-visible,
+.home-help-toggle:focus-visible,
+.home-help-panel button:focus-visible {
+  outline: 3px solid #ffb48e;
+  outline-offset: 3px;
+}
+@keyframes helpPulse {
+  0%,
+  70%,
+  100% {
+    box-shadow:
+      0 12px 32px #ff5a1647,
+      0 0 0 0 #ff5a162b;
+  }
+  85% {
+    box-shadow:
+      0 12px 32px #ff5a1647,
+      0 0 0 11px transparent;
+  }
+}
+@keyframes helpOpen {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 560px) {
+  .home-help-toggle {
+    width: 54px;
+    height: 54px;
+  }
+  .home-help-panel {
+    bottom: 64px;
+  }
+}

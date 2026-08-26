@@ -5,6 +5,22 @@ import '../src/services/backgroundLocation';
 
 function Navigation() {
   const { theme } = useApp();
-  return <><StatusBar style={theme.dark ? 'light' : 'dark'} /><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }} /></>;
+  return (
+    <>
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background }
+        }}
+      />
+    </>
+  );
 }
-export default function RootLayout() { return <AppProvider><Navigation /></AppProvider>; }
+export default function RootLayout() {
+  return (
+    <AppProvider>
+      <Navigation />
+    </AppProvider>
+  );
+}

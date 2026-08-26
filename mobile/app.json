@@ -19,11 +19,27 @@
     },
     "android": {
       "package": "br.com.nexobg.rastreon",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_LOCATION", "CAMERA", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permita que o RASTREON compartilhe a posição deste veículo durante uma viagem." }],
-      ["expo-camera", { "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento." }],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que o RASTREON compartilhe a posição deste veículo durante uma viagem."
+        }
+      ],
+      [
+        "expo-camera",
+        { "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento." }
+      ],
       "expo-notifications",
       "expo-secure-store",
       "expo-router"

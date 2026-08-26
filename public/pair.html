@@ -1,8 +1,63 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071527"><title>Conectar celular — Rastreon</title><link rel="stylesheet" href="/css/style.css?v=7"></head>
-<body class="mobile-page pair-page"><main class="mobile-shell"><div class="mobile-brand"><span class="brand-mark">R</span><div><h1>Rastreon</h1><p>Conectar dispositivo</p></div></div>
-<section class="card consent-card" id="pairStart"><h2>Conectar celular</h2><p>Leia o QR Code exibido no painel ou informe o código temporário.</p><button id="scanBtn" class="wide">Ler QR Code</button><form id="manualForm" class="pair-manual"><label for="manualCode">Código manual</label><div><input id="manualCode" maxlength="9" autocomplete="one-time-code" placeholder="F7K9-P2M4"><button>Continuar</button></div></form></section>
-<section class="card scanner-card hidden" id="scanner"><header><button id="closeScanner" class="secondary" type="button">← Voltar</button><b>Ler QR Code</b></header><div class="scanner-frame"><video id="camera" playsinline muted></video><span></span></div><p>Posicione o QR Code dentro do quadro.</p></section>
-<section class="card consent-card hidden" id="confirmation"><span class="eyebrow">CONFIRMAR DISPOSITIVO</span><h2>Conectar ao veículo?</h2><div id="pairVehicle" class="vehicle-summary"></div><p>Este celular será usado temporariamente como rastreador em primeiro plano.</p><div class="pair-actions"><button id="cancelPair" class="secondary">Cancelar</button><button id="confirmPair">Conectar</button></div></section>
-<section class="card consent-card hidden" id="pairResult"><h2 id="resultTitle"></h2><p id="resultMessage"></p><button id="retryPair" class="wide secondary">Tentar novamente</button></section></main><div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="/vendor/zxing/zxing-browser.min.js"></script><script src="/js/pair.js?v=1"></script></body></html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#071527" />
+    <title>Conectar celular — Rastreon</title>
+    <link rel="stylesheet" href="/css/style.css?v=7" />
+  </head>
+  <body class="mobile-page pair-page">
+    <main class="mobile-shell">
+      <div class="mobile-brand">
+        <span class="brand-mark">R</span>
+        <div>
+          <h1>Rastreon</h1>
+          <p>Conectar dispositivo</p>
+        </div>
+      </div>
+      <section class="card consent-card" id="pairStart">
+        <h2>Conectar celular</h2>
+        <p>Leia o QR Code exibido no painel ou informe o código temporário.</p>
+        <button id="scanBtn" class="wide">Ler QR Code</button>
+        <form id="manualForm" class="pair-manual">
+          <label for="manualCode">Código manual</label>
+          <div>
+            <input
+              id="manualCode"
+              maxlength="9"
+              autocomplete="one-time-code"
+              placeholder="F7K9-P2M4"
+            /><button>Continuar</button>
+          </div>
+        </form>
+      </section>
+      <section class="card scanner-card hidden" id="scanner">
+        <header>
+          <button id="closeScanner" class="secondary" type="button">← Voltar</button
+          ><b>Ler QR Code</b>
+        </header>
+        <div class="scanner-frame"><video id="camera" playsinline muted></video><span></span></div>
+        <p>Posicione o QR Code dentro do quadro.</p>
+      </section>
+      <section class="card consent-card hidden" id="confirmation">
+        <span class="eyebrow">CONFIRMAR DISPOSITIVO</span>
+        <h2>Conectar ao veículo?</h2>
+        <div id="pairVehicle" class="vehicle-summary"></div>
+        <p>Este celular será usado temporariamente como rastreador em primeiro plano.</p>
+        <div class="pair-actions">
+          <button id="cancelPair" class="secondary">Cancelar</button
+          ><button id="confirmPair">Conectar</button>
+        </div>
+      </section>
+      <section class="card consent-card hidden" id="pairResult">
+        <h2 id="resultTitle"></h2>
+        <p id="resultMessage"></p>
+        <button id="retryPair" class="wide secondary">Tentar novamente</button>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/vendor/zxing/zxing-browser.min.js"></script>
+    <script src="/js/pair.js?v=1"></script>
+  </body>
+</html>

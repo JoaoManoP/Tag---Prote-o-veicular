@@ -1,2 +1,47 @@
-import React,{useEffect,useState} from 'react';import { FlatList,Text } from 'react-native';import { Card,EmptyState,Header,Screen,StatusBadge } from '../src/components/ui';import { api } from '../src/services/api';import { useApp } from '../src/state/AppContext';
-export default function Diagnostics(){const{selectedVehicle,theme}=useApp(),[events,setEvents]=useState<any[]>([]),[simulation,setSimulation]=useState(false);useEffect(()=>{if(selectedVehicle)api.get<any>(`/api/vehicle-health?vehicleId=${selectedVehicle.id}`).then(v=>{setEvents(v.events||[]);setSimulation(Boolean(v.simulation))}).catch(()=>{})},[selectedVehicle?.id]);return <Screen scroll={false}><Header title="Diagnóstico" subtitle="Estado informado por fonte autorizada" action={simulation?<StatusBadge status="DEMONSTRAÇÃO"/>:undefined}/><FlatList data={events} keyExtractor={(i,index)=>String(i.id||index)} ListEmptyComponent={<EmptyState title="Sem diagnóstico disponível" message="O aplicativo não afirma conexão real com ECU, OBD ou CAN sem um dispositivo compatível."/>} renderItem={({item})=><Card><Text style={{color:theme.colors.text,fontWeight:'900'}}>{item.type}</Text><Text style={{color:theme.colors.muted}}>{item.severity} · {simulation?'Demonstração':'Sensor'}</Text></Card>}/></Screen>}
+import React, { useEffect, useState } from 'react';
+import { FlatList, Text } from 'react-native';
+import { Card, EmptyState, Header, Screen, StatusBadge } from '../src/components/ui';
+import { api } from '../src/services/api';
+import { useApp } from '../src/state/AppContext';
+export default function Diagnostics() {
+  const { selectedVehicle, theme } = useApp(),
+    [events, setEvents] = useState<any[]>([]),
+    [simulation, setSimulation] = useState(false);
+  useEffect(() => {
+    if (selectedVehicle)
+      api
+        .get<any>(`/api/vehicle-health?vehicleId=${selectedVehicle.id}`)
+        .then(v => {
+          setEvents(v.events || []);
+          setSimulation(Boolean(v.simulation));
+        })
+        .catch(() => {});
+  }, [selectedVehicle?.id]);
+  return (
+    <Screen scroll={false}>
+      <Header
+        title="Diagnóstico"
+        subtitle="Estado informado por fonte autorizada"
+        action={simulation ? <StatusBadge status="DEMONSTRAÇÃO" /> : undefined}
+      />
+      <FlatList
+        data={events}
+        keyExtractor={(i, index) => String(i.id || index)}
+        ListEmptyComponent={
+          <EmptyState
+            title="Sem diagnóstico disponível"
+            message="O aplicativo não afirma conexão real com ECU, OBD ou CAN sem um dispositivo compatível."
+          />
+        }
+        renderItem={({ item }) => (
+          <Card>
+            <Text style={{ color: theme.colors.text, fontWeight: '900' }}>{item.type}</Text>
+            <Text style={{ color: theme.colors.muted }}>
+              {item.severity} · {simulation ? 'Demonstração' : 'Sensor'}
+            </Text>
+          </Card>
+        )}
+      />
+    </Screen>
+  );
+}

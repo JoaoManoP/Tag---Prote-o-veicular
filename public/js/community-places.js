@@ -35,7 +35,11 @@
     }
   }
 
-  function createElement(tagName, { className = '', text = '', attributes = {} } = {}, children = []) {
+  function createElement(
+    tagName,
+    { className = '', text = '', attributes = {} } = {},
+    children = []
+  ) {
     const node = document.createElement(tagName);
     if (className) node.className = className;
     if (text !== '') node.textContent = String(text);
@@ -43,7 +47,7 @@
       if (value !== undefined && value !== null) node.setAttribute(name, String(value));
     });
     const childList = Array.isArray(children) ? children : [children];
-    childList.filter(Boolean).forEach((child) => node.append(child));
+    childList.filter(Boolean).forEach(child => node.append(child));
     return node;
   }
 
@@ -59,36 +63,49 @@
 
   function whenDomReady() {
     if (document.body) return Promise.resolve();
-    return new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+    return new Promise(resolve =>
+      document.addEventListener('DOMContentLoaded', resolve, { once: true })
+    );
   }
 
   function normalizePlace(rawPlace) {
-    if (!rawPlace || typeof rawPlace !== 'object') throw new TypeError('Informe o local que será avaliado.');
+    if (!rawPlace || typeof rawPlace !== 'object')
+      throw new TypeError('Informe o local que será avaliado.');
     const placeKey = typeof rawPlace.placeKey === 'string' ? rawPlace.placeKey.trim() : '';
     const name = typeof rawPlace.name === 'string' ? rawPlace.name.trim() : '';
     const address = typeof rawPlace.address === 'string' ? rawPlace.address.trim() : '';
-    if (!PLACE_KEY_PATTERN.test(placeKey)) throw new TypeError('O local precisa de um identificador estável.');
+    if (!PLACE_KEY_PATTERN.test(placeKey))
+      throw new TypeError('O local precisa de um identificador estável.');
     if (name.length < 2 || name.length > 160) throw new TypeError('O nome do local é inválido.');
     if (address.length > 300) throw new TypeError('O endereço do local é muito longo.');
 
     const separator = placeKey.indexOf(':');
     const namespace = separator > 0 ? placeKey.slice(0, separator).toLowerCase() : '';
-    const provider = typeof rawPlace.provider === 'string' && rawPlace.provider.trim()
-      ? rawPlace.provider.trim().toLowerCase()
-      : namespace || 'google';
+    const provider =
+      typeof rawPlace.provider === 'string' && rawPlace.provider.trim()
+        ? rawPlace.provider.trim().toLowerCase()
+        : namespace || 'google';
     if (!PROVIDER_PATTERN.test(provider)) throw new TypeError('O provedor do local é inválido.');
-    if (namespace && namespace !== provider) throw new TypeError('O identificador não corresponde ao provedor do local.');
+    if (namespace && namespace !== provider)
+      throw new TypeError('O identificador não corresponde ao provedor do local.');
 
-    const hasLatitude = rawPlace.latitude !== undefined && rawPlace.latitude !== null && rawPlace.latitude !== '';
-    const hasLongitude = rawPlace.longitude !== undefined && rawPlace.longitude !== null && rawPlace.longitude !== '';
-    if (hasLatitude !== hasLongitude) throw new TypeError('Informe as duas coordenadas públicas do local.');
+    const hasLatitude =
+      rawPlace.latitude !== undefined && rawPlace.latitude !== null && rawPlace.latitude !== '';
+    const hasLongitude =
+      rawPlace.longitude !== undefined && rawPlace.longitude !== null && rawPlace.longitude !== '';
+    if (hasLatitude !== hasLongitude)
+      throw new TypeError('Informe as duas coordenadas públicas do local.');
     let latitude = null;
     let longitude = null;
     if (hasLatitude) {
       latitude = Number(rawPlace.latitude);
       longitude = Number(rawPlace.longitude);
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
-        || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 ||
+        Math.abs(longitude) > 180
+      ) {
         throw new TypeError('As coordenadas públicas do local são inválidas.');
       }
     }
@@ -172,10 +189,10 @@
     state.busy = Boolean(busy);
     if (!state.ui) return;
     state.ui.dialog.setAttribute('aria-busy', String(state.busy));
-    state.ui.form.querySelectorAll('button, input, textarea').forEach((control) => {
+    state.ui.form.querySelectorAll('button, input, textarea').forEach(control => {
       control.disabled = state.busy;
     });
-    state.ui.reportForm.querySelectorAll('button, select, textarea').forEach((control) => {
+    state.ui.reportForm.querySelectorAll('button, select, textarea').forEach(control => {
       control.disabled = state.busy;
     });
     state.ui.closeButton.disabled = state.busy;
@@ -216,13 +233,17 @@
         }
       });
       const visual = createElement('span', { text: `${rating} ★` });
-      const label = createElement('label', {
-        className: 'rc-rating-option',
-        attributes: {
-          for: `rc-community-rating-${rating}`,
-          title: `${rating} ${rating === 1 ? 'estrela' : 'estrelas'}`
-        }
-      }, [input, visual]);
+      const label = createElement(
+        'label',
+        {
+          className: 'rc-rating-option',
+          attributes: {
+            for: `rc-community-rating-${rating}`,
+            title: `${rating} ${rating === 1 ? 'estrela' : 'estrelas'}`
+          }
+        },
+        [input, visual]
+      );
       choices.append(label);
     }
     fieldset.append(choices);
@@ -241,13 +262,24 @@
     const shell = createElement('section', { className: 'rc-community-shell' });
     const header = createElement('header', { className: 'rc-community-header' });
     const headerCopy = createElement('div', { className: 'rc-community-header-copy' });
-    const eyebrow = createElement('span', { className: 'rc-community-eyebrow', text: 'COMUNIDADE DO LOCAL' });
-    const title = createElement('h2', { text: 'Avaliações', attributes: { id: 'rc-community-title' } });
+    const eyebrow = createElement('span', {
+      className: 'rc-community-eyebrow',
+      text: 'COMUNIDADE DO LOCAL'
+    });
+    const title = createElement('h2', {
+      text: 'Avaliações',
+      attributes: { id: 'rc-community-title' }
+    });
     const address = createElement('p', { attributes: { id: 'rc-community-description' } });
     headerCopy.append(eyebrow, title, address);
-    const closeButton = createButton('×', 'rc-community-close', () => {
-      if (!state.busy) closeDialog(dialog);
-    }, 'Fechar avaliações');
+    const closeButton = createButton(
+      '×',
+      'rc-community-close',
+      () => {
+        if (!state.busy) closeDialog(dialog);
+      },
+      'Fechar avaliações'
+    );
     header.append(headerCopy, closeButton);
 
     const summary = createElement('section', {
@@ -260,8 +292,14 @@
       text: '☆☆☆☆☆',
       attributes: { 'aria-label': 'Ainda sem avaliações' }
     });
-    const count = createElement('span', { className: 'rc-community-count', text: 'Nenhuma avaliação' });
-    const summaryCopy = createElement('div', { className: 'rc-community-summary-copy' }, [stars, count]);
+    const count = createElement('span', {
+      className: 'rc-community-count',
+      text: 'Nenhuma avaliação'
+    });
+    const summaryCopy = createElement('div', { className: 'rc-community-summary-copy' }, [
+      stars,
+      count
+    ]);
     summary.append(average, summaryCopy);
 
     const status = createElement('div', {
@@ -299,10 +337,14 @@
       attributes: { 'aria-live': 'polite' }
     });
     const formActions = createElement('div', { className: 'rc-community-form-actions' });
-    const cancelEditButton = createButton('Cancelar edição', 'rc-community-button rc-community-button--ghost', () => {
-      resetForm();
-      renderFormState();
-    });
+    const cancelEditButton = createButton(
+      'Cancelar edição',
+      'rc-community-button rc-community-button--ghost',
+      () => {
+        resetForm();
+        renderFormState();
+      }
+    );
     cancelEditButton.hidden = true;
     const submitButton = createElement('button', {
       className: 'rc-community-button rc-community-button--primary',
@@ -324,36 +366,49 @@
     });
     const listHeading = createElement('div', { className: 'rc-community-list-heading' });
     listHeading.append(
-      createElement('h3', { text: 'O que as pessoas dizem', attributes: { id: 'rc-community-list-title' } }),
+      createElement('h3', {
+        text: 'O que as pessoas dizem',
+        attributes: { id: 'rc-community-list-title' }
+      }),
       createElement('span', { text: 'Mais recentes' })
     );
     const list = createElement('div', { className: 'rc-community-list' });
-    const loadMoreButton = createButton('Carregar mais', 'rc-community-button rc-community-button--ghost rc-community-load-more', () => {
-      void loadReviews({ append: true });
-    });
+    const loadMoreButton = createButton(
+      'Carregar mais',
+      'rc-community-button rc-community-button--ghost rc-community-load-more',
+      () => {
+        void loadReviews({ append: true });
+      }
+    );
     loadMoreButton.hidden = true;
     listSection.append(listHeading, list, loadMoreButton);
 
-    const content = createElement('div', { className: 'rc-community-content' }, [summary, status, formSection, listSection]);
+    const content = createElement('div', { className: 'rc-community-content' }, [
+      summary,
+      status,
+      formSection,
+      listSection
+    ]);
     shell.append(header, content);
     dialog.append(shell);
 
     comment.addEventListener('input', () => {
       characterCount.textContent = `${comment.value.length.toLocaleString('pt-BR')} / 1.200`;
     });
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', event => {
       event.preventDefault();
       void submitReview();
     });
-    dialog.addEventListener('cancel', (event) => {
+    dialog.addEventListener('cancel', event => {
       if (state.busy) event.preventDefault();
     });
-    dialog.addEventListener('click', (event) => {
+    dialog.addEventListener('click', event => {
       if (event.target === dialog && !state.busy) closeDialog(dialog);
     });
     dialog.addEventListener('close', () => {
       document.body.classList.remove('rc-community-open');
-      if (state.previousFocus && typeof state.previousFocus.focus === 'function') state.previousFocus.focus();
+      if (state.previousFocus && typeof state.previousFocus.focus === 'function')
+        state.previousFocus.focus();
       state.previousFocus = null;
     });
 
@@ -388,7 +443,10 @@
       }
     });
     const shell = createElement('section', { className: 'rc-report-shell' });
-    const title = createElement('h2', { text: 'Denunciar avaliação', attributes: { id: 'rc-report-title' } });
+    const title = createElement('h2', {
+      text: 'Denunciar avaliação',
+      attributes: { id: 'rc-report-title' }
+    });
     const description = createElement('p', {
       text: 'A equipe analisará o conteúdo. A denúncia não publica sua localização.',
       attributes: { id: 'rc-report-description' }
@@ -403,20 +461,34 @@
       ['ABUSE', 'Ofensa ou assédio'],
       ['FALSE_INFORMATION', 'Informação incorreta'],
       ['OTHER', 'Outro motivo']
-    ].forEach(([value, label]) => reason.append(createElement('option', { text: label, attributes: { value } })));
+    ].forEach(([value, label]) =>
+      reason.append(createElement('option', { text: label, attributes: { value } }))
+    );
     const detailsId = 'rc-report-details';
-    const detailsLabel = createElement('label', { text: 'Detalhes (opcional)', attributes: { for: detailsId } });
+    const detailsLabel = createElement('label', {
+      text: 'Detalhes (opcional)',
+      attributes: { for: detailsId }
+    });
     const details = createElement('textarea', {
-      attributes: { id: detailsId, maxlength: '500', rows: '3', placeholder: 'Explique brevemente o problema.' }
+      attributes: {
+        id: detailsId,
+        maxlength: '500',
+        rows: '3',
+        placeholder: 'Explique brevemente o problema.'
+      }
     });
     const status = createElement('div', {
       className: 'rc-community-status rc-community-status--error',
       attributes: { role: 'alert', hidden: '' }
     });
     const actions = createElement('div', { className: 'rc-community-form-actions' });
-    const cancelButton = createButton('Cancelar', 'rc-community-button rc-community-button--ghost', () => {
-      if (!state.busy) closeDialog(dialog);
-    });
+    const cancelButton = createButton(
+      'Cancelar',
+      'rc-community-button rc-community-button--ghost',
+      () => {
+        if (!state.busy) closeDialog(dialog);
+      }
+    );
     const submitButton = createElement('button', {
       className: 'rc-community-button rc-community-button--danger',
       text: 'Enviar denúncia',
@@ -432,11 +504,11 @@
       details.required = other;
       detailsLabel.textContent = other ? 'Detalhes' : 'Detalhes (opcional)';
     });
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', event => {
       event.preventDefault();
       void submitReport();
     });
-    dialog.addEventListener('cancel', (event) => {
+    dialog.addEventListener('cancel', event => {
       if (state.busy) event.preventDefault();
     });
     dialog.addEventListener('close', () => {
@@ -469,7 +541,9 @@
 
   function selectRating(rating) {
     if (!state.ui) return;
-    const radio = state.ui.form.querySelector(`input[name="rc-community-rating"][value="${Number(rating)}"]`);
+    const radio = state.ui.form.querySelector(
+      `input[name="rc-community-rating"][value="${Number(rating)}"]`
+    );
     if (radio) radio.checked = true;
   }
 
@@ -484,7 +558,10 @@
       state.ui.count.textContent = 'Seja a primeira pessoa a avaliar';
       return;
     }
-    state.ui.average.textContent = average.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    state.ui.average.textContent = average.toLocaleString('pt-BR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
     state.ui.stars.textContent = starText(average);
     state.ui.stars.setAttribute('aria-label', `${average.toLocaleString('pt-BR')} de 5 estrelas`);
     state.ui.count.textContent = `${count.toLocaleString('pt-BR')} ${count === 1 ? 'avaliação' : 'avaliações'}`;
@@ -508,9 +585,13 @@
     state.ui.characterCount.textContent = `${state.ui.comment.value.length.toLocaleString('pt-BR')} / 1.200`;
     selectRating(review.rating);
     renderFormState();
-    const reducedMotion = typeof global.matchMedia === 'function'
-      && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    state.ui.formSection.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    const reducedMotion =
+      typeof global.matchMedia === 'function' &&
+      global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    state.ui.formSection.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start'
+    });
     state.ui.comment.focus({ preventScroll: true });
   }
 
@@ -519,7 +600,9 @@
     if (review.mine) article.classList.add('rc-review-card--mine');
     const header = createElement('header');
     const authorCopy = createElement('div');
-    const author = createElement('strong', { text: review.author?.displayName || 'Usuário Rastreon' });
+    const author = createElement('strong', {
+      text: review.author?.displayName || 'Usuário Rastreon'
+    });
     const mineBadge = review.mine
       ? createElement('span', { className: 'rc-review-mine-badge', text: 'Sua avaliação' })
       : null;
@@ -527,7 +610,9 @@
     const parsedDate = new Date(rawDate);
     const date = createElement('time', {
       text: formatDate(rawDate),
-      attributes: Number.isFinite(parsedDate.getTime()) ? { datetime: parsedDate.toISOString() } : {}
+      attributes: Number.isFinite(parsedDate.getTime())
+        ? { datetime: parsedDate.toISOString() }
+        : {}
     });
     authorCopy.append(author);
     if (mineBadge) authorCopy.append(mineBadge);
@@ -544,14 +629,30 @@
     if (review.mine) {
       actions.append(
         createButton('Editar', 'rc-review-action', () => beginEdit(review)),
-        createButton('Excluir', 'rc-review-action rc-review-action--danger', () => void deleteReview(review))
+        createButton(
+          'Excluir',
+          'rc-review-action rc-review-action--danger',
+          () => void deleteReview(review)
+        )
       );
     } else {
       if (review.author?.contactId && global.RastreonPlatform) {
-        actions.append(createButton('Solicitar conversa', 'rc-review-action', () => global.RastreonPlatform.requestConversation({ contactId: review.author.contactId, contextType: 'PLACE_REVIEW', contextId: review.id })));
+        actions.append(
+          createButton('Solicitar conversa', 'rc-review-action', () =>
+            global.RastreonPlatform.requestConversation({
+              contactId: review.author.contactId,
+              contextType: 'PLACE_REVIEW',
+              contextId: review.id
+            })
+          )
+        );
       }
-      if (state.reportedReviewIds.has(review.id)) actions.append(createElement('span', { className: 'rc-review-reported', text: 'Denúncia enviada' }));
-      else actions.append(createButton('Denunciar', 'rc-review-action', () => openReport(review.id)));
+      if (state.reportedReviewIds.has(review.id))
+        actions.append(
+          createElement('span', { className: 'rc-review-reported', text: 'Denúncia enviada' })
+        );
+      else
+        actions.append(createButton('Denunciar', 'rc-review-action', () => openReport(review.id)));
     }
     article.append(header, comment, actions);
     return article;
@@ -561,17 +662,19 @@
     if (!state.ui) return;
     state.ui.list.replaceChildren();
     if (!state.reviews.length) {
-      state.ui.list.append(createElement('div', {
-        className: 'rc-community-empty',
-        text: 'Ainda não há avaliações publicadas para este local.'
-      }));
+      state.ui.list.append(
+        createElement('div', {
+          className: 'rc-community-empty',
+          text: 'Ainda não há avaliações publicadas para este local.'
+        })
+      );
     } else {
-      state.reviews.forEach((review) => state.ui.list.append(renderReview(review)));
+      state.reviews.forEach(review => state.ui.list.append(renderReview(review)));
     }
     state.ui.loadMoreButton.hidden = !state.pagination?.hasMore;
     state.ui.loadMoreButton.textContent = state.busy ? 'Carregando…' : 'Carregar mais';
     state.ui.loadMoreButton.disabled = state.busy;
-    state.ownReview = state.reviews.find((review) => review.mine) || state.ownReview;
+    state.ownReview = state.reviews.find(review => review.mine) || state.ownReview;
     renderFormState();
   }
 
@@ -583,11 +686,13 @@
       state.ui.loadMoreButton.disabled = true;
       return;
     }
-    state.ui.list.replaceChildren(createElement('div', {
-      className: 'rc-community-loading',
-      text: 'Carregando avaliações…',
-      attributes: { role: 'status' }
-    }));
+    state.ui.list.replaceChildren(
+      createElement('div', {
+        className: 'rc-community-loading',
+        text: 'Carregando avaliações…',
+        attributes: { role: 'status' }
+      })
+    );
   }
 
   async function loadReviews({ append = false } = {}) {
@@ -606,16 +711,18 @@
       state.reviews = append ? [...state.reviews, ...incoming] : incoming;
       state.summary = data?.summary || { count: 0, averageRating: null };
       state.pagination = data?.pagination || { hasMore: false };
-      state.ownReview = state.reviews.find((review) => review.mine) || null;
+      state.ownReview = state.reviews.find(review => review.mine) || null;
       renderSummary();
       renderReviews();
     } catch (error) {
       if (requestId !== state.requestSequence) return;
       if (!append) {
-        state.ui.list.replaceChildren(createElement('div', {
-          className: 'rc-community-empty',
-          text: 'Não foi possível carregar as avaliações.'
-        }));
+        state.ui.list.replaceChildren(
+          createElement('div', {
+            className: 'rc-community-empty',
+            text: 'Não foi possível carregar as avaliações.'
+          })
+        );
         state.ui.loadMoreButton.hidden = true;
       } else {
         state.ui.loadMoreButton.hidden = false;
@@ -637,7 +744,13 @@
     if (!state.ui.form.reportValidity()) return;
     const rating = selectedRating();
     const comment = state.ui.comment.value.trim();
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5 || comment.length < 3 || comment.length > 1200) {
+    if (
+      !Number.isInteger(rating) ||
+      rating < 1 ||
+      rating > 5 ||
+      comment.length < 3 ||
+      comment.length > 1200
+    ) {
       setStatus('Informe uma nota de 1 a 5 e um comentário válido.', 'error');
       return;
     }
@@ -665,14 +778,25 @@
       resetForm();
       state.ownReview = null;
       await loadReviews();
-      setStatus(editingId ? 'Sua avaliação foi atualizada.' : 'Sua avaliação foi publicada.', 'success');
+      setStatus(
+        editingId ? 'Sua avaliação foi atualizada.' : 'Sua avaliação foi publicada.',
+        'success'
+      );
     } catch (error) {
-      if (!editingId && error.status === 409 && error.code === 'REVIEW_ALREADY_EXISTS'
-        && error.data?.reviewId && !/removida/i.test(error.message)) {
+      if (
+        !editingId &&
+        error.status === 409 &&
+        error.code === 'REVIEW_ALREADY_EXISTS' &&
+        error.data?.reviewId &&
+        !/removida/i.test(error.message)
+      ) {
         state.editingReviewId = String(error.data.reviewId);
         state.ownReview = { id: state.editingReviewId, mine: true };
         renderFormState();
-        setStatus('Você já avaliou este local. Revise os dados e clique em “Salvar alteração”.', 'error');
+        setStatus(
+          'Você já avaliou este local. Revise os dados e clique em “Salvar alteração”.',
+          'error'
+        );
       } else {
         setStatus(error.message, 'error');
       }
@@ -683,7 +807,9 @@
 
   async function deleteReview(review) {
     if (!review?.mine || state.busy) return;
-    const confirmed = global.confirm('Excluir sua avaliação? O comentário não poderá ser recuperado.');
+    const confirmed = global.confirm(
+      'Excluir sua avaliação? O comentário não poderá ser recuperado.'
+    );
     if (!confirmed) return;
     setBusy(true);
     setStatus('Excluindo sua avaliação…');
@@ -793,9 +919,10 @@
     renderSummary();
     renderFormState();
     setStatus();
-    state.previousFocus = global.HTMLElement && document.activeElement instanceof global.HTMLElement
-      ? document.activeElement
-      : null;
+    state.previousFocus =
+      global.HTMLElement && document.activeElement instanceof global.HTMLElement
+        ? document.activeElement
+        : null;
     document.body.classList.add('rc-community-open');
     showDialog(ui.dialog);
     ui.closeButton.focus();

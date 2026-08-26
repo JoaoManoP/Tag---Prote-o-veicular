@@ -2,10 +2,13 @@
 
 function usablePoints(points) {
   if (!Array.isArray(points)) return [];
-  const valid = points.filter(point => Number.isFinite(point?.latitude)
-    && Number.isFinite(point?.longitude)
-    && Math.abs(point.latitude) <= 90
-    && Math.abs(point.longitude) <= 180);
+  const valid = points.filter(
+    point =>
+      Number.isFinite(point?.latitude) &&
+      Number.isFinite(point?.longitude) &&
+      Math.abs(point.latitude) <= 90 &&
+      Math.abs(point.longitude) <= 180
+  );
   const accurate = valid.filter(point => !Number.isFinite(point.accuracy) || point.accuracy <= 80);
   return accurate.length >= 2 ? accurate : valid;
 }
@@ -16,7 +19,9 @@ function smoothTrackForDisplay(points) {
   return source.map((point, index) => {
     if (index === 0 || index === source.length - 1) return { ...point };
     const window = source.slice(Math.max(0, index - 2), Math.min(source.length, index + 3));
-    let weightTotal = 0, latitude = 0, longitude = 0;
+    let weightTotal = 0,
+      latitude = 0,
+      longitude = 0;
     for (const candidate of window) {
       const weight = 1 / Math.max(3, Number(candidate.accuracy) || 20);
       latitude += candidate.latitude * weight;

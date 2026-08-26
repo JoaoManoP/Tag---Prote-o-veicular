@@ -6,12 +6,22 @@ const { DatabaseSync } = require('node:sqlite');
 const { runMigrations } = require('./migrations');
 
 class Database extends DatabaseSync {
-  pragma(value) { return this.exec(`PRAGMA ${value}`); }
+  pragma(value) {
+    return this.exec(`PRAGMA ${value}`);
+  }
   transaction(operation) {
     return (...args) => {
       this.exec('BEGIN IMMEDIATE');
-      try { const result = operation(...args); this.exec('COMMIT'); return result; }
-      catch (error) { try { this.exec('ROLLBACK'); } catch {} throw error; }
+      try {
+        const result = operation(...args);
+        this.exec('COMMIT');
+        return result;
+      } catch (error) {
+        try {
+          this.exec('ROLLBACK');
+        } catch {}
+        throw error;
+      }
     };
   }
 }
@@ -19,7 +29,10 @@ class Database extends DatabaseSync {
 function defaultDatabasePath() {
   const dataDirectory = path.join(__dirname, '..', 'data');
   const legacyPath = path.join(dataDirectory, 'rastro-demo.sqlite');
-  return process.env.DATABASE_PATH || (fs.existsSync(legacyPath) ? legacyPath : path.join(dataDirectory, 'rastreon.sqlite'));
+  return (
+    process.env.DATABASE_PATH ||
+    (fs.existsSync(legacyPath) ? legacyPath : path.join(dataDirectory, 'rastreon.sqlite'))
+  );
 }
 
 function createDatabase(databasePath = defaultDatabasePath()) {
@@ -235,19 +248,53 @@ function createDatabase(databasePath = defaultDatabasePath()) {
 }
 
 function createSessionStore(session, database) {
- class SQLiteSessionStore extends session.Store {
-  constructor() {
-    super();
-    this.getStatement = database.prepare('SELECT data, expires_at FROM auth_sessions WHERE sid = ?');
-    this.setStatement = database.prepare('INSERT INTO auth_sessions (sid, data, expires_at) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET data = excluded.data, expires_at = excluded.expires_at');
-    this.destroyStatement = database.prepare('DELETE FROM auth_sessions WHERE sid = ?');
+  class SQLiteSessionStore extends session.Store {
+    constructor() {
+      super();
+      this.getStatement = database.prepare(
+        'SELECT data, expires_at FROM auth_sessions WHERE sid = ?'
+      );
+      this.setStatement = database.prepare(
+        'INSERT INTO auth_sessions (sid, data, expires_at) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET data = excluded.data, expires_at = excluded.expires_at'
+      );
+      this.destroyStatement = database.prepare('DELETE FROM auth_sessions WHERE sid = ?');
+    }
+    get(sid, callback) {
+      try {
+        const row = this.getStatement.get(sid);
+        if (!row || row.expires_at <= Date.now()) {
+          if (row) this.destroyStatement.run(sid);
+          return callback(null, null);
+        }
+        callback(null, JSON.parse(row.data));
+      } catch (error) {
+        callback(error);
+      }
+    }
+    set(sid, value, callback = () => {}) {
+      try {
+        const expiresAt = value.cookie?.expires
+          ? new Date(value.cookie.expires).getTime()
+          : Date.now() + 86400000;
+        this.setStatement.run(sid, JSON.stringify(value), expiresAt);
+        callback(null);
+      } catch (error) {
+        callback(error);
+      }
+    }
+    destroy(sid, callback = () => {}) {
+      try {
+        this.destroyStatement.run(sid);
+        callback(null);
+      } catch (error) {
+        callback(error);
+      }
+    }
+    touch(sid, value, callback = () => {}) {
+      this.set(sid, value, callback);
+    }
   }
-  get(sid, callback) { try { const row = this.getStatement.get(sid); if (!row || row.expires_at <= Date.now()) { if (row) this.destroyStatement.run(sid); return callback(null, null); } callback(null, JSON.parse(row.data)); } catch (error) { callback(error); } }
-  set(sid, value, callback = () => {}) { try { const expiresAt = value.cookie?.expires ? new Date(value.cookie.expires).getTime() : Date.now() + 86400000; this.setStatement.run(sid, JSON.stringify(value), expiresAt); callback(null); } catch (error) { callback(error); } }
-  destroy(sid, callback = () => {}) { try { this.destroyStatement.run(sid); callback(null); } catch (error) { callback(error); } }
-  touch(sid, value, callback = () => {}) { this.set(sid, value, callback); }
- }
- return new SQLiteSessionStore();
+  return new SQLiteSessionStore();
 }
 
 module.exports = { createDatabase, createSessionStore };

@@ -1,12 +1,18 @@
 'use strict';
 
 function columnNames(database, table) {
-  return new Set(database.prepare(`PRAGMA table_info(${table})`).all().map((column) => column.name));
+  return new Set(
+    database
+      .prepare(`PRAGMA table_info(${table})`)
+      .all()
+      .map(column => column.name)
+  );
 }
 
 function addColumn(database, table, definition) {
   const name = definition.trim().split(/\s+/)[0];
-  if (!columnNames(database, table).has(name)) database.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+  if (!columnNames(database, table).has(name))
+    database.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
 }
 
 const migrations = [
@@ -60,7 +66,10 @@ const migrations = [
       `);
 
       const positionColumns = columnNames(database, 'positions');
-      const positionSchema = database.prepare("SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'positions'").get()?.sql || '';
+      const positionSchema =
+        database
+          .prepare("SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'positions'")
+          .get()?.sql || '';
       if (!positionColumns.has('device_id') || !positionSchema.includes("'mobile-gps'")) {
         database.exec(`
           CREATE TABLE positions_next (
@@ -91,7 +100,9 @@ const migrations = [
           CREATE UNIQUE INDEX idx_positions_device_sequence ON positions(tracking_session_id, device_id, sequence_number);
         `);
       }
-      database.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_device_sequence ON positions(tracking_session_id, device_id, sequence_number)');
+      database.exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_device_sequence ON positions(tracking_session_id, device_id, sequence_number)'
+      );
       database.exec('PRAGMA optimize');
     }
   },
@@ -147,17 +158,32 @@ const migrations = [
   {
     version: 4,
     name: 'advanced-geofence-shapes',
-    up(database) { const sql=database.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='geofences'").get()?.sql||''; if(sql.includes("'polygon'")){addColumn(database,'geofences','polygon_json TEXT');return;} database.exec(`CREATE TABLE geofences_next (id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,name TEXT NOT NULL,type TEXT NOT NULL CHECK(type IN ('circle','polygon')),center_lat REAL NOT NULL,center_lng REAL NOT NULL,radius_meters REAL NOT NULL,polygon_json TEXT,enabled INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);INSERT INTO geofences_next (id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at) SELECT id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at FROM geofences;DROP TABLE geofences;ALTER TABLE geofences_next RENAME TO geofences;CREATE INDEX idx_geofences_owner_vehicle ON geofences(user_id,vehicle_id);`); }
+    up(database) {
+      const sql =
+        database
+          .prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='geofences'")
+          .get()?.sql || '';
+      if (sql.includes("'polygon'")) {
+        addColumn(database, 'geofences', 'polygon_json TEXT');
+        return;
+      }
+      database.exec(
+        `CREATE TABLE geofences_next (id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,name TEXT NOT NULL,type TEXT NOT NULL CHECK(type IN ('circle','polygon')),center_lat REAL NOT NULL,center_lng REAL NOT NULL,radius_meters REAL NOT NULL,polygon_json TEXT,enabled INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);INSERT INTO geofences_next (id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at) SELECT id,user_id,vehicle_id,name,type,center_lat,center_lng,radius_meters,enabled,created_at,updated_at FROM geofences;DROP TABLE geofences;ALTER TABLE geofences_next RENAME TO geofences;CREATE INDEX idx_geofences_owner_vehicle ON geofences(user_id,vehicle_id);`
+      );
+    }
   },
   {
     version: 5,
     name: 'scoped-mobile-access',
-    up(database) { addColumn(database, 'tracking_sessions', 'mobile_token_hash TEXT'); }
+    up(database) {
+      addColumn(database, 'tracking_sessions', 'mobile_token_hash TEXT');
+    }
   },
   {
     version: 6,
     name: 'road-events-catalog',
-    up(database) { database.exec(`
+    up(database) {
+      database.exec(`
       CREATE TABLE IF NOT EXISTS road_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         fingerprint TEXT NOT NULL UNIQUE,
@@ -173,7 +199,8 @@ const migrations = [
       );
       CREATE INDEX IF NOT EXISTS idx_road_events_bounds ON road_events(latitude, longitude);
       CREATE INDEX IF NOT EXISTS idx_road_events_category_bounds ON road_events(category, latitude, longitude);
-    `); }
+    `);
+    }
   },
   {
     version: 7,
@@ -192,9 +219,21 @@ const migrations = [
         CREATE INDEX IF NOT EXISTS idx_fuel_prices_owner_updated ON fuel_price_preferences(user_id, updated_at DESC);
       `);
       if (!columnNames(database, 'vehicles').has('fuel_price')) return;
-      const rows=database.prepare('SELECT user_id,fuel,fuel_price,updated_at FROM vehicles WHERE fuel_price > 0 ORDER BY updated_at').all();
-      const upsert=database.prepare("INSERT INTO fuel_price_preferences (user_id,fuel_type,price_per_liter,source,region,updated_at) VALUES (?,?,?,'legacy-vehicle-migration',NULL,?) ON CONFLICT(user_id,fuel_type) DO UPDATE SET price_per_liter=excluded.price_per_liter,source=excluded.source,updated_at=excluded.updated_at");
-      for(const row of rows)upsert.run(row.user_id,String(row.fuel||'Não informado').slice(0,40),row.fuel_price,row.updated_at);
+      const rows = database
+        .prepare(
+          'SELECT user_id,fuel,fuel_price,updated_at FROM vehicles WHERE fuel_price > 0 ORDER BY updated_at'
+        )
+        .all();
+      const upsert = database.prepare(
+        "INSERT INTO fuel_price_preferences (user_id,fuel_type,price_per_liter,source,region,updated_at) VALUES (?,?,?,'legacy-vehicle-migration',NULL,?) ON CONFLICT(user_id,fuel_type) DO UPDATE SET price_per_liter=excluded.price_per_liter,source=excluded.source,updated_at=excluded.updated_at"
+      );
+      for (const row of rows)
+        upsert.run(
+          row.user_id,
+          String(row.fuel || 'Não informado').slice(0, 40),
+          row.fuel_price,
+          row.updated_at
+        );
     }
   },
   {
@@ -247,12 +286,16 @@ const migrations = [
   {
     version: 10,
     name: 'user-profile-avatar',
-    up(database) { addColumn(database, 'users', 'avatar_data TEXT'); }
+    up(database) {
+      addColumn(database, 'users', 'avatar_data TEXT');
+    }
   },
   {
     version: 11,
     name: 'vehicle-vin-for-authorized-images',
-    up(database) { addColumn(database, 'vehicles', 'vin TEXT'); }
+    up(database) {
+      addColumn(database, 'vehicles', 'vin TEXT');
+    }
   },
   {
     version: 12,
@@ -534,7 +577,10 @@ const migrations = [
         );
       `);
 
-      const positionSql = database.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='positions'").get()?.sql || '';
+      const positionSql =
+        database
+          .prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='positions'")
+          .get()?.sql || '';
       if (!positionSql.includes("'traccar'")) {
         database.exec(`
           CREATE TABLE positions_v13 (
@@ -581,19 +627,30 @@ const migrations = [
       addColumn(database, 'road_events', 'last_verified_at INTEGER');
       addColumn(database, 'road_events', 'confidence REAL NOT NULL DEFAULT 0.5');
       addColumn(database, 'road_events', "status TEXT NOT NULL DEFAULT 'ACTIVE'");
-      database.exec('CREATE INDEX IF NOT EXISTS idx_road_events_status_bounds ON road_events(status, latitude, longitude)');
+      database.exec(
+        'CREATE INDEX IF NOT EXISTS idx_road_events_status_bounds ON road_events(status, latitude, longitude)'
+      );
     }
   }
 ];
 
 function runMigrations(database) {
-  database.exec('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at INTEGER NOT NULL)');
-  const applied = new Set(database.prepare('SELECT version FROM schema_migrations').all().map((row) => row.version));
+  database.exec(
+    'CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at INTEGER NOT NULL)'
+  );
+  const applied = new Set(
+    database
+      .prepare('SELECT version FROM schema_migrations')
+      .all()
+      .map(row => row.version)
+  );
   for (const migration of migrations) {
     if (applied.has(migration.version)) continue;
     database.transaction(() => {
       migration.up(database);
-      database.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(migration.version, migration.name, Date.now());
+      database
+        .prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)')
+        .run(migration.version, migration.name, Date.now());
     })();
   }
 }

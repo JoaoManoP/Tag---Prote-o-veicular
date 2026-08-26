@@ -22,17 +22,17 @@ const PLACE = {
 };
 
 function addUser(database, { id, name, email, role = 'USER' }) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO users (id, name, email, password_hash, role, created_at)
     VALUES (?, ?, ?, 'hash-for-test-only', ?, ?)
-  `).run(id, name, email, role, Date.now());
+  `
+    )
+    .run(id, name, email, role, Date.now());
 }
 
-function setup(t, {
-  enabled = true,
-  writeLimiter = (_req, _res, next) => next(),
-  now
-} = {}) {
+function setup(t, { enabled = true, writeLimiter = (_req, _res, next) => next(), now } = {}) {
   const database = createDatabase(':memory:');
   addUser(database, { id: 1, name: 'João da Silva', email: 'joao@example.com' });
   addUser(database, { id: 2, name: 'Maria Oliveira', email: 'maria@example.com' });
@@ -41,9 +41,7 @@ function setup(t, {
   app.use(express.json({ limit: '20kb' }));
   app.use((req, _res, next) => {
     const userId = Number(req.get('x-test-user'));
-    req.session = Number.isInteger(userId) && userId > 0
-      ? { userId, csrfToken: CSRF_TOKEN }
-      : {};
+    req.session = Number.isInteger(userId) && userId > 0 ? { userId, csrfToken: CSRF_TOKEN } : {};
     next();
   });
   app.use('/api/community', createCommunityRouter({ database, enabled, writeLimiter, now }));
@@ -68,7 +66,7 @@ function createReview(app, userId = 1, overrides = {}) {
   );
 }
 
-test('flag da comunidade aceita somente valores explícitos e desativa toda a superfície de dados', async (t) => {
+test('flag da comunidade aceita somente valores explícitos e desativa toda a superfície de dados', async t => {
   assert.equal(parseFeatureFlag('true'), true);
   assert.equal(parseFeatureFlag('ON'), true);
   assert.equal(parseFeatureFlag('false'), false);
@@ -80,10 +78,13 @@ test('flag da comunidade aceita somente valores explícitos e desativa toda a su
     .get(`/api/community/places/${encodeURIComponent(LOCAL_ID)}/reviews`)
     .expect(404);
   assert.equal(disabled.body.code, 'COMMUNITY_FEATURE_DISABLED');
-  assert.equal(database.prepare("SELECT name FROM sqlite_schema WHERE name = 'community_place_reviews'").get(), undefined);
+  assert.equal(
+    database.prepare("SELECT name FROM sqlite_schema WHERE name = 'community_place_reviews'").get(),
+    undefined
+  );
 });
 
-test('API habilitada exige autenticação, CSRF e valida nota e conteúdo', async (t) => {
+test('API habilitada exige autenticação, CSRF e valida nota e conteúdo', async t => {
   const { app } = setup(t);
   await request(app)
     .get(`/api/community/places/${encodeURIComponent(LOCAL_ID)}/reviews`)
@@ -99,7 +100,11 @@ test('API habilitada exige autenticação, CSRF e valida nota e conteúdo', asyn
   await authenticated(
     request(app)
       .post('/api/community/places/google:local-incompativel/reviews')
-      .send({ place: { ...PLACE, provider: 'mapbox' }, rating: 4, comment: 'Provedor incompatível.' }),
+      .send({
+        place: { ...PLACE, provider: 'mapbox' },
+        rating: 4,
+        comment: 'Provedor incompatível.'
+      }),
     1,
     { csrf: true }
   ).expect(400);
@@ -112,7 +117,7 @@ test('API habilitada exige autenticação, CSRF e valida nota e conteúdo', asyn
   ).expect(400);
 });
 
-test('avaliações criam resumo paginado sem expor identidade ou localização do autor', async (t) => {
+test('avaliações criam resumo paginado sem expor identidade ou localização do autor', async t => {
   let timestamp = 1_000;
   const { app, database } = setup(t, { now: () => timestamp++ });
   const first = await createReview(app, 1, {
@@ -144,12 +149,18 @@ test('avaliações criam resumo paginado sem expor identidade ou localização d
   assert.equal(listing.body.pagination.hasMore, true);
   assert.equal(listing.body.reviews.length, 1);
 
-  const columns = database.prepare('PRAGMA table_info(community_place_reviews)').all().map((column) => column.name);
-  assert.equal(columns.some((name) => /lat|lon|location|ip/i.test(name)), false);
+  const columns = database
+    .prepare('PRAGMA table_info(community_place_reviews)')
+    .all()
+    .map(column => column.name);
+  assert.equal(
+    columns.some(name => /lat|lon|location|ip/i.test(name)),
+    false
+  );
   await createReview(app, 1).expect(409);
 });
 
-test('edição e remoção respeitam propriedade e exclusão lógica', async (t) => {
+test('edição e remoção respeitam propriedade e exclusão lógica', async t => {
   let timestamp = 10_000;
   const { app, database } = setup(t, { now: () => timestamp++ });
   const created = await createReview(app).expect(201);
@@ -161,25 +172,25 @@ test('edição e remoção respeitam propriedade e exclusão lógica', async (t)
     { csrf: true }
   ).expect(403);
   const updated = await authenticated(
-    request(app).patch(`/api/community/reviews/${reviewId}`).send({ rating: 4, comment: 'Atualizei minha opinião.' }),
+    request(app)
+      .patch(`/api/community/reviews/${reviewId}`)
+      .send({ rating: 4, comment: 'Atualizei minha opinião.' }),
     1,
     { csrf: true }
   ).expect(200);
   assert.equal(updated.body.review.rating, 4);
   assert.equal(updated.body.review.comment, 'Atualizei minha opinião.');
 
-  await authenticated(
-    request(app).delete(`/api/community/reviews/${reviewId}`),
-    2,
-    { csrf: true }
-  ).expect(403);
-  await authenticated(
-    request(app).delete(`/api/community/reviews/${reviewId}`),
-    1,
-    { csrf: true }
-  ).expect(204);
+  await authenticated(request(app).delete(`/api/community/reviews/${reviewId}`), 2, {
+    csrf: true
+  }).expect(403);
+  await authenticated(request(app).delete(`/api/community/reviews/${reviewId}`), 1, {
+    csrf: true
+  }).expect(204);
 
-  const stored = database.prepare('SELECT status, comment, removed_at FROM community_place_reviews WHERE id = ?').get(reviewId);
+  const stored = database
+    .prepare('SELECT status, comment, removed_at FROM community_place_reviews WHERE id = ?')
+    .get(reviewId);
   assert.equal(stored.status, 'REMOVED');
   assert.equal(stored.comment, '[removido pelo autor]');
   assert.ok(stored.removed_at);
@@ -191,7 +202,7 @@ test('edição e remoção respeitam propriedade e exclusão lógica', async (t)
   assert.deepEqual(listing.body.reviews, []);
 });
 
-test('denúncia e moderação ocultam conteúdo e recalculam a avaliação pública', async (t) => {
+test('denúncia e moderação ocultam conteúdo e recalculam a avaliação pública', async t => {
   let timestamp = 20_000;
   const { app, database } = setup(t, { now: () => timestamp++ });
   const created = await createReview(app, 1).expect(201);
@@ -203,7 +214,9 @@ test('denúncia e moderação ocultam conteúdo e recalculam a avaliação públ
     { csrf: true }
   ).expect(400);
   const reported = await authenticated(
-    request(app).post(`/api/community/reviews/${reviewId}/reports`).send({ reason: 'FALSE_INFORMATION', details: 'Informação não corresponde ao local.' }),
+    request(app)
+      .post(`/api/community/reviews/${reviewId}/reports`)
+      .send({ reason: 'FALSE_INFORMATION', details: 'Informação não corresponde ao local.' }),
     2,
     { csrf: true }
   ).expect(201);
@@ -215,7 +228,10 @@ test('denúncia e moderação ocultam conteúdo e recalculam a avaliação públ
   ).expect(409);
 
   await authenticated(request(app).get('/api/community/moderation/reports'), 2).expect(403);
-  const queue = await authenticated(request(app).get('/api/community/moderation/reports'), 3).expect(200);
+  const queue = await authenticated(
+    request(app).get('/api/community/moderation/reports'),
+    3
+  ).expect(200);
   assert.equal(queue.body.reports.length, 1);
   assert.equal(queue.body.reports[0].reviewId, reviewId);
 
@@ -228,7 +244,12 @@ test('denúncia e moderação ocultam conteúdo e recalculam a avaliação públ
   ).expect(200);
   assert.equal(hidden.body.review.status, 'HIDDEN');
   assert.equal(hidden.body.review.moderation.reason, 'Conteúdo confirmado como incorreto.');
-  assert.equal(database.prepare("SELECT status FROM community_review_reports WHERE review_id = ?").get(reviewId).status, 'RESOLVED');
+  assert.equal(
+    database
+      .prepare('SELECT status FROM community_review_reports WHERE review_id = ?')
+      .get(reviewId).status,
+    'RESOLVED'
+  );
 
   const publicListing = await authenticated(
     request(app).get(`/api/community/places/${encodeURIComponent(LOCAL_ID)}/reviews`),
@@ -251,14 +272,18 @@ test('denúncia e moderação ocultam conteúdo e recalculam a avaliação públ
   assert.equal(restored.body.summary.count, 1);
 });
 
-test('limitador de escrita é aplicável por usuário sem persistir IP', async (t) => {
+test('limitador de escrita é aplicável por usuário sem persistir IP', async t => {
   const limiter = createCommunityWriteLimiter({ windowMs: 60_000, limit: 1 });
   const { app } = setup(t, { writeLimiter: limiter });
   await createReview(app, 1).expect(201);
   const limited = await authenticated(
     request(app)
       .post('/api/community/places/google:outro-local/reviews')
-      .send({ place: { ...PLACE, name: 'Outro local' }, rating: 4, comment: 'Outro comentário válido.' }),
+      .send({
+        place: { ...PLACE, name: 'Outro local' },
+        rating: 4,
+        comment: 'Outro comentário válido.'
+      }),
     1,
     { csrf: true }
   ).expect(429);
@@ -267,7 +292,11 @@ test('limitador de escrita é aplicável por usuário sem persistir IP', async (
   await authenticated(
     request(app)
       .post('/api/community/places/google:local-da-maria/reviews')
-      .send({ place: { ...PLACE, name: 'Local da Maria' }, rating: 4, comment: 'Avaliação independente.' }),
+      .send({
+        place: { ...PLACE, name: 'Local da Maria' },
+        rating: 4,
+        comment: 'Avaliação independente.'
+      }),
     2,
     { csrf: true }
   ).expect(201);

@@ -17,11 +17,12 @@ function loadMapboxGl() {
 }
 
 const provider = window.RASTROTACK_MAP_CONFIG?.provider;
-window.RastroMapLibre = provider === 'mapbox'
-  ? loadMapboxGl()
-  : provider === 'maplibre'
-    ? import('/vendor/maplibre/maplibre-gl.mjs').then(module => {
-        window.maplibregl = module;
-        return module;
-      })
-    : Promise.resolve(null);
+window.RastroMapLibre =
+  provider === 'mapbox'
+    ? loadMapboxGl()
+    : provider === 'maplibre'
+      ? import('/vendor/maplibre/maplibre-gl.mjs').then(module => {
+          window.maplibregl = module;
+          return module;
+        })
+      : Promise.resolve(null);
