@@ -821,7 +821,7 @@ function createApplication(options = {}) {
   app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
   app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/login.html');
-    const revision = process.env.ASSET_REVISION || '20260825-vehicle-3d-2',
+    const revision = process.env.ASSET_REVISION || '20260826-vehicle-floating-2',
       html = fs
         .readFileSync(path.join(publicDir, 'index.html'), 'utf8')
         .replace(
