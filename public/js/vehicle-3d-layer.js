@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 
 const defaults = window.VEHICLE_3D_CONFIG;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -467,7 +468,11 @@ export async function installVehicle3DPreview({
   };
   let model;
   try {
-    const gltf = await new GLTFLoader().loadAsync(config.modelPath);
+    const loader = new GLTFLoader();
+    const ktx2 = new KTX2Loader().setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/libs/basis/');
+    ktx2.detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+    const gltf = await loader.loadAsync(config.modelPath);
     model = gltf.scene;
     const box = new THREE.Box3().setFromObject(model),
       size = box.getSize(new THREE.Vector3()),

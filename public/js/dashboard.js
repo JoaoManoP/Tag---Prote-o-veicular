@@ -38,7 +38,7 @@ window.RastroMap.ready
           const vehicleHud = document.createElement('div');
           vehicleHud.className = 'vehicle-hud';
           vehicleHud.innerHTML =
-            '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>Localização indisponível</span></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
+            '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><i class="vehicle-hud__smoke vehicle-hud__smoke--a"></i><i class="vehicle-hud__smoke vehicle-hud__smoke--b"></i><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>GPS sem sinal · aguardando atualização</span></div><div class="vehicle-hud__details"></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
           mapCard.appendChild(vehicleHud);
         }
       }
@@ -52,7 +52,7 @@ window.RastroMap.ready
         const vehicleHud = document.createElement('div');
         vehicleHud.className = 'vehicle-hud';
         vehicleHud.innerHTML =
-          '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>Localização indisponível</span></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
+          '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><i class="vehicle-hud__smoke vehicle-hud__smoke--a"></i><i class="vehicle-hud__smoke vehicle-hud__smoke--b"></i><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>GPS sem sinal · aguardando atualização</span></div><div class="vehicle-hud__details"></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
         mapCard.appendChild(vehicleHud);
       }
     }
@@ -1759,7 +1759,11 @@ window.RastroMap.ready
       const button = hud.querySelector('button'),
         canvas = hud.querySelector('.vehicle-hud-3d'),
         image = hud.querySelector('.vehicle-hud__media img');
-      button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+      button.onclick = () => {
+        if (!vehicle) return document.querySelector('[data-view="vehicles"]')?.click();
+        const expanded = hud.classList.toggle('vehicle-hud--expanded');
+        button.textContent = expanded ? 'Ocultar detalhes' : 'Ver detalhes';
+      };
       if (!vehicle) {
         hud.querySelector('.vehicle-hud__model').textContent = 'Nenhum veículo cadastrado';
         hud.querySelector('.vehicle-hud__year').textContent = '';
@@ -1772,8 +1776,11 @@ window.RastroMap.ready
       hud.querySelector('.vehicle-hud__title').textContent = vehicle.nickname || 'Meu veículo';
       hud.querySelector('.vehicle-hud__model').textContent =
         `${vehicle.brand || ''} ${vehicle.model || ''}`.trim();
-      hud.querySelector('.vehicle-hud__year').textContent = vehicle.year || '';
-      hud.querySelector('.vehicle-hud__plate').textContent = vehicle.plate || 'SEM PLACA';
+      hud.querySelector('.vehicle-hud__year').textContent = '';
+      const plate = vehicle.plate || 'SEM PLACA';
+      if (canvas) canvas.setAttribute('aria-label', `Modelo 3D do ${vehicle.model || 'veículo'}`);
+      hud.querySelector('.vehicle-hud__plate').textContent = plate;
+      hud.querySelector('.vehicle-hud__details').innerHTML = `<span>Marca</span><b>${vehicle.brand || '—'}</b><span>Modelo</span><b>${vehicle.model || '—'}</b><span>Placa</span><b>${plate}</b>`;
       button.textContent = 'Ver detalhes';
       if (canvas) {
         canvas.hidden = false;
