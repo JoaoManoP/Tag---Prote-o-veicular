@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1a29"><title>Compartilhar localização — Rastreon</title><link rel="stylesheet" href="/css/style.css?v=20260820"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1a29"><title>Compartilhar localização — Rastreon</title><link rel="preconnect" href="https://api.mapbox.com"><link rel="modulepreload" href="/vendor/maplibre/maplibre-gl.mjs"><link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css"><link rel="stylesheet" href="/vendor/mapbox/mapbox-gl.css"><link rel="stylesheet" href="/css/style.css?v=20260826-mobile-map-1"></head>
 <body class="mobile-page">
   <main class="mobile-shell">
     <div class="mobile-brand"><span class="brand-mark">R</span><div><h1>Rastreon</h1><p>Celular rastreador</p></div></div>
@@ -13,6 +13,14 @@
       <div class="privacy-note">Sua localização é vinculada à sessão e ao dispositivo autorizado. Você pode parar ou desvincular o celular a qualquer momento.</div>
       <button id="startBtn" class="wide" disabled>Iniciar compartilhamento</button>
       <button id="stopBtn" class="wide danger hidden">Parar compartilhamento</button>
+    </section>
+    <section class="card mobile-live-map-card" aria-labelledby="mobileMapTitle">
+      <div class="mobile-map-heading">
+        <div><span class="eyebrow">POSIÇÃO NO MAPA</span><h2 id="mobileMapTitle">Prévia em tempo real</h2></div>
+        <span id="mobileMapStatus" class="badge offline">Aguardando GPS</span>
+      </div>
+      <div id="mobileMap" role="application" aria-label="Mapa da localização compartilhada"></div>
+      <p class="mobile-map-caption">O círculo representa a precisão informada pelo aparelho.</p>
     </section>
     <section class="card telemetry">
       <span class="eyebrow">DADOS ENVIADOS</span>
@@ -28,6 +36,6 @@
     <p class="background-warning">O navegador pode limitar ou interromper o GPS quando a tela estiver bloqueada ou este site estiver em segundo plano.</p>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="/socket.io/socket.io.js"></script><script src="/js/offline-queue.js"></script><script src="/js/mobile.js?v=2"></script>
+  <script src="/socket.io/socket.io.js"></script><script src="/map-config.js"></script><script src="/js/maplibre-loader.js?v=4"></script><script src="/js/map-service.js?v=7"></script><script src="/js/offline-queue.js"></script><script src="/js/mobile.js?v=3"></script>
 </body>
 </html>

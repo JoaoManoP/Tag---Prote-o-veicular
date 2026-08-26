@@ -159,7 +159,17 @@
       getZoom(){return this._map.getZoom()}
       getCenter(){const p=this._map.getCenter();return{lat:p.lat,lng:p.lng}}
       panTo(center){this._map.easeTo({center:lngLat(center)});return this}
-      setTraffic(){return this}
+      setTraffic(enabled){
+        if(config.provider!=='mapbox')return this;
+        const sourceId='rastreon-mapbox-traffic',layerId='rastreon-mapbox-traffic-flow';
+        this.ready.then(()=>{
+          if(this._map.getLayer(layerId)){this._map.setLayoutProperty(layerId,'visibility',enabled?'visible':'none');return}
+          if(!enabled)return;
+          if(!this._map.getSource(sourceId))this._map.addSource(sourceId,{type:'vector',url:'mapbox://mapbox.mapbox-traffic-v1'});
+          this._map.addLayer({id:layerId,type:'line',source:sourceId,'source-layer':'traffic',slot:'middle',minzoom:5,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['match',['get','congestion'],'low','#25a65a','moderate','#f2c230','heavy','#ff7a00','severe','#d81934','#788694'],'line-width':['interpolate',['linear'],['zoom'],5,1,12,3,18,7],'line-offset':1.5,'line-opacity':.86}});
+        });
+        return this;
+      }
       setTilt(value){this._map.easeTo({pitch:value});return this}
       setHeading(value){this._map.easeTo({bearing:value});return this}
       invalidateSize(){this._map.resize();return this}

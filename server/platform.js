@@ -77,7 +77,7 @@ function createPlatformRouter({ database, uploadDirectory, traccarProvider, geoc
     conversations: true,
     px: true,
     traccar: process.env.TRACCAR_ENABLED === 'true',
-    traffic: { available: process.env.MAP_PROVIDER === 'google' && Boolean(process.env.GOOGLE_MAPS_API_KEY), provider: process.env.MAP_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY ? 'Google Maps Traffic Layer' : null, communityAvailable: true, reason: process.env.MAP_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY ? null : 'Sem fonte licenciada: somente relatos comunitários identificados como não oficiais.' },
+    traffic: { available: process.env.MAP_PROVIDER === 'google' && Boolean(process.env.GOOGLE_MAPS_API_KEY) || process.env.MAP_PROVIDER === 'mapbox' && Boolean(process.env.MAPBOX_WEB_PUBLIC_TOKEN || process.env.MAPBOX_ACCESS_TOKEN), provider: process.env.MAP_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY ? 'Google Maps Traffic Layer' : process.env.MAP_PROVIDER === 'mapbox' && (process.env.MAPBOX_WEB_PUBLIC_TOKEN || process.env.MAPBOX_ACCESS_TOKEN) ? 'Mapbox Traffic v1' : null, communityAvailable: true, reason: process.env.MAP_PROVIDER === 'google' && process.env.GOOGLE_MAPS_API_KEY || process.env.MAP_PROVIDER === 'mapbox' && (process.env.MAPBOX_WEB_PUBLIC_TOKEN || process.env.MAPBOX_ACCESS_TOKEN) ? null : 'Sem fonte licenciada: somente relatos comunitários identificados como não oficiais.' },
     remoteHardwareBlock: false
   }));
 

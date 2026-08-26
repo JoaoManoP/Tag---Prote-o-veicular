@@ -18,6 +18,7 @@
     "road-events:import": "node server/import-road-events.js",
     "role:set": "node server/set-role.js",
     "test": "node --test tests/*.test.js",
+    "mobile:check": "npm run check --prefix mobile",
     "predeploy": "npm run lint && npm test && npm run build"
   },
   "engines": {
@@ -33,6 +34,7 @@
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "leaflet": "^1.9.4",
+    "mapbox-gl": "3.27.0",
     "maplibre-gl": "^6.4.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",

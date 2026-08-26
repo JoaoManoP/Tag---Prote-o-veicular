@@ -15,6 +15,32 @@ O modelo Nginx versionado está em `deploy/protec.nexobg.com.br.nginx.conf`.
 
 O deploy permanece bloqueado até existir acesso autorizado ao ambiente real.
 
+## Atualização automática pelo GitHub Actions
+
+O workflow `.github/workflows/deploy-vps.yml` publica automaticamente a branch
+`main` somente depois que o workflow `CI` termina com sucesso. Também pode ser
+executado manualmente pela aba Actions.
+
+Cadastre um ambiente protegido chamado `production` no GitHub e adicione estes
+segredos ao ambiente:
+
+- `VPS_HOST`: host ou IP da VPS.
+- `VPS_USER`: usuário SSH sem senha interativa.
+- `VPS_SSH_PRIVATE_KEY`: chave privada exclusiva para deploy.
+- `VPS_KNOWN_HOSTS`: linha verificada da chave de host da VPS.
+- `VPS_APP_PATH`: caminho absoluto do repositório na VPS.
+
+Adicione também as variáveis `VPS_PORT` (opcional, padrão `22`) e
+`PUBLIC_HEALTH_URL` (por exemplo,
+`https://protec.nexobg.com.br/api/health`). A chave SSH de deploy deve ter apenas
+as permissões necessárias para atualizar essa aplicação e recarregar seu
+processo PM2.
+
+Cada publicação empacota exatamente o commit aprovado pelo CI, faz backup
+validado do SQLite, sincroniza a release preservando `.env`, banco, backups e
+metadados Git, instala dependências, aplica migrations, recarrega o PM2 e
+confirma os healthchecks interno e público.
+
 ## Release preparada para `protec.nexobg.com.br`
 
 1. Copiar `.env.production.example` para `.env` somente na VPS e preencher `SESSION_SECRET`. Restrinja o `MAPBOX_WEB_PUBLIC_TOKEN` aos domínios autorizados no painel da Mapbox.
