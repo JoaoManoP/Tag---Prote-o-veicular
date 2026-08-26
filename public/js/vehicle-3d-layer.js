@@ -427,7 +427,21 @@ export async function installVehicle3DPreview({
     dragging = false,
     lastX = 0,
     angle = -0.62,
-    bodyMeshes = [];
+    bodyMeshes = [],
+    modelBounds = null;
+  const fitModelToCanvas = () => {
+    if (!modelBounds) return;
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov),
+      horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect),
+      limitingFov = Math.min(verticalFov, horizontalFov),
+      distance = (modelBounds.radius / Math.sin(limitingFov / 2)) * 1.04,
+      target = modelBounds.center,
+      direction = new THREE.Vector3(2.15, 0.84, 2.65).normalize();
+    camera.position.copy(target).addScaledVector(direction, distance);
+    camera.near = Math.max(0.01, distance - modelBounds.radius * 2);
+    camera.far = distance + modelBounds.radius * 3;
+    camera.lookAt(target);
+  };
   const resize = () => {
     const width = Math.max(1, canvas.clientWidth || canvas.width || 300),
       height = Math.max(1, canvas.clientHeight || canvas.height || 160),
@@ -435,6 +449,7 @@ export async function installVehicle3DPreview({
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
+    fitModelToCanvas();
     camera.updateProjectionMatrix();
   };
   const setBodyColor = value => {
@@ -459,7 +474,10 @@ export async function installVehicle3DPreview({
       center = box.getCenter(new THREE.Vector3()),
       longest = Math.max(size.x, size.z);
     model.position.set(-center.x, -box.min.y, -center.z);
-    model.scale.setScalar(1.55 / longest);
+    model.scale.setScalar(1 / longest);
+    const fittedBox = new THREE.Box3().setFromObject(model);
+    modelBounds = fittedBox.getBoundingSphere(new THREE.Sphere());
+    fitModelToCanvas();
     model.traverse(object => {
       if (!object.isMesh) return;
       const name = String(object.material?.name || object.name).toLowerCase(),

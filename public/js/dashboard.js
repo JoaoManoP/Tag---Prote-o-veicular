@@ -152,7 +152,7 @@ window.RastroMap.ready
       map,
       container: document.querySelector('.smart-map')
     });
-    const vehicle3DModulePromise = import('/js/vehicle-3d-layer.bundle.js?v=20260825-vehicle-3d-2');
+    const vehicle3DModulePromise = import('/js/vehicle-3d-layer.bundle.js?v=20260826-vehicle-3d-3');
     const syncVehicleMarkerFallback = () => {
       const active = Boolean(vehicle3DLayer?.ready),
         vehicleElement = vehicleMarker?.getElement?.();
@@ -3339,9 +3339,14 @@ window.RastroMap.ready
           document
             .querySelectorAll('.nav-pill')
             .forEach(x => x.classList.toggle('active', x === b));
-          document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-          $(`${b.dataset.view}View`).classList.add('active');
-          if (b.dataset.view === 'tracking') setTimeout(() => map.invalidateSize(), 50);
+          const isTracking = b.dataset.view === 'tracking';
+          // O mapa permanece ativo enquanto as demais áreas aparecem como painel flutuante.
+          document.body.classList.toggle('floating-nav-open', !isTracking);
+          document.querySelector('#trackingView')?.classList.add('active');
+          document.querySelectorAll('.view:not(#trackingView)').forEach(v =>
+            v.classList.toggle('active', v.id === `${b.dataset.view}View` && !isTracking)
+          );
+          if (isTracking) setTimeout(() => map.invalidateSize(), 50);
           if (b.dataset.view === 'profile') {
             ensureFinesCard();
             ensureTwoFactorCard();
