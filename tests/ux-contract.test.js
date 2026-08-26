@@ -13,6 +13,10 @@ const refreshCss = fs.readFileSync(
   path.join(root, 'public', 'css', 'dashboard-refresh.css'),
   'utf8'
 );
+const navigationCss = fs.readFileSync(
+  path.join(root, 'public', 'css', 'navigation-redesign.css'),
+  'utf8'
+);
 const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnostics.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
 const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
@@ -27,6 +31,7 @@ const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), '
 const compact = source => source.replace(/\s+/g, '').replace(/;}/g, '}');
 const compactCss = compact(css);
 const compactRefreshCss = compact(refreshCss);
+const compactNavigationCss = compact(navigationCss);
 const compactDashboard = compact(dashboard);
 const compactMapService = compact(mapService);
 const compactUx = compact(ux);
@@ -96,15 +101,17 @@ test('autocomplete limita resultados e detalhes da rota ficam recolhidos', () =>
   assert.match(compactCss, /route-summary>small\{display:none\}/);
 });
 
-test('busca inferior inicia a viagem e celular permanece opcional', () => {
+test('busca inferior abre o planejador completo e mantém o celular opcional', () => {
   assert.match(dashboard, /Para onde você quer ir\?/);
   assert.match(dashboard, /openQuickTripPanel/);
   assert.match(dashboard, /Iniciar navegação neste dispositivo/);
   assert.match(dashboard, /O site continua funcionando sem conexão com o telefone/);
-  assert.match(
+  assert.doesNotMatch(
     compactRefreshCss,
     /wizard>:not\(\.quick-trip-panel\):not\(#routeSummary\)\{display:none/
   );
+  assert.match(compactNavigationCss, /wizard>\.field\{display:block!important/);
+  assert.match(compactNavigationCss, /wizard>#routeSummary:not\(\.hidden\)\{display:grid!important/);
 });
 
 test('busca inferior funciona sem GPS e oferece locais salvos e recentes', () => {

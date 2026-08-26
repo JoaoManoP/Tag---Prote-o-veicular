@@ -1,0 +1,1465 @@
+:root {
+  --nav-bg: #081522;
+  --nav-surface: rgba(8, 20, 33, 0.96);
+  --nav-surface-soft: rgba(15, 31, 48, 0.92);
+  --nav-line: rgba(187, 211, 231, 0.16);
+  --nav-text: #f7f9fb;
+  --nav-muted: #9eafbe;
+  --nav-accent: #2d8be8;
+  --nav-blue: #1478e8;
+  --nav-green: #19c988;
+  --motion-fast: 140ms;
+  --motion-normal: 200ms;
+  --motion-sheet: 280ms;
+  --motion-map: 700ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --z-map: 0;
+  --z-controls: 20;
+  --z-topbar: 70;
+  --z-backdrop: 50;
+  --z-sheet: 60;
+  --z-toast: 80;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--nav-bg) !important;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.topbar {
+  z-index: var(--z-topbar) !important;
+  height: calc(72px + env(safe-area-inset-top)) !important;
+  padding: env(safe-area-inset-top) max(30px, env(safe-area-inset-right)) 0
+    max(30px, env(safe-area-inset-left)) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, rgba(4, 12, 22, 0.98), rgba(5, 15, 25, 0.95)) !important;
+  box-shadow: 0 12px 34px rgba(3, 12, 20, 0.24) !important;
+}
+
+.brand-area {
+  min-width: 58px !important;
+}
+
+.brand-mark {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 14px !important;
+  background-color: transparent !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+}
+
+.top-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto !important;
+  min-width: 440px;
+  justify-content: center !important;
+  gap: 18px !important;
+}
+
+.nav-primary,
+.top-nav {
+  display: flex;
+  align-items: center;
+}
+
+.nav-primary {
+  gap: 18px !important;
+}
+
+.nav-pill {
+  min-width: 112px;
+  min-height: 44px;
+  padding: 8px 14px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: #d8e0e8 !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+  transition: color var(--motion-fast), background var(--motion-fast), transform var(--motion-fast) !important;
+}
+
+.nav-pill:hover,
+.nav-pill.active {
+  border-color: rgba(75, 155, 231, 0.32) !important;
+  background: rgba(45, 139, 232, 0.1) !important;
+  color: #fff !important;
+  box-shadow: inset 0 -2px var(--nav-accent) !important;
+}
+
+.top-nav .nav-pill.active,
+.top-nav .nav-profile.active {
+  border-color: rgba(75, 155, 231, 0.32) !important;
+  background: rgba(45, 139, 232, 0.1) !important;
+  color: #fff !important;
+  box-shadow: inset 0 -2px var(--nav-accent) !important;
+}
+
+.nav-pill:active,
+.map-control-rail button:active {
+  transform: scale(0.97);
+}
+
+.nav-pill[data-view='tracking'],
+.nav-pill[data-view='community'] {
+  display: none !important;
+}
+
+.nav-icon,
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.account-menu {
+  min-width: 170px !important;
+  justify-content: flex-end !important;
+}
+
+#panelStatus {
+  padding: 11px 17px !important;
+  border: 1px solid rgba(25, 201, 136, 0.33) !important;
+  border-radius: 999px !important;
+  background: rgba(6, 44, 43, 0.62) !important;
+  color: #eafff6 !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+
+.account-menu > #logoutBtn {
+  display: none !important;
+}
+
+#trackingView,
+#trackingView .workspace,
+#trackingView .map-column,
+#trackingView .smart-map,
+#trackingView #map {
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+#trackingView {
+  z-index: var(--z-map) !important;
+  display: block !important;
+  background: var(--nav-bg) !important;
+}
+
+#trackingView .map-toolbar,
+#trackingView .vehicle-hud,
+#trackingView .map-legend {
+  display: none !important;
+}
+
+.map-search-control {
+  position: absolute;
+  z-index: var(--z-controls);
+  top: calc(92px + env(safe-area-inset-top));
+  left: max(28px, env(safe-area-inset-left));
+  display: flex;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border: 1px solid rgba(8, 25, 41, 0.12);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #152d43;
+  box-shadow: 0 15px 34px rgba(7, 24, 39, 0.2);
+  transition: width var(--motion-sheet) var(--ease-out), box-shadow var(--motion-normal);
+}
+
+.map-search-control.expanded {
+  width: min(390px, calc(100vw - 120px));
+  box-shadow: 0 20px 44px rgba(7, 24, 39, 0.26);
+}
+
+.map-search-toggle {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.map-search-control input {
+  width: 100%;
+  min-width: 0;
+  padding: 0 16px 0 2px;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  color: #142638;
+  font-size: 15px;
+  box-shadow: none !important;
+}
+
+.map-control-rail {
+  position: absolute;
+  z-index: var(--z-controls);
+  right: max(28px, env(safe-area-inset-right));
+  top: 50%;
+  display: grid;
+  gap: 12px;
+  transform: translateY(-42%);
+}
+
+.map-control-rail button {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border: 1px solid rgba(9, 25, 40, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: #16314a;
+  box-shadow: 0 12px 30px rgba(5, 22, 36, 0.22);
+  transition: transform var(--motion-fast), background var(--motion-fast);
+}
+
+.map-control-rail button.location {
+  background: linear-gradient(145deg, #258cf3, #0968dc);
+  color: #fff;
+}
+
+.map-control-rail {
+  display: none !important;
+}
+
+#mapControls.map-controls {
+  z-index: var(--z-controls) !important;
+  right: max(22px, env(safe-area-inset-right)) !important;
+  top: 50% !important;
+  bottom: auto !important;
+  display: grid !important;
+  gap: 9px !important;
+  transform: translateY(-44%) !important;
+}
+
+#mapControls.map-controls button {
+  width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(185, 210, 231, 0.28) !important;
+  border-radius: 14px !important;
+  background: rgba(8, 24, 39, 0.88) !important;
+  color: #eef6fc !important;
+  box-shadow: 0 10px 24px rgba(4, 15, 25, 0.22) !important;
+  backdrop-filter: blur(10px);
+  transition: transform var(--motion-fast), background var(--motion-fast), border-color var(--motion-fast) !important;
+}
+
+#mapControls.map-controls button:hover,
+#mapControls.map-controls button.active {
+  border-color: rgba(85, 165, 241, 0.72) !important;
+  background: rgba(24, 81, 132, 0.94) !important;
+}
+
+#mapControls.map-controls .location-control {
+  border-color: rgba(65, 153, 241, 0.72) !important;
+  background: #176fc8 !important;
+}
+
+#mapControls.map-controls button:active {
+  transform: scale(0.95) !important;
+}
+
+.map-control-rail button.locating {
+  animation: locate-pulse 1s ease-out infinite;
+}
+
+@keyframes locate-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(20, 120, 232, 0.45); }
+  100% { box-shadow: 0 0 0 18px rgba(20, 120, 232, 0); }
+}
+
+.layers-popover {
+  position: absolute;
+  z-index: calc(var(--z-controls) + 1);
+  top: 50%;
+  right: 96px;
+  width: 260px;
+  padding: 16px;
+  border: 1px solid var(--nav-line);
+  border-radius: 18px;
+  background: var(--nav-surface);
+  color: var(--nav-text);
+  box-shadow: 0 22px 50px rgba(4, 13, 22, 0.38);
+  transform: translateY(12%);
+}
+
+.layers-popover header,
+.navigation-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.layers-popover header button,
+.sheet-close,
+.panel-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 25px;
+}
+
+.layers-popover > button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--nav-line);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+}
+
+.layers-popover > button i {
+  width: 20px;
+  height: 12px;
+  border-radius: 999px;
+  background: #556879;
+}
+
+.layers-popover > button.active i {
+  background: var(--nav-green);
+}
+
+.layers-popover small {
+  display: block;
+  margin-top: 12px;
+  color: var(--nav-muted);
+  line-height: 1.45;
+}
+
+.map-panel-backdrop {
+  position: fixed;
+  z-index: var(--z-backdrop);
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(4, 12, 22, 0.08) !important;
+  color: transparent !important;
+  box-shadow: none !important;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  transition: opacity var(--motion-sheet), backdrop-filter var(--motion-sheet);
+}
+
+.map-panel-open .map-panel-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+  background: rgba(4, 12, 22, 0.16) !important;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+}
+
+/* Libera o painel do contexto de empilhamento do mapa: o fundo fica abaixo e o conteúdo nítido. */
+body.trip-planning #trackingView {
+  z-index: auto !important;
+}
+
+.map-panel-backdrop:hover,
+.map-panel-backdrop:focus,
+.map-panel-backdrop:active {
+  background: rgba(4, 12, 22, 0.08) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.trip-planning #trackingView .control-panel {
+  position: fixed !important;
+  z-index: var(--z-sheet) !important;
+  inset: auto auto auto 50% !important;
+  top: calc(50% + 32px) !important;
+  display: block !important;
+  width: min(920px, calc(100vw - 180px)) !important;
+  max-height: min(520px, calc(100dvh - 180px)) !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  transform: translate(-50%, -50%) !important;
+  animation: sheet-in var(--motion-sheet) var(--ease-out) both;
+}
+
+@keyframes sheet-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 28px)) scale(0.985); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.trip-planning #trackingView .wizard {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr);
+  align-items: end;
+  column-gap: 14px;
+  max-height: min(520px, calc(100dvh - 180px));
+  padding: 22px 24px 24px !important;
+  overflow: auto;
+  border: 1px solid rgba(184, 208, 229, 0.2) !important;
+  border-radius: 26px !important;
+  background: linear-gradient(155deg, rgba(16, 31, 48, 0.98), rgba(5, 15, 27, 0.98)) !important;
+  color: var(--nav-text) !important;
+  box-shadow: 0 30px 80px rgba(2, 10, 18, 0.46) !important;
+}
+
+/* O planejador atual substitui integralmente o antigo cartão "viagem pronta". */
+.trip-planning #trackingView .wizard > .quick-trip-panel {
+  display: none !important;
+}
+
+.trip-planning #trackingView .wizard > .navigation-sheet-head {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  grid-column: 1 / -1;
+}
+
+.trip-planning #trackingView .wizard > .field {
+  display: block !important;
+}
+
+.trip-planning #trackingView .wizard > .field:first-of-type {
+  grid-column: 1;
+}
+
+.trip-planning #trackingView .wizard > .field:nth-of-type(2) {
+  grid-column: 3;
+}
+
+.trip-planning #trackingView .wizard > .swap-route-points {
+  display: grid !important;
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+}
+
+.trip-planning #trackingView .wizard > #calculateBtn,
+.trip-planning #trackingView .wizard > #startNavigationBtn {
+  display: block !important;
+}
+
+.trip-planning #trackingView .wizard > #calculateBtn {
+  grid-column: 1 / 3;
+}
+
+.trip-planning #trackingView .wizard > #startNavigationBtn {
+  grid-column: 3;
+}
+
+.trip-planning #trackingView .wizard > #routeSummary:not(.hidden) {
+  display: grid !important;
+  grid-column: 1 / -1;
+}
+
+.navigation-sheet-head {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.navigation-sheet-head small {
+  color: #65aef4;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+}
+
+.navigation-sheet-head h2 {
+  margin: 5px 0 2px;
+  color: #fff;
+  font-size: clamp(22px, 2vw, 27px);
+}
+
+.navigation-sheet-head p {
+  margin: 0;
+  color: var(--nav-muted);
+  font-size: 13px;
+}
+
+.sheet-grabber {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 50px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(200, 215, 228, 0.3);
+  transform: translateX(-50%);
+}
+
+.trip-planning .wizard > .eyebrow,
+.trip-planning .wizard > h2,
+.trip-planning .wizard > .step-label,
+.trip-planning #vehicleSummary,
+.trip-planning #editVehicleBtn,
+.trip-planning #mapPickHint,
+.trip-planning #routeStops,
+.trip-planning #addStopBtn,
+.trip-planning .route-option,
+.trip-planning .daily-gps-note,
+.trip-planning #sessionEmpty,
+.trip-planning #sessionActive {
+  display: none !important;
+}
+
+.trip-planning .wizard .field {
+  position: relative;
+  margin: 0 !important;
+  color: #b5c3cf !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.trip-planning .wizard .search-box input {
+  height: 46px !important;
+  border: 1px solid rgba(187, 211, 231, 0.22) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  text-transform: none;
+  box-shadow: none !important;
+}
+
+.trip-planning .wizard .search-box input:focus {
+  border-color: rgba(39, 139, 245, 0.8) !important;
+  box-shadow: 0 0 0 3px rgba(20, 120, 232, 0.14) !important;
+}
+
+.trip-planning .wizard .search-box button {
+  min-width: 48px;
+  background: transparent !important;
+  color: #8ca3b7 !important;
+}
+
+.trip-planning #useMyLocationBtn {
+  min-height: 30px;
+  margin: 5px 0 0 !important;
+  padding: 3px 2px !important;
+  color: #3d9bff !important;
+  font-size: 11px !important;
+  text-transform: none;
+}
+
+.swap-route-points {
+  display: none;
+}
+
+.trip-planning .swap-route-points {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin: 18px auto 0;
+  border: 1px solid rgba(75, 143, 205, 0.38) !important;
+  border-radius: 12px;
+  background: rgba(26, 91, 147, 0.13) !important;
+  color: #4d9de5 !important;
+  font-size: 18px;
+  box-shadow: none !important;
+  transition: transform var(--motion-normal) var(--ease-out);
+}
+
+.trip-planning .swap-route-points:active {
+  transform: rotate(180deg);
+}
+
+.trip-planning #calculateBtn,
+.trip-planning #startNavigationBtn {
+  min-height: 44px;
+  margin-top: 14px;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #1d6fb9 !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.trip-planning #startNavigationBtn:disabled {
+  border: 1px solid rgba(141, 165, 185, 0.18) !important;
+  background: rgba(127, 151, 171, 0.12) !important;
+  color: rgba(181, 198, 212, 0.55) !important;
+  cursor: not-allowed;
+}
+
+.trip-planning #startNavigationBtn:not(:disabled) {
+  background: linear-gradient(100deg, #1684e8, #0c5fd0) !important;
+}
+
+.trip-planning #routeSummary {
+  margin: 14px 0 0 !important;
+  padding: 12px 14px !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  border-color: var(--nav-line) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  color: #fff !important;
+}
+
+.trip-planning #routeSummary > div:nth-child(4),
+.trip-planning #routeSummary > small {
+  display: block !important;
+}
+
+.trip-planning #routeSummary > small {
+  grid-column: 1 / -1;
+}
+
+.trip-planning .search-results {
+  z-index: 4;
+  max-height: 250px;
+  overflow: auto;
+  border-color: var(--nav-line) !important;
+  background: #0c1d2e !important;
+  color: #fff !important;
+}
+
+.view.active:not(#trackingView) {
+  z-index: var(--z-sheet) !important;
+  top: calc(50% + 32px) !important;
+  bottom: auto !important;
+  left: 50% !important;
+  width: min(1040px, calc(100vw - 240px)) !important;
+  height: min(540px, calc(100dvh - 190px)) !important;
+  min-height: 0 !important;
+  max-height: min(540px, calc(100dvh - 190px)) !important;
+  box-sizing: border-box !important;
+  overflow: auto !important;
+  border: 1px solid var(--nav-line) !important;
+  border-radius: 26px !important;
+  background: var(--nav-surface) !important;
+  color: var(--nav-text) !important;
+  box-shadow: 0 30px 80px rgba(2, 10, 18, 0.46) !important;
+  transform: translate(-50%, -50%) !important;
+  animation: sheet-in var(--motion-sheet) var(--ease-out) both;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(117, 151, 179, 0.55) rgba(255, 255, 255, 0.045);
+}
+
+.view.active:not(#trackingView)::-webkit-scrollbar,
+.trip-planning #trackingView .wizard::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.quick-route-results::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.view.active:not(#trackingView)::-webkit-scrollbar-track,
+.trip-planning #trackingView .wizard::-webkit-scrollbar-track,
+.search-results::-webkit-scrollbar-track,
+.quick-route-results::-webkit-scrollbar-track {
+  margin-block: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.view.active:not(#trackingView)::-webkit-scrollbar-thumb,
+.trip-planning #trackingView .wizard::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.quick-route-results::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(117, 151, 179, 0.58);
+  background-clip: padding-box;
+}
+
+.view.active:not(#trackingView)::-webkit-scrollbar-thumb:hover,
+.trip-planning #trackingView .wizard::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 167, 229, 0.76);
+  background-clip: padding-box;
+}
+
+.view.active:not(#trackingView) .page-content {
+  position: relative;
+  display: block !important;
+  margin: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  padding: 22px 24px 26px !important;
+  background: transparent !important;
+}
+
+/* Escala compacta e consistente para todas as janelas flutuantes. */
+.view.active:not(#trackingView) .page-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  min-height: 0 !important;
+  margin: 0 0 16px !important;
+  padding: 0 48px 0 0 !important;
+}
+
+.view.active:not(#trackingView) .page-heading > div:first-child {
+  min-width: 0;
+}
+
+.view.active:not(#trackingView) .eyebrow {
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 1.5px !important;
+}
+
+.view.active:not(#trackingView) .page-heading h2 {
+  margin: 4px 0 2px !important;
+  font-size: clamp(21px, 2vw, 25px) !important;
+  line-height: 1.15 !important;
+}
+
+.view.active:not(#trackingView) .page-heading p {
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+}
+
+.view.active:not(#trackingView) input,
+.view.active:not(#trackingView) select,
+.view.active:not(#trackingView) textarea,
+.view.active:not(#trackingView) button {
+  font-size: 12px !important;
+}
+
+.view.active:not(#trackingView) input,
+.view.active:not(#trackingView) select {
+  min-height: 38px !important;
+  border-radius: 10px !important;
+}
+
+.view.active:not(#trackingView) .card,
+.view.active:not(#trackingView) .vehicle-card,
+.view.active:not(#trackingView) .summary-card {
+  border-radius: 16px !important;
+}
+
+.view.active:not(#trackingView) .section-head {
+  gap: 12px !important;
+  margin-bottom: 12px !important;
+}
+
+body[data-map-theme='day'] .view.active:not(#trackingView),
+body[data-map-theme='day'].trip-planning #trackingView .wizard {
+  border-color: rgba(20, 49, 73, 0.14) !important;
+  background: rgba(247, 250, 252, 0.97) !important;
+  color: #13283b !important;
+  box-shadow: 0 28px 70px rgba(5, 24, 39, 0.25) !important;
+}
+
+body[data-map-theme='day'] .view.active:not(#trackingView) .card,
+body[data-map-theme='day'] .view.active:not(#trackingView) .vehicle-card,
+body[data-map-theme='day'] .view.active:not(#trackingView) .summary-card,
+body[data-map-theme='day'].trip-planning #trackingView .route-summary {
+  border-color: rgba(20, 49, 73, 0.12) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #13283b !important;
+}
+
+body[data-map-theme='day'] .view.active:not(#trackingView) h2,
+body[data-map-theme='day'] .view.active:not(#trackingView) h3,
+body[data-map-theme='day'] .view.active:not(#trackingView) strong,
+body[data-map-theme='day'] .navigation-sheet-head h2 {
+  color: #102536 !important;
+}
+
+body[data-map-theme='day'] .view.active:not(#trackingView) p,
+body[data-map-theme='day'] .view.active:not(#trackingView) small,
+body[data-map-theme='day'] .view.active:not(#trackingView) dt,
+body[data-map-theme='day'] .navigation-sheet-head p,
+body[data-map-theme='day'].trip-planning .wizard .field {
+  color: #627589 !important;
+}
+
+body[data-map-theme='day'].trip-planning .wizard .search-box input {
+  border-color: rgba(20, 49, 73, 0.16) !important;
+  background: #fff !important;
+  color: #102536 !important;
+}
+
+body[data-map-theme='day'] .sheet-close,
+body[data-map-theme='day'] .panel-close,
+body[data-map-theme='day'] .view.active:not(#trackingView) button:not(.danger) {
+  border-color: rgba(20, 49, 73, 0.16) !important;
+  background: rgba(18, 53, 82, 0.06) !important;
+  color: #17334d !important;
+}
+
+.view.active:not(#trackingView) .card,
+.view.active:not(#trackingView) .vehicle-card,
+.view.active:not(#trackingView) .summary-card {
+  border-color: var(--nav-line) !important;
+  background: var(--nav-surface-soft) !important;
+  color: var(--nav-text) !important;
+  box-shadow: none !important;
+}
+
+.view.active:not(#trackingView) button:not(.danger),
+.view.active:not(#trackingView) .secondary,
+.sheet-close,
+.panel-close {
+  border: 1px solid rgba(188, 211, 230, 0.2) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: #e8f1f8 !important;
+  box-shadow: none !important;
+}
+
+.view.active:not(#trackingView) button:not(.danger):hover,
+.view.active:not(#trackingView) button:not(.danger):focus-visible {
+  border-color: rgba(89, 163, 231, 0.58) !important;
+  background: rgba(44, 111, 171, 0.2) !important;
+}
+
+#newVehicleBtn,
+#applyFilter,
+#calculateBtn,
+#startNavigationBtn {
+  background: #1d6fb9 !important;
+  color: #fff !important;
+}
+
+.view.active:not(#trackingView) h2,
+.view.active:not(#trackingView) h3,
+.view.active:not(#trackingView) strong {
+  color: #fff;
+}
+
+.view.active:not(#trackingView) p,
+.view.active:not(#trackingView) small,
+.view.active:not(#trackingView) dt {
+  color: var(--nav-muted);
+}
+
+.panel-close {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 18px;
+  float: none;
+  width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  margin: 0;
+  padding: 0 !important;
+  border-radius: 11px !important;
+  color: #fff;
+}
+
+.profile-menu-card {
+  grid-column: 1 / -1;
+}
+
+.profile-menu-card nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.profile-menu-card nav button,
+.profile-logout {
+  min-height: 46px;
+  border: 1px solid var(--nav-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.map-theme-setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 15px 0;
+  border-top: 1px solid var(--nav-line);
+  border-bottom: 1px solid var(--nav-line);
+}
+
+.map-theme-setting strong {
+  margin-right: auto;
+}
+
+.map-theme-setting #mapThemeSchedule {
+  flex: 1 0 100%;
+  color: var(--nav-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
+  color: #627589;
+}
+
+.profile-logout {
+  width: 100%;
+  margin-top: 14px;
+  color: #ff9f79;
+}
+
+.weather-card {
+  z-index: var(--z-controls) !important;
+  right: max(24px, env(safe-area-inset-right)) !important;
+  bottom: max(22px, env(safe-area-inset-bottom)) !important;
+  width: auto !important;
+  min-width: 176px !important;
+  height: auto !important;
+  cursor: pointer;
+  transition: transform var(--motion-normal), min-width var(--motion-sheet) !important;
+}
+
+.weather-card.expanded {
+  min-width: 260px !important;
+  transform: translateY(-4px);
+}
+
+.weather-card .weather-help {
+  display: grid !important;
+  border: 1px solid rgba(188, 211, 230, 0.2) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #eef6fc !important;
+}
+
+#trackingView .vehicle-hud {
+  z-index: var(--z-controls) !important;
+  display: block !important;
+  left: max(22px, env(safe-area-inset-left)) !important;
+  bottom: max(22px, env(safe-area-inset-bottom)) !important;
+  width: min(258px, calc(100vw - 44px)) !important;
+  border: 1px solid rgba(188, 211, 230, 0.18) !important;
+  background: rgba(7, 20, 33, 0.92) !important;
+  box-shadow: 0 18px 42px rgba(3, 14, 24, 0.3) !important;
+}
+
+.quick-route-search {
+  z-index: var(--z-controls) !important;
+  top: calc(90px + env(safe-area-inset-top)) !important;
+  bottom: auto !important;
+  left: max(24px, env(safe-area-inset-left)) !important;
+  grid-template-columns: 38px minmax(0, 1fr) 38px !important;
+  width: 52px !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  padding: 6px !important;
+  overflow: visible !important;
+  border: 1px solid rgba(12, 36, 57, 0.14) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 12px 28px rgba(5, 21, 34, 0.18) !important;
+  transform: none !important;
+  transition: width var(--motion-sheet) var(--ease-out) !important;
+  font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif !important;
+}
+
+.quick-route-search.expanded,
+.quick-route-search:focus-within {
+  width: min(390px, calc(100vw - 112px)) !important;
+}
+
+.quick-route-search > span {
+  cursor: pointer;
+  color: #17334d !important;
+  font-size: 22px !important;
+}
+
+.quick-route-search > input {
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  transition: opacity var(--motion-fast);
+}
+
+.quick-route-search.expanded > input,
+.quick-route-search:focus-within > input {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quick-route-search > button {
+  border: 0 !important;
+  background: #18334c !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.quick-route-search.expanded > button,
+.quick-route-search:focus-within > button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quick-route-results {
+  top: calc(100% + 8px) !important;
+  bottom: auto !important;
+  width: min(390px, calc(100vw - 24px));
+  font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif !important;
+}
+
+.quick-route-results button {
+  font-family: inherit !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.quick-route-results button b {
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.quick-route-results button small {
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+}
+
+.history-page .page-heading {
+  display: flex !important;
+  align-items: flex-end !important;
+}
+
+.history-page .page-heading > div:first-child {
+  max-width: 640px;
+}
+
+.history-page .filters {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.history-page .history-route-card {
+  min-width: 0;
+}
+
+.history-page .history-route-preview,
+.history-page .history-route-map {
+  width: 100%;
+  min-height: 280px;
+}
+
+#vehiclesView .page-heading {
+  align-items: center !important;
+}
+
+#vehiclesView #newVehicleBtn {
+  min-height: 38px !important;
+  padding: 8px 13px !important;
+}
+
+#vehiclesView .vehicles-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+#vehiclesView .vehicle-card {
+  display: grid !important;
+  grid-template-columns: minmax(145px, 180px) minmax(0, 1fr);
+  grid-template-rows: auto auto auto 1fr auto;
+  column-gap: 18px;
+  width: 100%;
+  min-height: 0;
+  padding: 14px !important;
+  border-color: rgba(188, 211, 230, 0.16) !important;
+}
+
+#vehiclesView .vehicle-card.selected {
+  border-color: rgba(72, 150, 224, 0.62) !important;
+  box-shadow: inset 3px 0 #3189dd !important;
+}
+
+#vehiclesView .vehicle-card-3d-wrap {
+  grid-column: 1;
+  grid-row: 1 / 6;
+  height: 142px;
+  margin: 0;
+}
+
+#vehiclesView .vehicle-card-head,
+#vehiclesView .vehicle-card > h3,
+#vehiclesView .vehicle-card > p,
+#vehiclesView .vehicle-card > dl,
+#vehiclesView .vehicle-card > .vehicle-actions {
+  grid-column: 2;
+}
+
+#vehiclesView .vehicle-card > h3 {
+  margin: 5px 0 2px;
+  font-size: 18px !important;
+}
+
+#vehiclesView .vehicle-card > p,
+#vehiclesView .vehicle-card > dl {
+  margin-block: 2px 5px;
+}
+
+#vehiclesView .vehicle-card dl div {
+  padding: 5px 0 !important;
+  font-size: 10px !important;
+}
+
+#vehiclesView .vehicle-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+#vehiclesView .vehicle-actions button,
+#vehiclesView #newVehicleBtn,
+.history-page .filters button {
+  min-height: 36px;
+  padding: 7px 12px !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+#vehiclesView .devices-panel {
+  margin-top: 14px !important;
+  padding: 16px !important;
+}
+
+.history-page .filters select {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.history-page .filters input {
+  flex: 0 1 118px;
+  min-width: 108px;
+}
+
+.history-page .filters button {
+  flex: 0 0 auto;
+}
+
+.toast {
+  z-index: var(--z-toast) !important;
+}
+
+@media (max-width: 780px) {
+  .topbar {
+    height: calc(64px + env(safe-area-inset-top)) !important;
+    padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0
+      max(12px, env(safe-area-inset-left)) !important;
+  }
+
+  .brand-mark {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .top-nav {
+    position: fixed;
+    z-index: var(--z-topbar);
+    inset: auto 8px max(8px, env(safe-area-inset-bottom)) 8px;
+    width: auto !important;
+    min-width: 0;
+    height: 60px;
+    padding: 5px;
+    border: 1px solid var(--nav-line);
+    border-radius: 19px;
+    background: rgba(5, 15, 25, 0.96);
+    box-shadow: 0 15px 36px rgba(2, 10, 17, 0.32);
+    transform: none;
+  }
+
+  .nav-primary {
+    display: contents;
+  }
+
+  .nav-pill {
+    min-width: 0;
+    width: 25%;
+    min-height: 50px;
+    padding: 4px !important;
+    flex-direction: column;
+    gap: 2px !important;
+    font-size: 10px !important;
+  }
+
+  .nav-pill[data-view='tracking'] {
+    display: flex !important;
+    order: -1;
+  }
+
+  .nav-pill[data-view='tracking'] span {
+    font-size: 0;
+  }
+
+  .nav-pill[data-view='tracking'] span::after {
+    content: 'Mapa';
+    font-size: 10px;
+  }
+
+  .nav-profile {
+    width: 25%;
+  }
+
+  .account-menu {
+    min-width: 0 !important;
+  }
+
+  #panelStatus {
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 2px solid #092438 !important;
+    background: var(--nav-green) !important;
+    color: transparent !important;
+  }
+
+  .map-search-control {
+    top: calc(76px + env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .map-search-control.expanded {
+    width: calc(100vw - max(24px, env(safe-area-inset-left) + env(safe-area-inset-right)));
+  }
+
+  .map-control-rail {
+    right: max(12px, env(safe-area-inset-right));
+    top: auto;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    transform: none;
+  }
+
+  #mapControls.map-controls {
+    right: max(10px, env(safe-area-inset-right)) !important;
+    top: auto !important;
+    bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    gap: 7px !important;
+  }
+
+  #mapControls.map-controls button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .map-control-rail button {
+    width: 50px;
+    height: 50px;
+  }
+
+  .layers-popover {
+    top: auto;
+    right: 70px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    transform: none;
+  }
+
+  .trip-planning #trackingView .control-panel,
+  .view.active:not(#trackingView) {
+    inset: auto 6px calc(74px + env(safe-area-inset-bottom)) 6px !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: min(86dvh, calc(100dvh - 88px - env(safe-area-inset-top))) !important;
+    transform: none !important;
+    border-radius: 24px 24px 18px 18px !important;
+    animation-name: sheet-in-mobile;
+  }
+
+  @keyframes sheet-in-mobile {
+    from { opacity: 0; transform: translateY(44px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .trip-planning #trackingView .wizard {
+    display: block !important;
+    max-height: min(86dvh, calc(100dvh - 88px - env(safe-area-inset-top)));
+    padding: 21px 17px max(22px, env(safe-area-inset-bottom)) !important;
+    border-radius: 24px 24px 18px 18px !important;
+  }
+
+  .trip-planning #routeSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .navigation-sheet-head p {
+    max-width: 270px;
+  }
+
+  .view.active:not(#trackingView) .page-content {
+    padding: 20px 14px max(24px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .profile-menu-card nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #vehiclesView .vehicle-card {
+    display: flex !important;
+    width: 100%;
+    padding: 16px !important;
+  }
+
+  #vehiclesView .vehicle-card-3d-wrap {
+    width: 100%;
+    height: 168px;
+    margin-bottom: 12px;
+  }
+
+  #vehiclesView .vehicle-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-page .filters {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-page .page-heading {
+    display: block !important;
+  }
+
+  .history-page .filters select,
+  .history-page .filters button:last-child {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .map-theme-setting {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .weather-card {
+    display: flex !important;
+    right: auto !important;
+    left: max(12px, env(safe-area-inset-left)) !important;
+    bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+    min-width: 76px !important;
+    max-width: 132px;
+    padding: 9px !important;
+  }
+
+  #trackingView .vehicle-hud {
+    left: max(10px, env(safe-area-inset-left)) !important;
+    bottom: calc(150px + env(safe-area-inset-bottom)) !important;
+    width: 205px !important;
+    min-height: 164px !important;
+  }
+
+  .quick-route-search {
+    top: calc(74px + env(safe-area-inset-top)) !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+  }
+
+  .quick-route-search.expanded,
+  .quick-route-search:focus-within {
+    width: calc(100vw - max(20px, env(safe-area-inset-left) + env(safe-area-inset-right))) !important;
+  }
+
+  .weather-card span:not(.weather-icon),
+  .weather-card small {
+    display: none !important;
+  }
+
+  .weather-card.expanded {
+    min-width: 210px !important;
+    max-width: 250px;
+  }
+
+  .weather-card.expanded span:not(.weather-icon),
+  .weather-card.expanded small {
+    display: block !important;
+  }
+
+  .map-panel-open .map-panel-backdrop {
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .topbar {
+    height: calc(54px + env(safe-area-inset-top)) !important;
+  }
+
+  .brand-mark {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .top-nav {
+    inset: auto 8px 8px auto;
+    width: min(430px, 58vw) !important;
+    height: 52px;
+  }
+
+  .trip-planning #trackingView .control-panel,
+  .view.active:not(#trackingView) {
+    inset: calc(60px + env(safe-area-inset-top)) 74px 8px auto !important;
+    width: min(520px, 60vw) !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .trip-planning #trackingView .wizard {
+    max-height: 100%;
+  }
+
+  .map-search-control {
+    top: calc(64px + env(safe-area-inset-top));
+  }
+
+  .map-control-rail {
+    bottom: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

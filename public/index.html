@@ -11,17 +11,13 @@
     <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css" />
     <link rel="stylesheet" href="/vendor/mapbox/mapbox-gl.css" />
     <link rel="stylesheet" href="/css/style.css?v=20260820" />
-    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260822-9" />
+    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260826-trip-fix-1" />
     <link rel="stylesheet" href="/css/community-places.css?v=20260825-1" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand-area">
         <span class="brand-mark">R</span>
-        <div>
-          <h1>Rastre<span>on</span></h1>
-          <p>Central inteligente de rastreamento</p>
-        </div>
       </div>
       <nav class="top-nav" aria-label="Navegação principal">
         <div class="nav-primary">
@@ -54,8 +50,8 @@
         ><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button>
       </div>
     </header>
-    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260826-vehicle-3d-3" />
     <link rel="stylesheet" href="/css/platform-features.css?v=20260825-1" />
+    <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260826-11" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -105,8 +101,8 @@
               <div id="mapPickHint" class="pick-hint hidden">
                 Clique no mapa para marcar o ponto.
               </div>
-              <button id="calculateBtn" class="wide">Calcular rota rodoviária</button
-              ><button id="startNavigationBtn" class="wide secondary" disabled>Iniciar GPS</button
+              <button id="calculateBtn" class="wide">Buscar rota</button
+              ><button id="startNavigationBtn" class="wide secondary" disabled>Iniciar navegação</button
               ><small class="daily-gps-note"
                 >Navegação diária no aparelho, separada do rastreamento do veículo.</small
               >
@@ -273,6 +269,7 @@
             </div>
             <div class="filters">
               <select id="dateFilter">
+                <option value="recent" selected>Últimas viagens</option>
                 <option value="today">Hoje</option>
                 <option value="yesterday">Ontem</option>
                 <option value="specific">Data específica</option>
@@ -835,13 +832,14 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/map-config.js"></script>
     <script src="/js/maplibre-loader.js?v=4"></script>
-    <script src="/js/map-service.js?v=7"></script>
+    <script src="/js/map-service.js?v=8"></script>
     <script src="/js/navigation-state.js"></script>
     <script src="/js/vehicle-images.js?v=3"></script>
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
     <script src="/js/platform-features.js?v=20260825-1"></script>
-    <script src="/js/dashboard.js?v=20260826-floating-panels-1"></script>
+    <script src="/js/dashboard.js?v=20260826-navigation-redesign-4"></script>
     <script src="/js/ux.js?v=4"></script>
+    <script src="/js/navigation-redesign.js?v=20260826-6"></script>
   </body>
 </html>

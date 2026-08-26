@@ -31,8 +31,15 @@ window.RastroMap.ready
 
     if (!L) {
       if (mapHost) {
-        mapHost.innerHTML =
-          '<div class="map-error"><strong>Google Maps não configurado neste ambiente.</strong><span>Configure GOOGLE_MAPS_API_KEY no .env para ativar o mapa principal.</span></div>';
+        const providerLabel =
+          mapProvider === 'mapbox'
+            ? 'Mapbox'
+            : mapProvider === 'maplibre'
+              ? 'MapLibre'
+              : mapProvider === 'google'
+                ? 'Google Maps'
+                : 'Mapa';
+        mapHost.innerHTML = `<div class="map-error"><strong>${providerLabel} indisponível neste ambiente.</strong><span>${error || 'Verifique a configuração e os arquivos do provider de mapa.'}</span></div>`;
         const mapCard = mapHost.closest('.map-card');
         if (mapCard) {
           const vehicleHud = document.createElement('div');
@@ -680,18 +687,9 @@ window.RastroMap.ready
         hide();
         saveHistory(place);
         setPoint('destination', place, place.label);
-        if (!userPosition) {
-          try {
-            await currentLocation({ setAsOrigin: true, center: false });
-          } catch {
-            toast(
-              'Destino selecionado. Ative a localização para calcular a rota a partir de onde você está.'
-            );
-            return;
-          }
-        } else setPoint('origin', userPosition, 'Minha localização atual');
-        await calculateRoute();
-        if (plannedRoutes.length) openQuickTripPanel(place);
+        window.dispatchEvent(
+          new CustomEvent('rastreon:open-navigation', { detail: { destination: place } })
+        );
       };
       const renderPlaces = (places, { recent = false } = {}) => {
         show();
@@ -1377,7 +1375,7 @@ window.RastroMap.ready
         toast(e.message);
       } finally {
         $('calculateBtn').disabled = false;
-        $('calculateBtn').textContent = 'Calcular rota rodoviária';
+        $('calculateBtn').textContent = 'Buscar rota';
       }
     }
     async function rerouteFrom(position) {
@@ -2654,6 +2652,7 @@ window.RastroMap.ready
     function filterTripsByPeriod(trips) {
       const mode = $('dateFilter').value,
         now = new Date();
+      if (mode === 'recent') return trips;
       let fromDate, toDate;
       if (mode === 'today' || mode === 'yesterday') {
         const shift = mode === 'yesterday' ? -1 : 0,
@@ -3416,6 +3415,13 @@ window.RastroMap.ready
     });
     bindAddressAutocomplete('originInput', 'originResults', 'origin');
     bindAddressAutocomplete('destinationInput', 'destinationResults', 'destination');
+    window.addEventListener('rastreon:swap-route-points', () => {
+      [origin, destination] = [destination, origin];
+      const originValue = $('originInput').value;
+      $('originInput').value = $('destinationInput').value;
+      $('destinationInput').value = originValue;
+      toast('Origem e destino invertidos.');
+    });
     $('useMyLocationBtn').onclick = () => currentLocation({ setAsOrigin: true, center: true });
     $('locateMeBtn').onclick = () => currentLocation({ center: true });
     $('startNavigationBtn').onclick = toggleDailyNavigation;

@@ -190,7 +190,7 @@ p {
 .has-side-panel .map-side-panel {
   display: block;
 }
-.#map {
+#map {
   flex: 1;
   min-height: 410px;
   height: 100%;
