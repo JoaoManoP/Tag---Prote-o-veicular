@@ -1,5 +1,6 @@
 node_modules/
 mobile/.expo/
+mobile/.expo-*/
 .env
 data/*.sqlite-shm
 data/*.sqlite-wal
