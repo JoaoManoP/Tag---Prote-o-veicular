@@ -4885,3 +4885,5 @@ body {
     display: none !important;
   }
 }
+/* Painel flutuante das áreas secundárias sobre o mapa. */
+.view.active:not(#trackingView){position:fixed;z-index:850;top:99px;left:50%;transform:translateX(-50%);width:min(1420px,calc(100% - 30px));max-height:calc(100vh - 114px);overflow:auto;background:#fbfaf7;border:1px solid #dfe5e9;border-radius:18px;box-shadow:0 24px 70px #10203038}.view.active:not(#trackingView) .page-content{padding:28px}.floating-nav-open #trackingView{display:block}@media(max-width:780px){.view.active:not(#trackingView){top:76px;width:calc(100% - 16px);max-height:calc(100dvh - 152px)}.view.active:not(#trackingView) .page-content{padding:20px 14px 28px}}

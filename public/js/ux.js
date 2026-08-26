@@ -1110,3 +1110,14 @@
       setTimeout(() => showTourWelcome('tracking'), 250);
   });
 })();
+
+// Mantém as páginas secundárias abertas como painel sobre o rastreio.
+document.addEventListener('click', event => {
+  const button = event.target.closest('.nav-pill[data-view]');
+  if (!button) return;
+  const view = button.dataset.view;
+  document.querySelectorAll('.nav-pill[data-view]').forEach(item => item.classList.toggle('active', item === button));
+  document.querySelectorAll('.view').forEach(item => item.classList.remove('active'));
+  document.getElementById(`${view}View`)?.classList.add('active');
+  document.body.classList.toggle('floating-nav-open', view !== 'tracking');
+});
