@@ -91,7 +91,7 @@ O Express serve os arquivos de `public/`, faz proxy controlado para geocodifica�
 
 ## Provedores de geocodificação e rotas
 
-- `GEOCODING_PROVIDER=photon` é o padrão sem chave. Nominatim somente deve apontar para serviço próprio ou contratado compatível com a carga da aplicação.
+- Com `MAP_PROVIDER=mapbox`, o Mapbox também é o geocodificador padrão e o Photon fica como fallback. Sem Mapbox configurado, Photon continua sendo o padrão sem chave. Nominatim somente deve apontar para serviço próprio ou contratado compatível com a carga da aplicação.
 - `ROUTE_PROVIDER=osrm` é o padrão e não exige chave.
 - `ROUTE_PROVIDER=google` usa a Google Routes API pelo backend e exige `GOOGLE_MAPS_API_KEY` no `.env`.
 - A chave do Google nunca é enviada ao HTML, ao JavaScript público ou a um iframe.

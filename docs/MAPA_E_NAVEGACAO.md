@@ -6,7 +6,7 @@
 MAP_PROVIDER=maplibre
 MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
 MAPBOX_WEB_PUBLIC_TOKEN=
-GEOCODING_PROVIDER=photon
+GEOCODING_PROVIDER=mapbox
 PHOTON_API_URL=https://photon.komoot.io
 NOMINATIM_BASE_URL=
 ROUTE_PROVIDER=osrm

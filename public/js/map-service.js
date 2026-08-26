@@ -424,7 +424,7 @@
         this.wrapper = target instanceof LayerGroup ? target.target : target;
         this.wrapper = this.wrapper || mapInstance;
         this.map = this.wrapper?._map || this.wrapper;
-        this.wrapper?.ready.then(() => this._create());
+        this.wrapper?.ready.then(() => this._create()).catch(() => {});
         return this;
       }
       _feature() {
@@ -568,6 +568,7 @@
     }
     class MapWrapper {
       constructor(id) {
+        this.container = document.getElementById(id);
         this._map = new maplibregl.Map({
           container: id,
           style: config.mapStyleUrl || 'https://tiles.openfreemap.org/styles/liberty',
@@ -580,7 +581,37 @@
           fadeDuration: 180,
           attributionControl: true
         });
-        this.ready = new Promise(resolve => this._map.once('load', resolve));
+        this.ready = new Promise((resolve, reject) => {
+          let timeout;
+          const finish = callback => event => {
+            clearTimeout(timeout);
+            this._map.off('load', onLoad);
+            this._map.off('error', onError);
+            callback(event);
+          };
+          const onLoad = finish(resolve);
+          const onError = finish(event =>
+            reject(
+              new Error(
+                event?.error?.message || 'O estilo do mapa não pôde ser carregado pelo Mapbox.'
+              )
+            )
+          );
+          this._map.once('load', onLoad);
+          this._map.once('error', onError);
+          timeout = setTimeout(
+            () => onError({ error: new Error('Tempo limite ao carregar o mapa.') }),
+            20000
+          );
+        });
+        this.ready.catch(error => {
+          console.error('[Rastreon Map] Falha ao carregar o estilo vetorial.', error);
+          if (this.container)
+            this.container.innerHTML = `<div class="map-load-error"><strong>Mapa indisponível</strong><span>${String(error.message || error)}</span></div>`;
+          window.dispatchEvent(
+            new CustomEvent('rastreon:map-error', { detail: { message: String(error.message) } })
+          );
+        });
         mapInstance = this;
       }
       setView(center, zoom) {

@@ -197,6 +197,16 @@ test('configuração do mapa preserva o estilo vetorial Mapbox para todo o siste
   assert.doesNotMatch(response.text, /"type":"raster"/);
   assert.doesNotMatch(response.text, /tile\.openstreetmap\.org/);
 });
+test('fontes do mapa são revalidadas após cada publicação', async t => {
+  const { app } = setup(t);
+  const script = await request(app).get('/js/map-service.js').expect(200);
+  const stylesheet = await request(app).get('/css/style.css').expect(200);
+  for (const response of [script, stylesheet]) {
+    assert.match(response.headers['cache-control'] || '', /max-age=0/);
+    assert.doesNotMatch(response.headers['cache-control'] || '', /immutable/);
+    assert.ok(response.headers.etag);
+  }
+});
 test('todas as respostas recebem identificador de requisição rastreável', async t => {
   const { app } = setup(t);
   const generated = await request(app).get('/api/health').expect(200);

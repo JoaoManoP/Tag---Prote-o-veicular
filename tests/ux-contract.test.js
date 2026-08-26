@@ -154,6 +154,8 @@ test('mapa usa provider configurável, fallback e moldura compacta no desktop', 
   assert.match(compactMapService, /provider==='maplibre'/);
   assert.match(html, /maplibre-loader\.js/);
   assert.match(mapService, /leaflet-fallback/);
+  assert.match(mapService, /rastreon:map-error/);
+  assert.match(mapService, /Tempo limite ao carregar o mapa/);
   assert.match(compactCss, /width:min\(1180px,calc\(100vw-44px\)\)/);
   assert.match(compactCss, /height:min\(690px,calc\(100vh-128px\)\)/);
 });

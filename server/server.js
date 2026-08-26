@@ -484,7 +484,8 @@ function createApplication(options = {}) {
           fallback ? new FallbackGeocodingProvider(provider, fallback) : provider,
         null
       );
-  const geocoderName = process.env.GEOCODING_PROVIDER || 'photon';
+  const geocoderName =
+    process.env.GEOCODING_PROVIDER || (mapProviderName === 'mapbox' ? 'mapbox' : 'photon');
   if (geocoderName === 'nominatim' && !nominatimGeocoder)
     throw new Error(
       'NOMINATIM_BASE_URL própria ou contratada é obrigatória para GEOCODING_PROVIDER=nominatim.'
@@ -735,9 +736,12 @@ function createApplication(options = {}) {
     ['/api/geocode', '/api/reverse-geocode', '/api/route', '/api/trips/:id/reconstruct'],
     serviceLimiter
   );
+  // CSS e JavaScript mantêm o mesmo nome entre publicações. Eles precisam ser
+  // revalidados para que uma atualização do mapa não fique presa no navegador.
+  const sourceAssetOptions = { maxAge: 0, etag: true, immutable: false };
   const staticAssetOptions = { maxAge: '7d', etag: true, immutable: true };
-  app.use('/css', express.static(path.join(publicDir, 'css'), staticAssetOptions));
-  app.use('/js', express.static(path.join(publicDir, 'js'), staticAssetOptions));
+  app.use('/css', express.static(path.join(publicDir, 'css'), sourceAssetOptions));
+  app.use('/js', express.static(path.join(publicDir, 'js'), sourceAssetOptions));
   app.use('/images', express.static(path.join(publicDir, 'images'), staticAssetOptions));
   app.use('/models', express.static(path.join(publicDir, 'models'), staticAssetOptions));
   app.use(
