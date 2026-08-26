@@ -2,6 +2,8 @@
 'use strict';
 const preloadAccount=async()=>{try{const response=await fetch('/api/auth/me');if(response.status===401){location.replace('/login.html');return}const data=await response.json();const name=document.getElementById('accountName'),email=document.getElementById('accountEmail');if(name)name.textContent=data.user.name;if(email)email.textContent=data.user.email}catch{}};
 preloadAccount();
+const ensureTrafficButton=()=>{const actions=document.querySelector('.map-toolbar .actions');if(actions&&!document.getElementById('trafficBtn')){const button=document.createElement('button');button.id='trafficBtn';button.className='secondary';button.type='button';button.setAttribute('aria-pressed','false');button.textContent='Trânsito';actions.insertBefore(button,actions.firstElementChild?.nextElementSibling||actions.firstChild)}};
+ensureTrafficButton();
 console.info('[Rastreon] Dashboard build:','PERF-DASHBOARD-01');
 window.RastroMap.ready.then((context)=>{
   const {L,mapProvider,error} = context || {};
