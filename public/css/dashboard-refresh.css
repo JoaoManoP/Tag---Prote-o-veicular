@@ -1046,14 +1046,25 @@ body {
 .vehicle-hud--expanded .vehicle-hud__details {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 8px;
-  margin: 8px 0 54px;
+  gap: 7px 12px;
+  margin: 12px 0 54px;
   color: #aeb9c5;
-  font-size: 10px;
+  font-size: 11px;
 }
 .vehicle-hud--expanded .vehicle-hud__details b {
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
+}
+.vehicle-hud--expanded .vehicle-hud__details span {
+  color: #8f9eac;
+}
+.vehicle-hud--expanded .vehicle-hud__details b:last-child {
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #fff;
+  color: #16222d;
+  letter-spacing: 1px;
+  justify-self: start;
 }
 #trackingView .vehicle-hud button:focus-visible,
 .map-toolbar button:focus-visible {
