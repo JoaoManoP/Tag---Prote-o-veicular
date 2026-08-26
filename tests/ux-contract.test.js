@@ -91,6 +91,14 @@ test('busca inferior inicia a viagem e celular permanece opcional',()=>{
   assert.match(refreshCss,/wizard>:not\(\.quick-trip-panel\):not\(#routeSummary\)\{display:none/);
 });
 
+test('busca inferior funciona sem GPS e oferece locais salvos e recentes',()=>{
+  assert.match(dashboard,/rastreon-address-history/);
+  assert.match(dashboard,/fetch\('\/api\/saved-places'\)/);
+  assert.match(dashboard,/userPosition\?`&lat=/);
+  assert.match(dashboard,/Buscando endereços/);
+  assert.match(dashboard,/Digite ao menos 3 caracteres para pesquisar ruas, bairros, cidades ou CEP/);
+});
+
 test('acabamentos do cerco e viagem permanecem progressivos',()=>{
   assert.match(ux,/Desenhar área personalizada/);
   assert.match(ux,/Confirmar e ativar/);
@@ -189,4 +197,13 @@ test('histórico possui reprodução explicitamente separada do GPS ao vivo',()=
   assert.match(dashboard,/não é ao vivo/);
   assert.match(dashboard,/function renderPosition\(p\).*stopTripReplay/s);
   assert.match(css,/\.replay-badge/);
+});
+
+test('modelo 3D do veículo permanece no mapa, HUD e garagem',()=>{
+  assert.match(dashboard,/installVehicle3DLayer/);
+  assert.match(dashboard,/installVehicle3DPreview/);
+  assert.match(dashboard,/vehicle-hud-3d/);
+  assert.match(dashboard,/vehicle-card-3d/);
+  assert.match(dashboard,/MODELO 3D/);
+  assert.match(refreshCss,/vehicle-card-3d-wrap/);
 });

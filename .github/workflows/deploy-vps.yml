@@ -1,0 +1,109 @@
+name: Deploy VPS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Package release
+        run: git archive --format=tar.gz --output=rastreon-release.tar.gz HEAD
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_SSH_PRIVATE_KEY"
+          test -n "$VPS_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          scp -P "$VPS_PORT" rastreon-release.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz"
+
+      - name: Deploy tested release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+        run: |
+          test -n "$VPS_APP_PATH"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" <<'REMOTE'
+          set -Eeuo pipefail
+          APP_PATH="$1"
+          ARCHIVE_PATH="$2"
+          cd "$APP_PATH"
+          test "$APP_PATH" = /www/wwwroot/protec-veicular
+          case "$ARCHIVE_PATH" in
+            /tmp/rastreon-release-*.tar.gz) ;;
+            *) exit 1 ;;
+          esac
+          test -f "$ARCHIVE_PATH"
+          test -f package-lock.json
+          test -f deploy/ecosystem.config.cjs
+          npm run db:backup
+          RELEASE_DIR="$(mktemp -d /tmp/rastreon-release.XXXXXX)"
+          trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH"' EXIT
+          tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
+          rsync -a --delete \
+            --exclude=.env \
+            --exclude=.git/ \
+            --exclude=backups/ \
+            --exclude=data/ \
+            --exclude=node_modules/ \
+            "$RELEASE_DIR/" "$APP_PATH/"
+          npm ci --ignore-scripts
+          npm run build
+          npm run db:init
+          npm prune --omit=dev --ignore-scripts
+          pm2 startOrReload deploy/ecosystem.config.cjs --update-env
+          pm2 save
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 \
+            http://127.0.0.1:3000/api/health >/dev/null
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 \
+            http://127.0.0.1:3000/api/ready >/dev/null
+          REMOTE
+
+      - name: Verify public endpoint
+        env:
+          PUBLIC_HEALTH_URL: ${{ vars.PUBLIC_HEALTH_URL }}
+        run: |
+          test -n "$PUBLIC_HEALTH_URL"
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 \
+            "$PUBLIC_HEALTH_URL" >/dev/null

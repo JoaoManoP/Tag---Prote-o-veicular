@@ -23,7 +23,7 @@ A rota exige uma sessão autenticada, normaliza placas antigas e Mercosul e limi
 ## Cache e fallback
 
 - `vehicle_lookup_cache`: uma entrada por placa, TTL de 30 dias.
-- `vehicle_image_cache`: uma entrada por marca, modelo e ano, TTL de 90 dias.
+- `vehicle_image_cache`: uma entrada por marca, modelo, ano e versão, TTL de 90 dias.
 - Consultas simultâneas da mesma placa são deduplicadas.
 - Se Falcon falhar e existir cache, o resultado persistido é utilizado.
 - Se a imagem falhar, os dados veiculares continuam disponíveis e o Rastreon mostra `/images/vehicle-placeholder.svg`.

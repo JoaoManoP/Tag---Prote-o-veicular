@@ -20,7 +20,9 @@ npm audit --omit=dev
 - FIPE, preço de combustível separado, corredor de POIs, configuração de produção e backup SQLite íntegro.
 - Reprodução histórica rotulada e encerramento quando chega GPS ao vivo.
 
-Estado em 17/08/2026: a contagem deve ser confirmada pelo último `npm test`; lint, `git diff --check` e auditoria de dependências fazem parte do gate `npm run predeploy`.
+Estado em 25/08/2026: 129 testes aprovados, 0 falhas. Também foram validados de ponta a ponta Photon, OSRM, Overpass, clima, consulta de placa e os endpoints versionados locais. Lint, `git diff --check`, build, mobile e auditoria continuam no gate final.
+
+A auditoria das dependências web/backend retornou 0 vulnerabilidades. O toolchain mobile Expo 54 ainda reporta 22 vulnerabilidades transitivas em Metro (`image-size`, `postcss` e `uuid`); o npm só oferece correção automática por migração quebradora para Expo 57. O pacote mobile não deve ser submetido às lojas antes de migrar e repetir testes em aparelhos reais. Isso não afeta o backend/web publicado.
 
 ## Validação humana pendente
 
