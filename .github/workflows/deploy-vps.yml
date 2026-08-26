@@ -100,9 +100,9 @@ jobs:
           pm2 delete rastreon >/dev/null 2>&1 || true
           pm2 startOrReload deploy/ecosystem.config.cjs --update-env
           pm2 save
-          curl --fail --silent --show-error --retry 8 --retry-delay 2 \
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused \
             http://127.0.0.1:3000/api/health >/dev/null
-          curl --fail --silent --show-error --retry 8 --retry-delay 2 \
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused \
             http://127.0.0.1:3000/api/ready >/dev/null
           MAP_CONFIG="$(curl --fail --silent --show-error http://127.0.0.1:3000/map-config.js)"
           grep -Fq '"provider":"mapbox"' <<<"$MAP_CONFIG"
