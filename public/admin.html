@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b1724" />
+    <script src="/js/theme-init.js"></script>
+    <title>Administração — RASTREON</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/platform-features.css" />
+  </head>
+  <body class="restricted-page" data-area="admin">
+    <header class="restricted-topbar">
+      <a href="/dashboard" class="back-link">← Painel</a>
+      <div>
+        <span>ÁREA OPERACIONAL RESTRITA</span>
+        <h1>Administração RASTREON</h1>
+      </div>
+    </header>
+    <main class="restricted-shell platform-page">
+      <section class="lab-banner">
+        <div>
+          <p class="kicker">MENOR PRIVILÉGIO</p>
+          <h2>Operação e moderação</h2>
+          <p>Indicadores agregados; coordenadas e histórico individual não são exibidos.</p>
+        </div>
+        <span>ADMIN</span>
+      </section>
+      <div id="restrictedError" class="alert-box hidden" role="alert"></div>
+      <div id="adminMetrics" class="summary-grid" aria-live="polite">
+        <div><span>Contas</span><strong id="adminUsers">—</strong></div>
+        <div><span>Sessões ativas</span><strong id="adminSessions">—</strong></div>
+        <div><span>Consentimentos</span><strong id="adminConsents">—</strong></div>
+        <div><span>Atualização</span><strong id="adminUpdated">—</strong></div>
+      </div>
+      <div class="platform-grid">
+        <section class="card">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">MODERAÇÃO</span>
+              <h2>Fila operacional</h2>
+            </div>
+            <button id="reloadModeration" type="button" class="secondary">Atualizar</button>
+          </div>
+          <div id="adminModeration" class="platform-list"></div>
+        </section>
+        <section class="card">
+          <span class="eyebrow">POSTOS</span>
+          <h2>Cadastrar entidade permanente</h2>
+          <form id="adminStationForm">
+            <label class="field">Nome<input id="adminStationName" required maxlength="160" /></label
+            ><label class="field">Bandeira<input id="adminStationBrand" maxlength="100" /></label
+            ><label class="field"
+              >Endereço<input id="adminStationAddress" required maxlength="300"
+            /></label>
+            <div class="form-grid">
+              <label>Latitude<input id="adminStationLat" type="number" step="any" required /></label
+              ><label
+                >Longitude<input id="adminStationLng" type="number" step="any" required
+              /></label>
+            </div>
+            <label class="field"
+              >Fonte<input
+                id="adminStationSource"
+                required
+                value="Cadastro administrativo" /></label
+            ><button type="submit" class="wide">Cadastrar para revisão</button>
+          </form>
+        </section>
+      </div>
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">AUDITORIA</span>
+            <h2>Ações recentes</h2>
+          </div>
+          <span>Sem dados pessoais sensíveis</span>
+        </div>
+        <div id="adminAudit" class="platform-list"></div>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/js/admin.js?v=20260825-1"></script>
+  </body>
+</html>

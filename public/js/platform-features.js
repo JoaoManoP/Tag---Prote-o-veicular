@@ -1,0 +1,618 @@
+'use strict';
+
+(() => {
+  const state = {
+    csrf: null,
+    position: null,
+    activeConversation: null,
+    initialized: false,
+    searchTimer: null,
+    stations: [],
+    reports: []
+  };
+  const byId = id => document.getElementById(id);
+  const node = (tag, className, text) => {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text != null) element.textContent = text;
+    return element;
+  };
+  const formatDate = value => (value ? new Date(value).toLocaleString('pt-BR') : '—');
+  const notice = message => {
+    const target = byId('platformNotice');
+    if (!target) return;
+    target.textContent = message;
+    target.classList.add('show');
+    setTimeout(() => target.classList.remove('show'), 3000);
+  };
+
+  async function token() {
+    if (state.csrf) return state.csrf;
+    const response = await fetch('/api/auth/csrf', { headers: { Accept: 'application/json' } });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Sessão inválida.');
+    state.csrf = data.token;
+    return state.csrf;
+  }
+  async function api(path, { method = 'GET', body, csrf = false } = {}) {
+    const headers = { Accept: 'application/json' };
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (csrf) headers['X-CSRF-Token'] = await token();
+    const response = await fetch(path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    const data = response.status === 204 ? null : await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 403 && csrf) state.csrf = null;
+      throw new Error(data?.error || 'Não foi possível concluir a operação.');
+    }
+    return data;
+  }
+  async function locate() {
+    if (state.position) return state.position;
+    if (!navigator.geolocation) throw new Error('Geolocalização indisponível.');
+    return new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(
+        value => {
+          state.position = {
+            latitude: value.coords.latitude,
+            longitude: value.coords.longitude,
+            accuracy: value.coords.accuracy
+          };
+          resolve(state.position);
+        },
+        () => reject(new Error('Autorize a localização para usar este recurso.')),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      )
+    );
+  }
+
+  function item(title, subtitle) {
+    const article = node('article', 'platform-item');
+    const header = node('header');
+    header.append(node('strong', '', title));
+    article.append(header);
+    if (subtitle) article.append(node('p', '', subtitle));
+    return article;
+  }
+  function actions(host, definitions) {
+    const footer = node('div', 'platform-item__actions');
+    for (const definition of definitions) {
+      const button = node('button', definition.secondary ? 'secondary' : '', definition.label);
+      button.type = 'button';
+      button.addEventListener('click', definition.action);
+      footer.append(button);
+    }
+    host.append(footer);
+  }
+  function empty(host, message) {
+    host.replaceChildren(node('div', 'empty-state', message));
+  }
+  function updateCommunityMap() {
+    window.dispatchEvent(
+      new CustomEvent('rastreon:community-map', {
+        detail: { stations: state.stations, reports: state.reports }
+      })
+    );
+  }
+  async function submitFuelPrice(station) {
+    const fuelType = (
+      prompt('Tipo: GASOLINE, ADDITIVE_GASOLINE, ETHANOL, DIESEL, DIESEL_S10 ou CNG', 'GASOLINE') ||
+      ''
+    )
+      .trim()
+      .toUpperCase();
+    if (!fuelType) return;
+    const price = Number(
+      (prompt(`Preço observado em ${station.name}:`, '') || '').replace(',', '.')
+    );
+    if (!Number.isFinite(price)) return notice('Informe um preço válido.');
+    try {
+      await api(`/api/platform/stations/${station.id}/prices`, {
+        method: 'POST',
+        body: { fuelType, price, observedAt: Date.now() },
+        csrf: true
+      });
+      notice('Preço enviado para validação da comunidade.');
+      loadStations();
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function uploadPhoto(entityType, entityId) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/png,image/webp';
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) return notice('A foto deve ter até 5 MB.');
+      try {
+        const response = await fetch(
+          `/api/platform/photos?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
+          {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': file.type,
+              'X-CSRF-Token': await token()
+            },
+            body: file
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Falha no envio.');
+        notice(
+          data.photo.status === 'PUBLISHED' ? 'Foto publicada.' : 'Foto enviada para moderação.'
+        );
+      } catch (error) {
+        notice(error.message);
+      }
+    });
+    input.click();
+  }
+  async function comments(entityType, entityId) {
+    try {
+      const [data, gallery] = await Promise.all([
+        api(`/api/platform/comments/${entityType}/${entityId}`),
+        api(
+          `/api/platform/photos?entityType=${entityType}&entityId=${encodeURIComponent(entityId)}`
+        )
+      ]);
+      const current =
+        data.comments.map(value => `${value.author.displayName}: ${value.body}`).join('\n') ||
+        'Ainda não há comentários.';
+      const body = prompt(
+        `${current}\n\n${gallery.photos.length} foto(s) disponível(is). Escreva um novo comentário (Cancelar apenas fecha):`,
+        ''
+      );
+      if (!body?.trim()) return;
+      await api(`/api/platform/comments/${entityType}/${entityId}`, {
+        method: 'POST',
+        body: { body },
+        csrf: true
+      });
+      notice('Comentário publicado.');
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+
+  function showTab(name) {
+    document
+      .querySelectorAll('[data-platform-tab]')
+      .forEach(button =>
+        button.setAttribute('aria-selected', String(button.dataset.platformTab === name))
+      );
+    document.querySelectorAll('.platform-pane').forEach(pane => pane.classList.add('hidden'));
+    byId(`platform${name[0].toUpperCase()}${name.slice(1)}`)?.classList.remove('hidden');
+    if (name === 'reports') loadReports();
+    if (name === 'px') loadPx();
+    if (name === 'chat') loadChat();
+  }
+
+  async function loadStatus() {
+    const data = await api('/api/platform/status');
+    byId('platformTrafficStatus').textContent = data.traffic.available
+      ? 'Trânsito ao vivo'
+      : data.traffic.communityAvailable
+        ? 'Trânsito comunitário'
+        : 'Trânsito indisponível';
+    byId('platformTrafficStatus').className =
+      `badge ${data.traffic.available ? 'online' : 'offline'}`;
+    byId('platformTrafficStatus').title = data.traffic.reason || data.traffic.provider || '';
+  }
+  async function loadStations() {
+    const host = byId('platformStations');
+    empty(host, 'Carregando postos…');
+    let suffix = '';
+    try {
+      const position = await locate();
+      suffix = `?latitude=${position.latitude}&longitude=${position.longitude}&radiusMeters=20000`;
+    } catch {}
+    const data = await api(`/api/platform/stations${suffix}`);
+    state.stations = data.stations;
+    updateCommunityMap();
+    host.replaceChildren();
+    if (!data.stations.length)
+      return empty(
+        host,
+        'Nenhum posto permanente cadastrado nesta região. POIs do mapa continuam disponíveis em Explorar perto.'
+      );
+    for (const station of data.stations) {
+      const article = item(
+        station.name,
+        [
+          station.brand,
+          station.address,
+          station.distanceMeters != null ? `${(station.distanceMeters / 1000).toFixed(1)} km` : ''
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      );
+      article.append(node('span', 'platform-confidence', station.confidence.replaceAll('_', ' ')));
+      const prices = node('div', 'platform-item__actions');
+      for (const price of station.prices)
+        prices.append(
+          node(
+            'span',
+            'platform-price',
+            `${price.fuelType}: R$ ${price.price.toFixed(2).replace('.', ',')} · ${price.status}`
+          )
+        );
+      if (station.partnerBenefit)
+        prices.append(
+          node('span', 'platform-price', `Parceiro: ${station.partnerBenefit.description}`)
+        );
+      article.append(prices);
+      actions(article, [
+        {
+          label: station.favorite ? 'Favoritado' : 'Favoritar',
+          secondary: true,
+          action: async event => {
+            try {
+              await api(`/api/platform/stations/${station.id}/favorite`, {
+                method: 'POST',
+                csrf: true
+              });
+              event.currentTarget.textContent = 'Favoritado';
+            } catch (error) {
+              notice(error.message);
+            }
+          }
+        },
+        { label: 'Informar preço', action: () => submitFuelPrice(station) },
+        { label: 'Comentar', secondary: true, action: () => comments('FUEL_STATION', station.id) },
+        {
+          label: 'Enviar foto',
+          secondary: true,
+          action: () => uploadPhoto('FUEL_STATION', station.id)
+        }
+      ]);
+      host.append(article);
+    }
+  }
+
+  async function search() {
+    const input = byId('platformSearchInput'),
+      host = byId('platformSearchResults'),
+      query = input.value.trim();
+    if (query.length < 2) return host.replaceChildren();
+    const params = new URLSearchParams({ q: query });
+    if (state.position) {
+      params.set('latitude', state.position.latitude);
+      params.set('longitude', state.position.longitude);
+    }
+    try {
+      const data = await api(`/api/platform/search?${params}`);
+      host.replaceChildren();
+      if (!data.results.length)
+        return empty(
+          host,
+          'Nenhum resultado interno. Use a busca do mapa para endereços externos.'
+        );
+      for (const result of data.results) {
+        const article = item(
+          result.title,
+          [
+            result.type.replaceAll('_', ' '),
+            result.subtitle,
+            result.distanceMeters != null ? `${Math.round(result.distanceMeters)} m` : ''
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        );
+        if (result.latitude != null)
+          actions(article, [
+            {
+              label: 'Ver no mapa',
+              action: () => {
+                document.querySelector('[data-view="tracking"]')?.click();
+                window.dispatchEvent(new CustomEvent('rastreon:focus-place', { detail: result }));
+              }
+            }
+          ]);
+        host.append(article);
+      }
+    } catch (error) {
+      empty(host, error.message);
+    }
+  }
+
+  async function loadReports() {
+    const host = byId('roadReportList');
+    empty(host, 'Carregando ocorrências…');
+    let suffix = '';
+    try {
+      const position = await locate();
+      suffix = `?latitude=${position.latitude}&longitude=${position.longitude}&radiusMeters=30000`;
+    } catch {}
+    try {
+      const data = await api(`/api/platform/road-reports${suffix}`);
+      state.reports = data.reports;
+      updateCommunityMap();
+      host.replaceChildren();
+      if (!data.reports.length)
+        return empty(host, 'Nenhuma ocorrência comunitária ativa por perto.');
+      for (const report of data.reports) {
+        const article = item(
+          `${report.category.replaceAll('_', ' ')} · ${report.severity}`,
+          report.description
+        );
+        article.append(
+          node(
+            'small',
+            '',
+            `Comunidade · expira ${formatDate(report.expiresAt)} · ${report.confirmations} confirmação(ões)`
+          )
+        );
+        actions(article, [
+          { label: 'Confirmar', action: () => voteReport(report.id, 'CONFIRM') },
+          { label: 'Resolvido', secondary: true, action: () => voteReport(report.id, 'RESOLVED') },
+          { label: 'Comentar', secondary: true, action: () => comments('ROAD_REPORT', report.id) },
+          {
+            label: 'Enviar foto',
+            secondary: true,
+            action: () => uploadPhoto('ROAD_REPORT', report.id)
+          },
+          {
+            label: 'Denunciar',
+            secondary: true,
+            action: () => reportContent('ROAD_REPORT', report.id)
+          }
+        ]);
+        host.append(article);
+      }
+    } catch (error) {
+      empty(host, error.message);
+    }
+  }
+  async function voteReport(id, vote) {
+    try {
+      await api(`/api/platform/road-reports/${id}/vote`, {
+        method: 'PUT',
+        body: { vote },
+        csrf: true
+      });
+      notice('Ocorrência atualizada.');
+      loadReports();
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function reportContent(entityType, entityId) {
+    const reason = prompt('Motivo da denúncia:');
+    if (!reason) return;
+    try {
+      await api('/api/platform/content-reports', {
+        method: 'POST',
+        body: { entityType, entityId, reason },
+        csrf: true
+      });
+      notice('Denúncia enviada para moderação.');
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function submitReport(event) {
+    event.preventDefault();
+    try {
+      const position = await locate();
+      await api('/api/platform/road-reports', {
+        method: 'POST',
+        csrf: true,
+        body: {
+          category: byId('roadReportCategory').value,
+          severity: byId('roadReportSeverity').value,
+          description: byId('roadReportDescription').value,
+          latitude: position.latitude,
+          longitude: position.longitude
+        }
+      });
+      byId('roadReportDescription').value = '';
+      notice('Ocorrência publicada como informação comunitária.');
+      loadReports();
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+
+  async function loadPx() {
+    try {
+      const data = await api('/api/platform/px/channels'),
+        select = byId('pxChannel');
+      if (!select.options.length)
+        for (const channel of data.channels) {
+          const option = node('option', '', channel.name);
+          option.value = channel.id;
+          select.append(option);
+        }
+      await loadPxMessages();
+    } catch (error) {
+      empty(byId('pxMessages'), error.message);
+    }
+  }
+  async function loadPxMessages() {
+    const channelId = byId('pxChannel').value;
+    if (!channelId) return;
+    const data = await api(`/api/platform/px/channels/${channelId}/messages`),
+      host = byId('pxMessages');
+    host.replaceChildren();
+    if (!data.messages.length) return empty(host, 'Nenhuma mensagem neste canal.');
+    for (const message of data.messages) {
+      const article = item(message.author.displayName, message.body);
+      article.append(node('small', '', formatDate(message.createdAt)));
+      host.append(article);
+    }
+  }
+  async function submitPx(event) {
+    event.preventDefault();
+    const body = byId('pxBody').value.trim();
+    if (!body) return;
+    try {
+      await api(`/api/platform/px/channels/${byId('pxChannel').value}/messages`, {
+        method: 'POST',
+        body: { body },
+        csrf: true
+      });
+      byId('pxBody').value = '';
+      loadPxMessages();
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+
+  async function loadChat() {
+    try {
+      const [settings, requests, conversations] = await Promise.all([
+        api('/api/platform/chat/settings'),
+        api('/api/platform/conversation-requests'),
+        api('/api/platform/conversations')
+      ]);
+      byId('chatEnabled').checked = settings.chat.enabled;
+      const requestHost = byId('conversationRequests');
+      requestHost.replaceChildren();
+      if (!requests.requests.length) empty(requestHost, 'Nenhuma solicitação recebida.');
+      for (const request of requests.requests) {
+        const article = item(
+          request.sender.displayName,
+          `${request.contextType} · ${request.status} · ${formatDate(request.createdAt)}`
+        );
+        if (request.status === 'PENDING')
+          actions(article, [
+            { label: 'Aceitar', action: () => respondRequest(request.id, 'ACCEPT') },
+            {
+              label: 'Recusar',
+              secondary: true,
+              action: () => respondRequest(request.id, 'DECLINE')
+            },
+            {
+              label: 'Bloquear',
+              secondary: true,
+              action: () => respondRequest(request.id, 'BLOCK')
+            }
+          ]);
+        requestHost.append(article);
+      }
+      const conversationHost = byId('conversationList');
+      conversationHost.replaceChildren();
+      if (!conversations.conversations.length) empty(conversationHost, 'Nenhuma conversa aceita.');
+      for (const conversation of conversations.conversations) {
+        const article = item(
+          conversation.peer.displayName,
+          `${conversation.status} · ${formatDate(conversation.updatedAt)}`
+        );
+        actions(article, [{ label: 'Abrir', action: () => openConversation(conversation.id) }]);
+        conversationHost.append(article);
+      }
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function respondRequest(id, action) {
+    try {
+      await api(`/api/platform/conversation-requests/${id}/respond`, {
+        method: 'POST',
+        body: { action },
+        csrf: true
+      });
+      loadChat();
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function openConversation(id) {
+    try {
+      const data = await api(`/api/platform/conversations/${id}/messages`),
+        host = byId('conversationMessages');
+      state.activeConversation = id;
+      host.replaceChildren();
+      if (!data.messages.length) empty(host, 'Conversa aceita. Envie a primeira mensagem.');
+      for (const message of data.messages) {
+        const article = item(message.mine ? 'Você' : 'Motorista', message.body);
+        article.classList.add('platform-message');
+        if (message.mine) article.classList.add('mine');
+        article.append(node('small', '', formatDate(message.createdAt)));
+        host.append(article);
+      }
+      byId('conversationForm').classList.remove('hidden');
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function submitConversation(event) {
+    event.preventDefault();
+    if (!state.activeConversation) return;
+    const body = byId('conversationBody').value.trim();
+    if (!body) return;
+    try {
+      await api(`/api/platform/conversations/${state.activeConversation}/messages`, {
+        method: 'POST',
+        body: { body },
+        csrf: true
+      });
+      byId('conversationBody').value = '';
+      openConversation(state.activeConversation);
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  async function requestConversation({
+    contactId,
+    contextType = 'COMMUNITY',
+    contextId = null
+  } = {}) {
+    if (!contactId) return notice('Este autor não habilitou conversas.');
+    try {
+      await api('/api/platform/conversation-requests', {
+        method: 'POST',
+        body: { recipientContactId: contactId, contextType, contextId },
+        csrf: true
+      });
+      notice('Solicitação enviada sem compartilhar seus dados pessoais.');
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+
+  async function initialize() {
+    if (state.initialized || !byId('communityView')) return;
+    state.initialized = true;
+    document
+      .querySelectorAll('[data-platform-tab]')
+      .forEach(button =>
+        button.addEventListener('click', () => showTab(button.dataset.platformTab))
+      );
+    byId('reloadStations').addEventListener('click', loadStations);
+    byId('reloadReports').addEventListener('click', loadReports);
+    byId('roadReportForm').addEventListener('submit', submitReport);
+    byId('pxForm').addEventListener('submit', submitPx);
+    byId('pxChannel').addEventListener('change', loadPxMessages);
+    byId('conversationForm').addEventListener('submit', submitConversation);
+    byId('chatEnabled').addEventListener('change', async event => {
+      try {
+        await api('/api/platform/chat/settings', {
+          method: 'PATCH',
+          body: { enabled: event.target.checked },
+          csrf: true
+        });
+        notice(event.target.checked ? 'Solicitações habilitadas.' : 'Solicitações desabilitadas.');
+      } catch (error) {
+        event.target.checked = !event.target.checked;
+        notice(error.message);
+      }
+    });
+    byId('platformSearchInput').addEventListener('input', () => {
+      clearTimeout(state.searchTimer);
+      state.searchTimer = setTimeout(search, 250);
+    });
+    window.addEventListener('rastreon:user-location', event => {
+      state.position = event.detail;
+    });
+    await Promise.allSettled([loadStatus(), loadStations()]);
+  }
+  document.querySelector('[data-view="community"]')?.addEventListener('click', initialize);
+  window.RastreonPlatform = { initialize, requestConversation, reportContent };
+})();

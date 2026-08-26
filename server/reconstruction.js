@@ -1,0 +1,138 @@
+'use strict';
+
+const DEFAULT_WEIGHTS = Object.freeze({
+  temporal: 0.35,
+  direction: 0.2,
+  speed: 0.2,
+  plannedRoute: 0.15,
+  distance: 0.1
+});
+const radians = value => (value * Math.PI) / 180;
+function haversine(a, b) {
+  const dLat = radians(b[0] - a[0]),
+    dLng = radians(b[1] - a[1]),
+    value =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.sqrt(value));
+}
+function bearing(a, b) {
+  const lat1 = radians(a[0]),
+    lat2 = radians(b[0]),
+    dLng = radians(b[1] - a[1]);
+  return (
+    ((Math.atan2(
+      Math.sin(dLng) * Math.cos(lat2),
+      Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+    ) *
+      180) /
+      Math.PI +
+      360) %
+    360
+  );
+}
+function angleDifference(a, b) {
+  return Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+}
+function nearestDistance(point, geometry = []) {
+  if (!geometry.length) return null;
+  return Math.min(
+    ...geometry
+      .filter(item => Array.isArray(item) && item.length >= 2)
+      .map(item => haversine(point, item))
+  );
+}
+function classificationFor(confidence) {
+  if (confidence >= 75) return 'RECONSTRUCTED_HIGH';
+  if (confidence >= 50) return 'RECONSTRUCTED_MEDIUM';
+  if (confidence >= 25) return 'RECONSTRUCTED_LOW';
+  return 'UNRECONSTRUCTABLE';
+}
+function rankReconstructionCandidates({
+  routes,
+  gapDurationSeconds,
+  speedBefore,
+  speedAfter,
+  headingBefore,
+  headingAfter,
+  plannedGeometry = [],
+  weights = DEFAULT_WEIGHTS
+}) {
+  const duration = Math.max(1, Number(gapDurationSeconds) || 1),
+    referenceSpeed = Math.max(1, ((Number(speedBefore) || 0) + (Number(speedAfter) || 0)) / 2 || 1);
+  return (Array.isArray(routes) ? routes : [])
+    .map((route, index) => {
+      const geometry = route.geometry || [],
+        start = geometry[0],
+        end = geometry.at(-1),
+        routeHeading = start && end ? bearing(start, end) : 0;
+      const temporal = Math.min(
+        2,
+        Math.abs(Number(route.durationSeconds ?? route.duration) - duration) / duration
+      );
+      const directionParts = [headingBefore, headingAfter]
+        .filter(value => Number.isFinite(Number(value)))
+        .map(value => angleDifference(routeHeading, Number(value)) / 180);
+      const direction = directionParts.length
+        ? directionParts.reduce((sum, value) => sum + value, 0) / directionParts.length
+        : 0.5;
+      const routeSpeed = Number(route.distanceMeters ?? route.distance) / duration;
+      const speed = Math.min(
+        2,
+        Math.abs(routeSpeed - referenceSpeed) / Math.max(referenceSpeed, 5)
+      );
+      const directDistance =
+        start && end ? haversine(start, end) : Number(route.distanceMeters ?? route.distance);
+      const distance = Math.min(
+        2,
+        Math.max(0, Number(route.distanceMeters ?? route.distance) - directDistance) /
+          Math.max(directDistance, 1)
+      );
+      const plannedDistances =
+        plannedGeometry.length && start && end
+          ? [nearestDistance(start, plannedGeometry), nearestDistance(end, plannedGeometry)].filter(
+              value => value != null
+            )
+          : [];
+      const plannedRoute = plannedDistances.length
+        ? Math.min(
+            2,
+            plannedDistances.reduce((sum, value) => sum + value, 0) / plannedDistances.length / 1000
+          )
+        : 0.5;
+      const components = { temporal, direction, speed, plannedRoute, distance };
+      const score = Object.entries(weights).reduce(
+        (sum, [name, weight]) => sum + components[name] * weight,
+        0
+      );
+      const confidence = Math.round(Math.max(0, Math.min(100, (1 - score / 2) * 100)));
+      return {
+        ...route,
+        candidateIndex: index,
+        score,
+        confidence,
+        classification: classificationFor(confidence),
+        components,
+        weights
+      };
+    })
+    .sort((a, b) => b.confidence - a.confidence);
+}
+
+class MapMatchingProvider {
+  async match(points) {
+    return {
+      provider: 'unavailable',
+      confidence: null,
+      rawPoints: points.map(point => ({ ...point })),
+      matchedGeometry: null
+    };
+  }
+}
+
+module.exports = {
+  DEFAULT_WEIGHTS,
+  rankReconstructionCandidates,
+  classificationFor,
+  MapMatchingProvider
+};

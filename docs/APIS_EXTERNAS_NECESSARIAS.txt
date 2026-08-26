@@ -1,0 +1,97 @@
+==================================================
+SERVIÇO: MAPA VETORIAL
+==================================================
+FUNÇÃO: Exibição do mapa base
+PROVEDOR: MapLibre + OpenFreeMap
+STATUS: Implementado sem chave; depende de serviço externo
+OBRIGATÓRIO: Sim
+VARIÁVEIS: MAP_PROVIDER, MAP_STYLE_URL
+PRECISA BILLING: Não no provedor padrão
+PRECISA CONTRATO: Avaliar antes de alto volume/produção
+DOCUMENTAÇÃO: https://maplibre.org/ e https://openfreemap.org/
+OBSERVAÇÕES: Google Maps é alternativa opcional e exige chave web restrita.
+
+==================================================
+SERVIÇO: ROTAS E NAVEGAÇÃO
+==================================================
+FUNÇÃO: Rotas, alternativas e instruções de manobra
+PROVEDOR: OSRM (padrão) ou Google Routes API
+STATUS: Implementado; trânsito ao vivo somente com Google configurado
+OBRIGATÓRIO: Sim
+VARIÁVEIS: ROUTE_PROVIDER, GOOGLE_MAPS_API_KEY
+PRECISA BILLING: Google, sim; OSRM público, não
+PRECISA CONTRATO: Recomendado usar instância própria/contratada do OSRM em produção
+DOCUMENTAÇÃO: https://project-osrm.org/ e https://developers.google.com/maps/documentation/routes
+OBSERVAÇÕES: A navegação web funciona em primeiro plano. Navegação nativa/background exige SDK mobile.
+
+==================================================
+SERVIÇO: LOCAIS PRÓXIMOS (POIs)
+==================================================
+FUNÇÃO: Postos, restaurantes, hotéis, hospitais, farmácias, mercados, oficinas e outros locais
+PROVEDOR: OpenStreetMap via Overpass API
+STATUS: Implementado com cache e limite de resultados
+OBRIGATÓRIO: Não; o mapa e as rotas continuam sem POIs
+VARIÁVEIS: OVERPASS_API_URL
+PRECISA BILLING: Não na instância pública
+PRECISA CONTRATO: Instância própria/contratada recomendada para produção e alto volume
+DOCUMENTAÇÃO: https://wiki.openstreetmap.org/wiki/Overpass_API
+OBSERVAÇÕES: Google Places pode substituir este provider quando billing e chave backend estiverem configurados.
+
+==================================================
+SERVIÇO: GEOCODIFICAÇÃO
+==================================================
+FUNÇÃO: Busca de endereços e identificação do endereço da posição atual
+PROVEDOR: Photon (padrão), Google ou Nominatim próprio/contratado
+STATUS: Busca direta e reversa implementadas no mesmo provider
+VARIÁVEIS: GEOCODING_PROVIDER, PHOTON_API_URL, NOMINATIM_BASE_URL, GOOGLE_MAPS_API_KEY
+OBSERVAÇÕES: nominatim.openstreetmap.org não é aceito; sua política proíbe autocomplete e uso como base de aplicativos de rastreamento.
+
+==================================================
+SERVIÇO: CONSULTA POR PLACA
+==================================================
+FUNÇÃO: Preencher somente dados cadastrais públicos do veículo
+PROVEDOR: API Brasil / endpoint compatível configurado
+STATUS: Implementado, aguardando credencial quando PLATE_LOOKUP_TOKEN estiver vazio
+OBRIGATÓRIO: Não; cadastro manual permanece disponível
+VARIÁVEIS: PLATE_LOOKUP_URL, PLATE_LOOKUP_TOKEN
+PRECISA BILLING: Conforme plano do provedor
+PRECISA CONTRATO: Conforme provedor e finalidade de uso
+DOCUMENTAÇÃO: Confirmar no portal/contrato vigente do provedor antes de produção
+OBSERVAÇÕES: Não retornar proprietário, RENAVAM, chassi ou dados pessoais. Nunca inventar resposta.
+
+==================================================
+SERVIÇO: TABELA FIPE
+==================================================
+FUNÇÃO: Complementar o veículo com valor e mês de referência pelo código FIPE
+PROVEDOR: BrasilAPI
+STATUS: Implementado; sem chave, com cache e fallback quando indisponível
+VARIÁVEIS: FIPE_API_URL
+DOCUMENTAÇÃO: https://brasilapi.com.br/docs#tag/FIPE
+OBSERVAÇÕES: É valor referencial, não oferta, avaliação individual ou preço garantido.
+
+==================================================
+SERVIÇO: TRÂNSITO EM TEMPO REAL
+==================================================
+FUNÇÃO: Camada colorida de fluxo e ETA considerando congestionamento
+PROVEDOR: Google Maps Traffic Layer + Google Routes (opcional)
+STATUS: Código condicional implementado; indisponível sem chave/billing
+VARIÁVEIS: MAP_PROVIDER=google, ROUTE_PROVIDER=google, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_MAP_ID
+OBSERVAÇÕES: No MapLibre padrão são exibidos apenas relatos comunitários rotulados como não oficiais. O sistema não fabrica fluxo de trânsito.
+
+==================================================
+SERVIÇO: RASTREADOR FÍSICO J16
+==================================================
+FUNÇÃO: Receber GPS, velocidade, ignição, bateria e eventos do hardware
+PROVEDOR: Instância Traccar homologada
+STATUS: Adaptador e webhook implementados; homologação de campo pendente
+VARIÁVEIS: TRACCAR_ENABLED, TRACCAR_WEBHOOK_SECRET, TRACCAR_DEVICE_HASH_SECRET
+OBSERVAÇÕES: Consulte TRACCAR_J16.md. Bloqueio remoto permanece desabilitado.
+
+==================================================
+SERVIÇO: NOTIFICAÇÕES PUSH
+==================================================
+FUNÇÃO: Alertas fora do app
+PROVEDOR: Expo Push / FCM / APNs a contratar/configurar
+STATUS: Preferências e caixa interna implementadas; entrega externa pendente
+VARIÁVEIS: Dependem do provedor escolhido
+OBSERVAÇÕES: Não apresentar push como ativo antes de configurar credenciais e consentimento.

@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "RastroTack: instalar dependências",
+      "type": "shell",
+      "command": "npm install",
+      "problemMatcher": []
+    },
+    {
+      "label": "RastroTack: inicializar banco",
+      "type": "shell",
+      "command": "npm run db:init",
+      "problemMatcher": []
+    },
+    {
+      "label": "RastroTack: desenvolver",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "rastrotack",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Servidor disponível|RastroTack disponível|listening"
+        }
+      }
+    },
+    {
+      "label": "RastroTack: testes",
+      "type": "shell",
+      "command": "npm test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "RastroTack: validar predeploy",
+      "type": "shell",
+      "command": "npm run predeploy",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

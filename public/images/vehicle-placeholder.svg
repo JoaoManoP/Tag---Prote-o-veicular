@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title description">
+  <title id="title">Imagem genérica de veículo</title>
+  <desc id="description">Silhueta discreta de um veículo usada quando não há imagem ilustrativa disponível.</desc>
+  <defs><linearGradient id="background" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f4f7f9"/><stop offset="1" stop-color="#e5ebef"/></linearGradient></defs>
+  <rect width="640" height="360" rx="28" fill="url(#background)"/>
+  <path d="M151 229h23l28-68c7-18 24-29 43-29h151c18 0 35 10 43 27l32 70h18c22 0 40 18 40 40v13H111v-13c0-22 18-40 40-40Zm72 0h196l-22-47H244l-21 47Z" fill="#c7d2da"/>
+  <circle cx="202" cy="282" r="30" fill="#718392"/><circle cx="438" cy="282" r="30" fill="#718392"/>
+  <circle cx="202" cy="282" r="13" fill="#edf2f5"/><circle cx="438" cy="282" r="13" fill="#edf2f5"/>
+</svg>

@@ -1,0 +1,14 @@
+node_modules/
+mobile/node_modules/
+mobile/.expo-android-check/
+mobile/.expo-web-check/
+mobile/package-lock-*-backup.json
+client/dist/
+public/js/*.bundle.js
+public/models/
+data/
+backups/
+package-lock.json
+mobile/package-lock.json
+*.sqlite
+*.glb

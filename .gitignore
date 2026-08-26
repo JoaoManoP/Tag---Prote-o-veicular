@@ -1,0 +1,16 @@
+node_modules/
+mobile/.expo/
+mobile/.expo-*/
+.env
+data/*.sqlite-shm
+data/*.sqlite-wal
+data/*.sqlite
+data/**/*.sqlite
+data/**/*.sqlite-shm
+data/**/*.sqlite-wal
+backups/
+node_modules~*/
+npm-debug.log*
+*.log
+cookies.txt
+out.txt

@@ -1,0 +1,112 @@
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Header,
+  Screen,
+  StatusBadge,
+  styles
+} from '../src/components/ui';
+import {
+  startBackgroundLocation,
+  stopBackgroundLocation
+} from '../src/services/backgroundLocation';
+import { requestLocationPermission, stopLocation, watchLocation } from '../src/services/location';
+import { enqueuePosition, listQueue } from '../src/services/offlineQueue';
+import { socketService } from '../src/services/socket';
+import { syncPositions } from '../src/services/sync';
+import { useApp } from '../src/state/AppContext';
+export default function Tracker() {
+  const { connection, setConnection, theme } = useApp(),
+    [credential, setCredential] = useState<any>(null),
+    [sharing, setSharing] = useState(false),
+    [count, setCount] = useState(0),
+    [message, setMessage] = useState('Pronto para compartilhar');
+  useEffect(() => {
+    SecureStore.getItemAsync('rastreon:tracker').then(value =>
+      setCredential(value ? JSON.parse(value) : null)
+    );
+    listQueue().then(value => setCount(value.length));
+    return () => stopLocation();
+  }, []);
+  const start = async () => {
+    if (!credential) return;
+    const allowed = await requestLocationPermission(true);
+    if (!allowed) {
+      setMessage('Permissão negada. Nenhuma localização foi coletada.');
+      return;
+    }
+    socketService.connect(() => {}, setConnection);
+    const joined = await socketService.joinTracker(
+      credential.sessionId,
+      credential.credential,
+      credential.device.id
+    );
+    if (!joined.ok) {
+      setMessage(joined.error || 'Credencial inválida.');
+      return;
+    }
+    await socketService.grantConsent(credential.device.id);
+    await syncPositions().catch(() => {});
+    await startBackgroundLocation();
+    await watchLocation(async point => {
+      const now = Date.now(),
+        position = {
+          ...point,
+          deviceId: credential.device.id,
+          sequence: now,
+          eventId: `${credential.device.id}:${now}`
+        };
+      try {
+        await socketService.sendPosition(position);
+      } catch {
+        await enqueuePosition({ ...position, capturedOffline: true });
+        setCount((await listQueue()).length);
+      }
+    });
+    setSharing(true);
+    setMessage('Compartilhamento ativo, inclusive em segundo plano.');
+  };
+  const stop = async () => {
+    stopLocation();
+    await stopBackgroundLocation();
+    if (credential) await socketService.revokeConsent(credential.device.id).catch(() => {});
+    setSharing(false);
+    setMessage('Compartilhamento e coleta interrompidos.');
+  };
+  return (
+    <Screen>
+      <Header
+        title="Celular rastreador"
+        subtitle="Controle explícito da localização"
+        action={<StatusBadge status={connection} />}
+      />
+      {credential ? (
+        <Card>
+          <Text style={[styles.subtitle, { color: theme.colors.text }]}>
+            O RASTREON precisa da sua localização
+          </Text>
+          <Text style={[styles.body, { color: theme.colors.muted }]}>
+            Somente para compartilhar a posição deste veículo após sua autorização.
+          </Text>
+          <Text style={{ color: theme.colors.text }}>Fila offline: {count} ponto(s)</Text>
+          <Button
+            title={sharing ? 'Compartilhando…' : 'Continuar'}
+            disabled={sharing}
+            onPress={start}
+          />
+          <Button danger title="Parar compartilhamento" disabled={!sharing} onPress={stop} />
+        </Card>
+      ) : (
+        <EmptyState
+          title="Celular não vinculado"
+          message="Leia o QR Code temporário do proprietário antes de compartilhar localização."
+        />
+      )}
+      <Text style={{ color: theme.colors.text }}>{message}</Text>
+    </Screen>
+  );
+}

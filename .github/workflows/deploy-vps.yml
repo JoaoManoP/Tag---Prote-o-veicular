@@ -1,0 +1,126 @@
+name: Deploy VPS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Package release
+        run: git archive --format=tar.gz --output=rastreon-release.tar.gz HEAD
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_PRIVATE_KEY_B64: ${{ secrets.VPS_SSH_PRIVATE_KEY_B64 }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_SSH_PRIVATE_KEY_B64"
+          test -n "$VPS_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s' "$VPS_SSH_PRIVATE_KEY_B64" | base64 --decode > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          scp -P "$VPS_PORT" rastreon-release.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz"
+
+      - name: Deploy tested release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+        run: |
+          test -n "$VPS_APP_PATH"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" <<'REMOTE'
+          set -Eeuo pipefail
+          APP_PATH="$1"
+          ARCHIVE_PATH="$2"
+          export NVM_DIR=/www/server/nvm
+          test -s "$NVM_DIR/nvm.sh"
+          . "$NVM_DIR/nvm.sh"
+          nvm use 24 >/dev/null
+          test "$(node --version | cut -d. -f1)" = v24
+          cd "$APP_PATH"
+          test "$APP_PATH" = /www/wwwroot/protec-veicular
+          test -f .env
+          if grep -q '^GEOCODING_PROVIDER=' .env; then
+            sed -i 's/^GEOCODING_PROVIDER=.*/GEOCODING_PROVIDER=mapbox/' .env
+          else
+            printf '\nGEOCODING_PROVIDER=mapbox\n' >> .env
+          fi
+          case "$ARCHIVE_PATH" in
+            /tmp/rastreon-release-*.tar.gz) ;;
+            *) exit 1 ;;
+          esac
+          test -f "$ARCHIVE_PATH"
+          test -f package-lock.json
+          test -f deploy/ecosystem.config.cjs
+          npm run db:backup
+          RELEASE_DIR="$(mktemp -d /tmp/rastreon-release.XXXXXX)"
+          trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH"' EXIT
+          tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
+          rsync -a --delete \
+            --exclude=.env \
+            --exclude=.git/ \
+            --exclude=backups/ \
+            --exclude=data/ \
+            --exclude=node_modules/ \
+            "$RELEASE_DIR/" "$APP_PATH/"
+          npm ci --ignore-scripts
+          npm run build
+          npm run db:init
+          npm prune --omit=dev --ignore-scripts
+          pm2 delete rastreon >/dev/null 2>&1 || true
+          pm2 startOrReload deploy/ecosystem.config.cjs --update-env
+          pm2 save
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused \
+            http://127.0.0.1:3000/api/health >/dev/null
+          curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused \
+            http://127.0.0.1:3000/api/ready >/dev/null
+          MAP_CONFIG="$(curl --fail --silent --show-error http://127.0.0.1:3000/map-config.js)"
+          grep -Fq '"provider":"mapbox"' <<<"$MAP_CONFIG"
+          grep -Fq 'mapbox://styles/joaomanoelpera/cmsyr2l11008201s978xy5yqg' <<<"$MAP_CONFIG"
+          curl --fail --silent --show-error \
+            http://127.0.0.1:3000/vendor/mapbox/mapbox-gl.js >/dev/null
+          REMOTE
+
+      - name: Verify public endpoint
+        env:
+          PUBLIC_HEALTH_URL: ${{ vars.PUBLIC_HEALTH_URL }}
+        run: |
+          test -n "$PUBLIC_HEALTH_URL"
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 \
+            "$PUBLIC_HEALTH_URL" >/dev/null
