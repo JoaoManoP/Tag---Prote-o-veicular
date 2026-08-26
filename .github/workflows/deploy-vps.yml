@@ -97,12 +97,18 @@ jobs:
           npm run build
           npm run db:init
           npm prune --omit=dev --ignore-scripts
+          pm2 delete rastreon >/dev/null 2>&1 || true
           pm2 startOrReload deploy/ecosystem.config.cjs --update-env
           pm2 save
           curl --fail --silent --show-error --retry 8 --retry-delay 2 \
             http://127.0.0.1:3000/api/health >/dev/null
           curl --fail --silent --show-error --retry 8 --retry-delay 2 \
             http://127.0.0.1:3000/api/ready >/dev/null
+          MAP_CONFIG="$(curl --fail --silent --show-error http://127.0.0.1:3000/map-config.js)"
+          grep -Fq '"provider":"mapbox"' <<<"$MAP_CONFIG"
+          grep -Fq 'mapbox://styles/joaomanoelpera/cmsyr2l11008201s978xy5yqg' <<<"$MAP_CONFIG"
+          curl --fail --silent --show-error \
+            http://127.0.0.1:3000/vendor/mapbox/mapbox-gl.js >/dev/null
           REMOTE
 
       - name: Verify public endpoint
