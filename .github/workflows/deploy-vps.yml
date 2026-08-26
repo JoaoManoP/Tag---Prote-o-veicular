@@ -68,6 +68,11 @@ jobs:
           set -Eeuo pipefail
           APP_PATH="$1"
           ARCHIVE_PATH="$2"
+          export NVM_DIR=/www/server/nvm
+          test -s "$NVM_DIR/nvm.sh"
+          . "$NVM_DIR/nvm.sh"
+          nvm use 24 >/dev/null
+          test "$(node --version | cut -d. -f1)" = v24
           cd "$APP_PATH"
           test "$APP_PATH" = /www/wwwroot/protec-veicular
           case "$ARCHIVE_PATH" in
