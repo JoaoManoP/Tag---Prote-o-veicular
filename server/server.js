@@ -680,7 +680,12 @@ function createApplication(options = {}) {
             'https://*.ggpht.com'
           ],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-          scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com', 'https://cdn.jsdelivr.net'],
+          scriptSrc: [
+            "'self'",
+            'https://maps.googleapis.com',
+            'https://maps.gstatic.com',
+            'https://cdn.jsdelivr.net'
+          ],
           workerSrc: ["'self'", 'blob:'],
           connectSrc: [
             "'self'",

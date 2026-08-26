@@ -1780,7 +1780,8 @@ window.RastroMap.ready
       const plate = vehicle.plate || 'SEM PLACA';
       if (canvas) canvas.setAttribute('aria-label', `Modelo 3D do ${vehicle.model || 'veículo'}`);
       hud.querySelector('.vehicle-hud__plate').textContent = plate;
-      hud.querySelector('.vehicle-hud__details').innerHTML = `<span>Marca</span><b>${vehicle.brand || '—'}</b><span>Modelo</span><b>${vehicle.model || '—'}</b><span>Placa</span><b>${plate}</b>`;
+      hud.querySelector('.vehicle-hud__details').innerHTML =
+        `<span>Marca</span><b>${vehicle.brand || '—'}</b><span>Modelo</span><b>${vehicle.model || '—'}</b><span>Placa</span><b>${plate}</b>`;
       button.textContent = 'Ver detalhes';
       if (canvas) {
         canvas.hidden = false;
@@ -3350,9 +3351,11 @@ window.RastroMap.ready
           // O mapa permanece ativo enquanto as demais áreas aparecem como painel flutuante.
           document.body.classList.toggle('floating-nav-open', !isTracking);
           document.querySelector('#trackingView')?.classList.add('active');
-          document.querySelectorAll('.view:not(#trackingView)').forEach(v =>
-            v.classList.toggle('active', v.id === `${b.dataset.view}View` && !isTracking)
-          );
+          document
+            .querySelectorAll('.view:not(#trackingView)')
+            .forEach(v =>
+              v.classList.toggle('active', v.id === `${b.dataset.view}View` && !isTracking)
+            );
           if (isTracking) setTimeout(() => map.invalidateSize(), 50);
           if (b.dataset.view === 'profile') {
             ensureFinesCard();

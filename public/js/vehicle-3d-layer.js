@@ -469,7 +469,9 @@ export async function installVehicle3DPreview({
   let model;
   try {
     const loader = new GLTFLoader();
-    const ktx2 = new KTX2Loader().setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/libs/basis/');
+    const ktx2 = new KTX2Loader().setTranscoderPath(
+      'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/libs/basis/'
+    );
     ktx2.detectSupport(renderer);
     loader.setKTX2Loader(ktx2);
     const gltf = await loader.loadAsync(config.modelPath);

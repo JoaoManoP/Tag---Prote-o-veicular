@@ -308,7 +308,9 @@ textarea {
   box-shadow: 0 22px 48px #07111d50;
   backdrop-filter: blur(15px);
 }
-#trackingView .vehicle-hud.vehicle-hud--expanded { min-height: 270px; }
+#trackingView .vehicle-hud.vehicle-hud--expanded {
+  min-height: 270px;
+}
 #trackingView .vehicle-hud:after {
   display: none !important;
   content: none !important;
@@ -938,8 +940,12 @@ body {
 .vehicle-hud__identity > div:first-child {
   display: none;
 }
-.vehicle-hud__identity { justify-content: center; }
-.vehicle-hud__media { margin: 0 auto; }
+.vehicle-hud__identity {
+  justify-content: center;
+}
+.vehicle-hud__media {
+  margin: 0 auto;
+}
 .vehicle-hud__model,
 .vehicle-hud__year {
   display: block;
@@ -967,10 +973,40 @@ body {
   height: 88px;
   flex: none;
 }
-.vehicle-hud__smoke { position:absolute; bottom:7px; width:18px; height:14px; border-radius:50%; background:radial-gradient(ellipse, #eef3f5b8 0%, #cbd5dc66 45%, transparent 75%); filter:blur(3px); animation: vehicleSmoke 2.6s ease-out infinite; pointer-events:none; }
-.vehicle-hud__smoke--a { left:24px; }
-.vehicle-hud__smoke--b { left:76px; animation-delay:1.1s; }
-@keyframes vehicleSmoke { 0%{opacity:0; transform:translate(0,3px) scale(.35)} 18%{opacity:.62} 55%{opacity:.3} 100%{opacity:0; transform:translate(-14px,-30px) scale(2.4)} }
+.vehicle-hud__smoke {
+  position: absolute;
+  bottom: 7px;
+  width: 18px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #eef3f5b8 0%, #cbd5dc66 45%, transparent 75%);
+  filter: blur(3px);
+  animation: vehicleSmoke 2.6s ease-out infinite;
+  pointer-events: none;
+}
+.vehicle-hud__smoke--a {
+  left: 24px;
+}
+.vehicle-hud__smoke--b {
+  left: 76px;
+  animation-delay: 1.1s;
+}
+@keyframes vehicleSmoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 3px) scale(0.35);
+  }
+  18% {
+    opacity: 0.62;
+  }
+  55% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-14px, -30px) scale(2.4);
+  }
+}
 .vehicle-hud__media img {
   width: 100%;
   height: 100%;
@@ -1001,8 +1037,12 @@ body {
   letter-spacing: 0.8px;
   display: none;
 }
-.vehicle-hud__details { display: none; }
-.vehicle-hud--expanded .vehicle-hud__plate { display: none; }
+.vehicle-hud__details {
+  display: none;
+}
+.vehicle-hud--expanded .vehicle-hud__plate {
+  display: none;
+}
 .vehicle-hud--expanded .vehicle-hud__details {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1011,7 +1051,10 @@ body {
   color: #aeb9c5;
   font-size: 10px;
 }
-.vehicle-hud--expanded .vehicle-hud__details b { color: #fff; font-size: 11px; }
+.vehicle-hud--expanded .vehicle-hud__details b {
+  color: #fff;
+  font-size: 11px;
+}
 #trackingView .vehicle-hud button:focus-visible,
 .map-toolbar button:focus-visible {
   outline: 3px solid #ff8a4f;
