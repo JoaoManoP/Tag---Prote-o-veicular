@@ -75,6 +75,12 @@ jobs:
           test "$(node --version | cut -d. -f1)" = v24
           cd "$APP_PATH"
           test "$APP_PATH" = /www/wwwroot/protec-veicular
+          test -f .env
+          if grep -q '^GEOCODING_PROVIDER=' .env; then
+            sed -i 's/^GEOCODING_PROVIDER=.*/GEOCODING_PROVIDER=mapbox/' .env
+          else
+            printf '\nGEOCODING_PROVIDER=mapbox\n' >> .env
+          fi
           case "$ARCHIVE_PATH" in
             /tmp/rastreon-release-*.tar.gz) ;;
             *) exit 1 ;;
