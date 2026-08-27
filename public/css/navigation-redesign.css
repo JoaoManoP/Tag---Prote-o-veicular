@@ -655,8 +655,9 @@ body.trip-planning #trackingView {
   z-index: var(--z-sheet) !important;
   top: calc(50% + 32px) !important;
   bottom: auto !important;
-  left: 50% !important;
-  width: min(1040px, calc(100vw - 240px)) !important;
+  left: max(120px, calc((100vw - 1040px) / 2)) !important;
+  right: max(120px, calc((100vw - 1040px) / 2)) !important;
+  width: auto !important;
   height: min(540px, calc(100dvh - 190px)) !important;
   min-height: 0 !important;
   max-height: min(540px, calc(100dvh - 190px)) !important;
@@ -667,10 +668,21 @@ body.trip-planning #trackingView {
   background: var(--nav-surface) !important;
   color: var(--nav-text) !important;
   box-shadow: 0 30px 80px rgba(2, 10, 18, 0.46) !important;
-  transform: translate(-50%, -50%) !important;
-  animation: sheet-in var(--motion-sheet) var(--ease-out) both;
+  transform: translateY(-50%) !important;
+  animation: centered-panel-in var(--motion-sheet) var(--ease-out) both;
   scrollbar-width: thin;
   scrollbar-color: rgba(117, 151, 179, 0.55) rgba(255, 255, 255, 0.045);
+}
+
+@keyframes centered-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 28px)) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
 }
 
 .view.active:not(#trackingView)::-webkit-scrollbar,

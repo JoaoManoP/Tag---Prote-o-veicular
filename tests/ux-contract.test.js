@@ -155,6 +155,15 @@ test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
   assert.match(compactCss, /@media\(max-width:390px\)/);
 });
 
+test('painéis secundários permanecem centralizados sem translação horizontal', () => {
+  assert.match(
+    compactNavigationCss,
+    /\.view\.active:not\(#trackingView\)\{[^}]*left:max\(120px,calc\(\(100vw-1040px\)\/2\)\)!important;right:max\(120px,calc\(\(100vw-1040px\)\/2\)\)!important;width:auto!important/s
+  );
+  assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
+  assert.match(html, /navigation-redesign\.css\?v=20260826-12/);
+});
+
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
   assert.match(html, /\/map-config\.js/);
   assert.match(html, /\/js\/map-service\.js/);
