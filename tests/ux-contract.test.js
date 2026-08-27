@@ -153,6 +153,11 @@ test('navegação usa ícones, separa Perfil e mantém cinco ações no celular'
   assert.match(html, /ui-icons\.svg\?v=20260827-3#vehicle/);
   assert.match(html, /ui-icons\.svg\?v=20260827-3#profile/);
   assert.match(html, /class="nav-pill nav-profile" data-view="profile"/);
+  assert.match(html, /data-view="community"/);
+  assert.doesNotMatch(
+    navigationCss,
+    /\.nav-pill\[data-view='community'\][^{]*\{[^}]*display:\s*none\s*!important/
+  );
   assert.match(compactCss, /grid-template-columns:minmax\(0,1fr\)68px/);
   assert.match(
     compactCss,
@@ -177,7 +182,7 @@ test('painéis secundários permanecem centralizados na área útil da janela', 
   );
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
   assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
-  assert.match(html, /navigation-redesign\.css\?v=20260827-profile-flow-2/);
+  assert.match(html, /navigation-redesign\.css\?v=20260827-community-nav-3/);
   assert.match(html, /navigation-redesign\.js\?v=20260827-map-controls-1/);
 });
 

@@ -117,8 +117,7 @@ select {
   transform: scale(0.97);
 }
 
-.nav-pill[data-view='tracking'],
-.nav-pill[data-view='community'] {
+.nav-pill[data-view='tracking'] {
   display: none !important;
 }
 
