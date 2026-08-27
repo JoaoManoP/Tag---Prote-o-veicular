@@ -12,6 +12,8 @@ Data da validação: 27 de agosto de 2026.
 - Estruturas de dados e contratos explícitos para multas, combustíveis, Free Flow, comboio, assinaturas, pagamentos e login social.
 - Feature flags desligadas por padrão para integrações ainda não homologadas; produção recusa flags inseguras e provedor de OTP simulado.
 - Exclusão da conta remove também o arquivo privado da CNH.
+- Comboio administrativo com ID RASTREON, conexão consentida, convites temporários e posição efêmera em sala Socket.IO; usuários comuns recebem `403` e não veem a aba.
+- Provisionamento idempotente de JOAO e GUILHERME como `ADMIN` por variáveis de ambiente, sem credenciais fixas no repositório.
 
 ## Dependências externas pendentes
 
@@ -26,6 +28,8 @@ Estas funções não exibem dados fictícios e permanecem indisponíveis até co
 - Serviço de localização em tempo real para o modo Comboio.
 
 Variáveis e flags estão documentadas em `.env.example` e `.env.production.example`. Segredos nunca devem ser versionados.
+
+As contas internas exigem `STAFF_JOAO_EMAIL`, `STAFF_JOAO_PASSWORD`, `STAFF_GUILHERME_EMAIL` e `STAFF_GUILHERME_PASSWORD`. O deploy executa o provisionamento somente quando as quatro variáveis estiverem preenchidas no `.env` privado da VPS.
 
 ## Validação executada
 

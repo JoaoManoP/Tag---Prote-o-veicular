@@ -740,6 +740,18 @@ const migrations = [
         );
       `);
     }
+  },
+  {
+    version: 18,
+    name: 'admin_public_rastreon_ids',
+    up(database) {
+      database.exec(`
+        UPDATE users
+        SET public_contact_id = 'RT-' || upper(substr(hex(randomblob(8)), 1, 10))
+        WHERE role = 'ADMIN'
+          AND (public_contact_id IS NULL OR public_contact_id NOT GLOB 'RT-[A-Z0-9]*');
+      `);
+    }
   }
 ];
 

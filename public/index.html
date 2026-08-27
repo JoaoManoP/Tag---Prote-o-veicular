@@ -485,6 +485,16 @@
             ><button type="button" role="tab" aria-selected="false" data-platform-tab="chat">
               Conversas
             </button>
+            <button
+              id="convoyTab"
+              class="hidden"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-platform-tab="convoy"
+            >
+              Comboio
+            </button>
           </div>
           <section id="platformDiscover" class="platform-pane">
             <div class="card platform-search-card">
@@ -619,6 +629,9 @@
                 </form>
               </section>
             </div>
+          </section>
+          <section id="platformConvoy" class="platform-pane hidden" aria-labelledby="convoyTab">
+            <div id="convoyRoot" class="convoy-grid" aria-live="polite"></div>
           </section>
           <div id="platformNotice" class="toast" role="status" aria-live="polite"></div>
         </div>
@@ -851,6 +864,7 @@
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
     <script src="/js/platform-features.js?v=20260825-1"></script>
+    <script src="/js/convoy.js?v=20260827-admin-1"></script>
     <script src="/js/dashboard.js?v=20260826-navigation-redesign-4"></script>
     <script src="/js/ux.js?v=20260827-auto-pois-1"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>

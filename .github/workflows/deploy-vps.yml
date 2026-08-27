@@ -102,6 +102,12 @@ jobs:
           npm ci --ignore-scripts
           npm run build
           npm run db:init
+          if grep -Eq '^STAFF_JOAO_EMAIL=.+$' .env && \
+             grep -Eq '^STAFF_JOAO_PASSWORD=.+$' .env && \
+             grep -Eq '^STAFF_GUILHERME_EMAIL=.+$' .env && \
+             grep -Eq '^STAFF_GUILHERME_PASSWORD=.+$' .env; then
+            npm run staff:provision
+          fi
           npm prune --omit=dev --ignore-scripts
           pm2 delete rastreon >/dev/null 2>&1 || true
           pm2 startOrReload deploy/ecosystem.config.cjs --update-env

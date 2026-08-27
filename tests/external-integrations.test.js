@@ -53,7 +53,7 @@ test('feature flags externas permanecem desligadas por padrão', () => {
   const status = integrationStatus({});
   assert.equal(status.payments, false);
   assert.equal(status.trafficFines, false);
-  assert.equal(status.convoy, false);
+  assert.equal(status.convoy, true);
   assert.equal(status.googleLogin, false);
   assert.equal(status.cnhProvider, 'manual-review');
 });
