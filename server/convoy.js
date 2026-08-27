@@ -243,13 +243,8 @@ function installConvoySocket({ io, database }) {
   io.on('connection', socket => {
     socket.on('convoy:join', ({ convoyId } = {}, acknowledge = () => {}) => {
       const userId = Number(socket.request.session?.userId);
-      const account = database
-        .prepare('SELECT role,two_factor_enabled AS twoFactorEnabled FROM users WHERE id=?')
-        .get(userId);
-      const requiresTwoFactor = process.env.ADMIN_2FA_REQUIRED !== 'false';
       if (
         getUserRole(database, userId) !== ROLES.ADMIN ||
-        (requiresTwoFactor && !account?.twoFactorEnabled) ||
         !activeMember(database, convoyId, userId)
       )
         return acknowledge({ ok: false, error: 'Acesso ao comboio não autorizado.' });

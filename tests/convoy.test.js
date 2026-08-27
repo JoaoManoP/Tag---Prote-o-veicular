@@ -7,6 +7,7 @@ const request = require('supertest');
 const { createDatabase } = require('../server/database');
 const { createConvoyRouter } = require('../server/convoy');
 const { provisionStaff } = require('../server/provision-staff');
+const { createTwoFactorGuard } = require('../server/two-factor');
 
 function user(database, { id, name, role, contactId }) {
   database
@@ -47,7 +48,8 @@ function setup() {
     createConvoyRouter({
       database,
       requireCsrf: (_req, _res, next) => next(),
-      writeLimiter: (_req, _res, next) => next()
+      writeLimiter: (_req, _res, next) => next(),
+      twoFactorGuard: createTwoFactorGuard(database)
     })
   );
   return { database, app };

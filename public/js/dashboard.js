@@ -3336,7 +3336,7 @@ window.RastroMap.ready
           ? '2FA ativo nesta conta.'
           : status.twoFactor.required
             ? '2FA obrigatório para seu perfil administrativo.'
-            : '2FA ainda não configurado.';
+            : '2FA opcional — não configurado.';
         $('setupTwoFactor').textContent = status.twoFactor.enabled ? '2FA ativo' : 'Configurar 2FA';
         $('setupTwoFactor').disabled = status.twoFactor.enabled;
       } catch (error) {
