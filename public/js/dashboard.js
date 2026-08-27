@@ -3351,9 +3351,11 @@ window.RastroMap.ready
           // O mapa permanece ativo enquanto as demais áreas aparecem como painel flutuante.
           document.body.classList.toggle('floating-nav-open', !isTracking);
           document.querySelector('#trackingView')?.classList.add('active');
-          document.querySelectorAll('.view:not(#trackingView)').forEach(v =>
-            v.classList.toggle('active', v.id === `${b.dataset.view}View` && !isTracking)
-          );
+          document
+            .querySelectorAll('.view:not(#trackingView)')
+            .forEach(v =>
+              v.classList.toggle('active', v.id === `${b.dataset.view}View` && !isTracking)
+            );
           if (isTracking) setTimeout(() => map.invalidateSize(), 50);
           if (b.dataset.view === 'profile') {
             ensureFinesCard();

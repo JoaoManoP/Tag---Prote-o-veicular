@@ -90,7 +90,10 @@ select {
   font-size: 15px !important;
   font-weight: 650 !important;
   box-shadow: none !important;
-  transition: color var(--motion-fast), background var(--motion-fast), transform var(--motion-fast) !important;
+  transition:
+    color var(--motion-fast),
+    background var(--motion-fast),
+    transform var(--motion-fast) !important;
 }
 
 .nav-pill:hover,
@@ -183,7 +186,9 @@ select {
   background: rgba(255, 255, 255, 0.96);
   color: #152d43;
   box-shadow: 0 15px 34px rgba(7, 24, 39, 0.2);
-  transition: width var(--motion-sheet) var(--ease-out), box-shadow var(--motion-normal);
+  transition:
+    width var(--motion-sheet) var(--ease-out),
+    box-shadow var(--motion-normal);
 }
 
 .map-search-control.expanded {
@@ -234,7 +239,9 @@ select {
   background: rgba(255, 255, 255, 0.95);
   color: #16314a;
   box-shadow: 0 12px 30px rgba(5, 22, 36, 0.22);
-  transition: transform var(--motion-fast), background var(--motion-fast);
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast);
 }
 
 .map-control-rail button.location {
@@ -267,7 +274,10 @@ select {
   color: #eef6fc !important;
   box-shadow: 0 10px 24px rgba(4, 15, 25, 0.22) !important;
   backdrop-filter: blur(10px);
-  transition: transform var(--motion-fast), background var(--motion-fast), border-color var(--motion-fast) !important;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast),
+    border-color var(--motion-fast) !important;
 }
 
 #mapControls.map-controls button:hover,
@@ -290,8 +300,12 @@ select {
 }
 
 @keyframes locate-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(20, 120, 232, 0.45); }
-  100% { box-shadow: 0 0 0 18px rgba(20, 120, 232, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(20, 120, 232, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(20, 120, 232, 0);
+  }
 }
 
 .navigation-sheet-head {
@@ -330,7 +344,9 @@ select {
   pointer-events: none;
   backdrop-filter: blur(0);
   -webkit-backdrop-filter: blur(0);
-  transition: opacity var(--motion-sheet), backdrop-filter var(--motion-sheet);
+  transition:
+    opacity var(--motion-sheet),
+    backdrop-filter var(--motion-sheet);
 }
 
 .map-panel-open .map-panel-backdrop {
@@ -369,8 +385,14 @@ body.trip-planning #trackingView {
 }
 
 @keyframes sheet-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 28px)) scale(0.985); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 28px)) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .trip-planning #trackingView .wizard {
@@ -902,7 +924,9 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   min-width: 176px !important;
   height: auto !important;
   cursor: pointer;
-  transition: transform var(--motion-normal), min-width var(--motion-sheet) !important;
+  transition:
+    transform var(--motion-normal),
+    min-width var(--motion-sheet) !important;
 }
 
 .weather-card.expanded {
@@ -945,7 +969,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   box-shadow: 0 12px 28px rgba(5, 21, 34, 0.18) !important;
   transform: none !important;
   transition: width var(--motion-sheet) var(--ease-out) !important;
-  font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif !important;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif !important;
 }
 
 .quick-route-search.expanded,
@@ -995,7 +1019,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   top: calc(100% + 8px) !important;
   bottom: auto !important;
   width: min(390px, calc(100vw - 24px));
-  font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif !important;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif !important;
 }
 
 .quick-route-results button {
@@ -1263,8 +1287,14 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   }
 
   @keyframes sheet-in-mobile {
-    from { opacity: 0; transform: translateY(44px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(44px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .trip-planning #trackingView .wizard {
@@ -1350,7 +1380,9 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
 
   .quick-route-search.expanded,
   .quick-route-search:focus-within {
-    width: calc(100vw - max(20px, env(safe-area-inset-left) + env(safe-area-inset-right))) !important;
+    width: calc(
+      100vw - max(20px, env(safe-area-inset-left) + env(safe-area-inset-right))
+    ) !important;
   }
 
   .weather-card span:not(.weather-icon),

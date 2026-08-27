@@ -65,18 +65,18 @@
     if (panelView) panelView.scrollTop = 0;
     if (panel === 'navigation') {
       body.classList.remove('floating-nav-open');
-      document.querySelectorAll('.view:not(#trackingView)').forEach(view =>
-        view.classList.remove('active')
-      );
+      document
+        .querySelectorAll('.view:not(#trackingView)')
+        .forEach(view => view.classList.remove('active'));
     }
     if (!panel) {
       body.classList.remove('floating-nav-open');
-      document.querySelectorAll('.view:not(#trackingView)').forEach(view =>
-        view.classList.remove('active')
-      );
-      document.querySelectorAll('.nav-pill').forEach(item =>
-        item.classList.toggle('active', item.dataset.view === 'tracking')
-      );
+      document
+        .querySelectorAll('.view:not(#trackingView)')
+        .forEach(view => view.classList.remove('active'));
+      document
+        .querySelectorAll('.nav-pill')
+        .forEach(item => item.classList.toggle('active', item.dataset.view === 'tracking'));
     }
     setTimeout(() => window.rastreonMap?.map.invalidateSize(), 320);
   }
@@ -95,7 +95,8 @@
   backdrop.onclick = () => setPanel(null);
   document.addEventListener('click', event => {
     const nav = event.target.closest('.nav-pill[data-view]');
-    if (nav) setTimeout(() => setPanel(nav.dataset.view === 'tracking' ? null : nav.dataset.view), 0);
+    if (nav)
+      setTimeout(() => setPanel(nav.dataset.view === 'tracking' ? null : nav.dataset.view), 0);
     if (event.target.closest('.panel-close, .sheet-close')) setPanel(null);
     const open = event.target.closest('[data-open-view]');
     if (open) openView(open.dataset.openView);
@@ -135,7 +136,10 @@
         }
         if (action === 'places') {
           byId('exploreBtn')?.click();
-          button.classList.toggle('active', byId('exploreBtn')?.getAttribute('aria-expanded') === 'true');
+          button.classList.toggle(
+            'active',
+            byId('exploreBtn')?.getAttribute('aria-expanded') === 'true'
+          );
         }
       });
     }
@@ -202,11 +206,12 @@
     clearTimeout(themeTimer);
     const now = new Date();
     const next = new Date(now);
-    const nextHour = now.getHours() < MAP_THEME_CONFIG.dayStart
-      ? MAP_THEME_CONFIG.dayStart
-      : now.getHours() < MAP_THEME_CONFIG.nightStart
-        ? MAP_THEME_CONFIG.nightStart
-        : MAP_THEME_CONFIG.dayStart;
+    const nextHour =
+      now.getHours() < MAP_THEME_CONFIG.dayStart
+        ? MAP_THEME_CONFIG.dayStart
+        : now.getHours() < MAP_THEME_CONFIG.nightStart
+          ? MAP_THEME_CONFIG.nightStart
+          : MAP_THEME_CONFIG.dayStart;
     if (now.getHours() >= MAP_THEME_CONFIG.nightStart) next.setDate(next.getDate() + 1);
     next.setHours(nextHour, 0, 0, 0);
     themeTimer = setTimeout(applyMapTheme, Math.max(1000, next - now));
@@ -215,9 +220,9 @@
     const theme = desiredTheme();
     body.dataset.mapTheme = theme;
     body.style.colorScheme = theme === 'night' ? 'dark' : 'light';
-    document.querySelectorAll('[name="mapTheme"]').forEach(input =>
-      input.checked = input.value === selectedTheme()
-    );
+    document
+      .querySelectorAll('[name="mapTheme"]')
+      .forEach(input => (input.checked = input.value === selectedTheme()));
     if (byId('mapThemeSchedule'))
       byId('mapThemeSchedule').textContent =
         selectedTheme() === 'auto'
@@ -244,5 +249,4 @@
   document.addEventListener('visibilitychange', () => !document.hidden && applyMapTheme());
   window.addEventListener('rastreon:map-ready', applyMapTheme, { once: true });
   if (window.rastreonMap?.map) applyMapTheme();
-
 })();

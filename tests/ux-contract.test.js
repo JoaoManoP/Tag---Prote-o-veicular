@@ -111,14 +111,20 @@ test('planejador mantém o mapa visível e a busca rápida não ocupa o mapa', (
   assert.match(dashboard, /Iniciar navegação neste dispositivo/);
   assert.match(dashboard, /O site continua funcionando sem conexão com o telefone/);
   assert.match(navigationRedesign, /rastreon:navigation-started/);
-  assert.match(compactNavigationCss, /body\.trip-planning\.map-panel-backdrop\{opacity:0!important;pointer-events:none!important/);
+  assert.match(
+    compactNavigationCss,
+    /body\.trip-planning\.map-panel-backdrop\{opacity:0!important;pointer-events:none!important/
+  );
   assert.match(compactNavigationCss, /@keyframesroute-drawer-in/);
   assert.doesNotMatch(
     compactRefreshCss,
     /wizard>:not\(\.quick-trip-panel\):not\(#routeSummary\)\{display:none/
   );
   assert.match(compactNavigationCss, /wizard>\.field\{display:block!important/);
-  assert.match(compactNavigationCss, /wizard>#routeSummary:not\(\.hidden\)\{display:grid!important/);
+  assert.match(
+    compactNavigationCss,
+    /wizard>#routeSummary:not\(\.hidden\)\{display:grid!important/
+  );
 });
 
 test('autocomplete preserva locais salvos e recentes sem criar busca sobre o mapa', () => {
