@@ -16,4 +16,14 @@ function normalizePublicContactId(value) {
   return CONTACT_ID_PATTERN.test(contactId) ? contactId : null;
 }
 
-module.exports = { CONTACT_ID_PATTERN, createPublicContactId, normalizePublicContactId };
+function createPublicContactPayload(contactId) {
+  const normalized = normalizePublicContactId(contactId);
+  return normalized ? `RASTREON:CONTACT:${normalized}` : null;
+}
+
+module.exports = {
+  CONTACT_ID_PATTERN,
+  createPublicContactId,
+  normalizePublicContactId,
+  createPublicContactPayload
+};

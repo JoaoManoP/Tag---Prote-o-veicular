@@ -255,6 +255,60 @@
   overflow-wrap: anywhere;
 }
 
+.convoy-contact-qr {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+  margin: 14px auto;
+  border: 10px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px #1024381f;
+}
+
+.convoy-scanner {
+  width: min(440px, calc(100vw - 28px));
+  padding: 18px;
+  border: 1px solid #bfd0de;
+  border-radius: 20px;
+  background: #fff;
+  color: #102438;
+}
+.convoy-scanner::backdrop {
+  background: #04101ccc;
+  backdrop-filter: blur(3px);
+}
+.convoy-scanner header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.convoy-scanner-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: #071726;
+}
+.convoy-scanner-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.convoy-scanner-frame span {
+  position: absolute;
+  inset: 14%;
+  border: 3px solid #24d792;
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px #04101c66;
+  pointer-events: none;
+}
+.convoy-scanner > p {
+  margin: 14px 0 0;
+  text-align: center;
+}
+
 .convoy-inline label {
   flex: 1 1 190px;
 }
@@ -286,5 +340,8 @@
 @media (max-width: 780px) {
   .convoy-grid {
     grid-template-columns: 1fr;
+  }
+  .convoy-inline > button {
+    flex: 1 1 140px;
   }
 }

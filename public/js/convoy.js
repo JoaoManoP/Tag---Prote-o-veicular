@@ -5,7 +5,11 @@
   if (!root || !tab) return;
   let state = null,
     csrf = null,
-    watchId = null;
+    watchId = null,
+    scannerControls = null,
+    scannerStream = null,
+    scannerTimer = null,
+    scannerTarget = 'connection';
   const markers = new Map();
   const escape = value =>
     String(value ?? '').replace(
@@ -70,14 +74,127 @@
             '<p>Crie uma sessão temporária para compartilhar a posição ao vivo com administradores convidados.</p><button data-create class="wide">Iniciar comboio</button>'
           )
     ].join('');
+    const identityCard = root.querySelector('.convoy-card');
+    if (identityCard && state.contactCard?.qrCode) {
+      const qr = document.createElement('img');
+      qr.className = 'convoy-contact-qr';
+      qr.src = state.contactCard.qrCode;
+      qr.alt = 'QR Code do meu ID RASTREON';
+      identityCard.querySelector('.convoy-id')?.before(qr);
+    }
+    root.querySelectorAll('[data-connect], [data-invite-form]').forEach(form => {
+      const scan = document.createElement('button');
+      scan.type = 'button';
+      scan.className = 'secondary';
+      scan.dataset.scanId = form.matches('[data-invite-form]') ? 'invite' : 'connection';
+      scan.textContent = 'Ler QR Code';
+      form.querySelector('button')?.before(scan);
+    });
+    root.insertAdjacentHTML(
+      'beforeend',
+      '<dialog class="convoy-scanner" data-convoy-scanner><header><strong>Ler ID RASTREON</strong><button type="button" class="secondary" data-close-scanner>Fechar</button></header><div class="convoy-scanner-frame"><video data-scanner-video playsinline muted></video><span></span></div><p>Aponte a câmera para o QR Code da outra pessoa.</p></dialog>'
+    );
+    root.querySelector('[data-convoy-scanner]')?.addEventListener('close', stopScanner);
   }
   async function load() {
-    state = await api('/api/convoy');
-    const me = await fetch('/api/auth/me').then(response => response.json());
+    const [convoy, contactCard, me] = await Promise.all([
+      api('/api/convoy'),
+      api('/api/profile/contact-card'),
+      fetch('/api/auth/me').then(response => response.json())
+    ]);
+    state = convoy;
+    state.contactCard = contactCard;
     state.profile.userId = me.user.id;
     render();
     if (state.convoy) startSharing(state.convoy.id);
     else stopSharing();
+  }
+  function contactIdFromQr(value) {
+    const match = String(value || '')
+      .trim()
+      .toUpperCase()
+      .match(/^(?:RASTREON:CONTACT:)?(RT-[A-F0-9]{32})$/);
+    return match?.[1] || null;
+  }
+  function stopScanner() {
+    clearTimeout(scannerTimer);
+    scannerTimer = null;
+    scannerControls?.stop?.();
+    scannerControls = null;
+    scannerStream?.getTracks().forEach(track => track.stop());
+    scannerStream = null;
+    const video = root.querySelector('[data-scanner-video]');
+    if (video) video.srcObject = null;
+  }
+  function useScannedId(rawValue) {
+    const contactId = contactIdFromQr(rawValue);
+    if (!contactId) return false;
+    const form = root.querySelector(
+      scannerTarget === 'invite' ? '[data-invite-form]' : '[data-connect]'
+    );
+    const input = form?.querySelector('[name="contactId"]');
+    if (!input) return false;
+    input.value = contactId;
+    stopScanner();
+    root.querySelector('[data-convoy-scanner]')?.close();
+    input.focus();
+    notify('ID lido. Confirme para enviar a solicitação.');
+    return true;
+  }
+  async function nativeScanner(video) {
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+    video.srcObject = scannerStream;
+    await video.play();
+    const tick = async () => {
+      if (!scannerStream) return;
+      try {
+        const results = await detector.detect(video);
+        if (results[0]?.rawValue && useScannedId(results[0].rawValue)) return;
+      } catch {}
+      scannerTimer = setTimeout(tick, 180);
+    };
+    tick();
+  }
+  async function libraryScanner(video) {
+    const reader = new ZXingBrowser.BrowserQRCodeReader();
+    scannerControls = await reader.decodeFromConstraints(
+      { video: { facingMode: { ideal: 'environment' } } },
+      video,
+      result => result && useScannedId(result.getText())
+    );
+    scannerStream = video.srcObject;
+  }
+  async function startScanner(target) {
+    if (!window.isSecureContext && location.hostname !== 'localhost')
+      return notify('A câmera exige uma conexão HTTPS.');
+    if (!navigator.mediaDevices?.getUserMedia)
+      return notify('Câmera indisponível. Digite ou cole o ID RASTREON.');
+    scannerTarget = target;
+    const dialog = root.querySelector('[data-convoy-scanner]');
+    const video = root.querySelector('[data-scanner-video]');
+    dialog.showModal();
+    try {
+      if (
+        'BarcodeDetector' in window &&
+        (await BarcodeDetector.getSupportedFormats()
+          .then(formats => formats.includes('qr_code'))
+          .catch(() => false))
+      )
+        await nativeScanner(video);
+      else await libraryScanner(video);
+    } catch (error) {
+      stopScanner();
+      dialog.close();
+      notify(
+        error.name === 'NotAllowedError'
+          ? 'Permissão da câmera negada.'
+          : 'Não foi possível abrir a câmera.'
+      );
+    }
   }
   function stopSharing() {
     if (watchId !== null) navigator.geolocation?.clearWatch(watchId);
@@ -135,6 +252,15 @@
   root.addEventListener('click', async event => {
     const button = event.target.closest('button');
     if (!button) return;
+    if (button.matches('[data-close-scanner]')) {
+      stopScanner();
+      root.querySelector('[data-convoy-scanner]')?.close();
+      return;
+    }
+    if (button.dataset.scanId) {
+      await startScanner(button.dataset.scanId);
+      return;
+    }
     try {
       if (button.matches('[data-copy-id]'))
         await navigator.clipboard.writeText(state.profile.contactId);

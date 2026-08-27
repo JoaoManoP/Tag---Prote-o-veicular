@@ -50,7 +50,7 @@
         ><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button>
       </div>
     </header>
-    <link rel="stylesheet" href="/css/platform-features.css?v=20260825-1" />
+    <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-profile-flow-2" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
     <main class="app-shell">
@@ -652,6 +652,11 @@
               <p id="profileEmail">—</p>
               <div class="profile-contact-id">
                 <span>Meu ID RASTREON</span>
+                <img
+                  id="profileContactQr"
+                  class="profile-contact-qr"
+                  alt="QR Code do meu ID RASTREON"
+                />
                 <code id="profileContactId">—</code>
                 <button id="copyProfileContactId" type="button" class="secondary">Copiar ID</button>
                 <small>Identificador privado e exclusivo para receber solicitações.</small>
@@ -870,7 +875,8 @@
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
     <script src="/js/platform-features.js?v=20260825-1"></script>
-    <script src="/js/convoy.js?v=20260827-admin-1"></script>
+    <script src="/vendor/zxing/zxing-browser.min.js"></script>
+    <script src="/js/convoy.js?v=20260827-contact-qr-1"></script>
     <script src="/js/dashboard.js?v=20260826-navigation-redesign-4"></script>
     <script src="/js/ux.js?v=20260827-auto-pois-1"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>

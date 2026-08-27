@@ -32,6 +32,7 @@ const navigationState = fs.readFileSync(
 const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
 const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
 const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
+const convoyClient = fs.readFileSync(path.join(root, 'public', 'js', 'convoy.js'), 'utf8');
 // Contratos de conteúdo não devem depender da indentação escolhida pelo formatador.
 const compact = source => source.replace(/\s+/g, '').replace(/;}/g, '}');
 const compactCss = compact(css);
@@ -313,6 +314,16 @@ test('perfil oferece troca de senha, exportação e exclusão protegida', () => 
   assert.match(html, /id="deleteAccountBtn"/);
   assert.match(dashboard, /\/api\/auth\/csrf/);
   assert.match(dashboard, /X-CSRF-Token/);
+});
+
+test('perfil e comboio oferecem ID por QR Code e leitura pela câmera', () => {
+  assert.match(html, /profileContactQr/);
+  assert.match(html, /zxing-browser\.min\.js/);
+  assert.match(convoyClient, /RASTREON:CONTACT:/);
+  assert.match(convoyClient, /BarcodeDetector/);
+  assert.match(convoyClient, /ZXingBrowser\.BrowserQRCodeReader/);
+  assert.match(convoyClient, /getUserMedia/);
+  assert.match(convoyClient, /dataset\.scanId/);
 });
 
 test('preço de combustível é separado do cadastro do veículo e mostra fonte', () => {

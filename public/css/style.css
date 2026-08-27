@@ -3994,6 +3994,15 @@ dialog::backdrop {
   font-weight: 800;
   letter-spacing: 0.09em;
 }
+.profile-contact-qr {
+  display: block;
+  width: min(190px, 100%);
+  height: auto;
+  margin: 2px auto 4px;
+  border: 8px solid #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px #10243818;
+}
 .profile-contact-id code {
   max-width: 100%;
   overflow-wrap: anywhere;

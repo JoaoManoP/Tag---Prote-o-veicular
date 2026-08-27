@@ -2151,6 +2151,12 @@ window.RastroMap.ready
       $('profileName').textContent = data.user.name;
       $('profileEmail').textContent = data.user.email;
       if ($('profileContactId')) $('profileContactId').textContent = data.user.contactId || '—';
+      fetch('/api/profile/contact-card')
+        .then(response => response.json())
+        .then(contact => {
+          if (contact.qrCode && $('profileContactQr')) $('profileContactQr').src = contact.qrCode;
+        })
+        .catch(() => {});
       if ($('copyProfileContactId'))
         $('copyProfileContactId').onclick = async () => {
           if (!data.user.contactId) return;

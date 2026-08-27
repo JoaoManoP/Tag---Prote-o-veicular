@@ -60,7 +60,7 @@ const { createAccountSecurityRouter } = require('./account-security');
 const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
 const { integrationStatus } = require('./external-integrations');
 const { createConvoyRouter, installConvoySocket } = require('./convoy');
-const { createPublicContactId } = require('./contact-id');
+const { createPublicContactId, createPublicContactPayload } = require('./contact-id');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -1356,6 +1356,23 @@ function createApplication(options = {}) {
       recentTrips,
       recentAlertCount
     });
+  });
+  app.get('/api/profile/contact-card', requireAuth, async (req, res, next) => {
+    try {
+      const user = database
+        .prepare('SELECT public_contact_id AS contactId FROM users WHERE id=?')
+        .get(req.session.userId);
+      if (!user?.contactId) return res.status(404).json({ error: 'ID RASTREON não encontrado.' });
+      const qrCode = await QRCode.toDataURL(createPublicContactPayload(user.contactId), {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 320,
+        color: { dark: '#091a2a', light: '#ffffff' }
+      });
+      res.set('Cache-Control', 'private, no-store').json({ contactId: user.contactId, qrCode });
+    } catch (error) {
+      next(error);
+    }
   });
   app.get('/api/weather/current', requireAuth, async (req, res) => {
     const latitude = Number(req.query.lat),
