@@ -4,15 +4,12 @@ const crypto = require('crypto');
 const express = require('express');
 const rateLimit = require('express-rate-limit').rateLimit;
 const { ROLES, getUserRole, requireRole } = require('./authorization');
+const { normalizePublicContactId } = require('./contact-id');
 
 const id = () => crypto.randomBytes(16).toString('hex');
 const now = () => Date.now();
-const CONTACT_PATTERN = /^RT-[A-Z0-9]{6,16}$/;
-
 function publicContactId(value) {
-  return String(value || '')
-    .trim()
-    .toUpperCase();
+  return normalizePublicContactId(value);
 }
 
 function activeMember(database, convoyId, userId) {
@@ -82,7 +79,7 @@ function createConvoyRouter({
 
   router.post('/connections', (req, res) => {
     const contactId = publicContactId(req.body?.contactId);
-    if (!CONTACT_PATTERN.test(contactId))
+    if (!contactId)
       return res.status(400).json({ error: 'ID RASTREON inválido.' });
     const recipient = database
       .prepare("SELECT id,name FROM users WHERE public_contact_id=? AND role='ADMIN'")

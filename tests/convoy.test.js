@@ -18,9 +18,24 @@ function user(database, { id, name, role, contactId }) {
 
 function setup() {
   const database = createDatabase(':memory:');
-  user(database, { id: 1, name: 'JOAO', role: 'ADMIN', contactId: 'RT-JOAO01' });
-  user(database, { id: 2, name: 'GUILHERME', role: 'ADMIN', contactId: 'RT-GUILH1' });
-  user(database, { id: 3, name: 'CLIENTE', role: 'USER', contactId: 'RT-USER01' });
+  user(database, {
+    id: 1,
+    name: 'JOAO',
+    role: 'ADMIN',
+    contactId: 'RT-11111111111111111111111111111111'
+  });
+  user(database, {
+    id: 2,
+    name: 'GUILHERME',
+    role: 'ADMIN',
+    contactId: 'RT-22222222222222222222222222222222'
+  });
+  user(database, {
+    id: 3,
+    name: 'CLIENTE',
+    role: 'USER',
+    contactId: 'RT-33333333333333333333333333333333'
+  });
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -47,7 +62,7 @@ test('comboio é invisível para USER e expõe somente IDs públicos para ADMIN'
   t.after(() => database.close());
   await as(app, 3).expect(403);
   const response = await as(app, 1).expect(200);
-  assert.equal(response.body.profile.contactId, 'RT-JOAO01');
+  assert.equal(response.body.profile.contactId, 'RT-11111111111111111111111111111111');
   assert.equal(JSON.stringify(response.body).includes('@example.com'), false);
 });
 
@@ -55,11 +70,11 @@ test('conexão exige aceite antes do convite e comboio encerra o compartilhament
   const { database, app } = setup();
   t.after(() => database.close());
   const connection = await mutate(app, 1, 'post', '/api/convoy/connections', {
-    contactId: 'RT-GUILH1'
+    contactId: 'RT-22222222222222222222222222222222'
   }).expect(201);
   const convoy = await mutate(app, 1, 'post', '/api/convoy/sessions').expect(201);
   await mutate(app, 1, 'post', `/api/convoy/sessions/${convoy.body.convoy.id}/invites`, {
-    contactId: 'RT-GUILH1'
+    contactId: 'RT-22222222222222222222222222222222'
   }).expect(403);
   await mutate(app, 2, 'patch', `/api/convoy/connections/${connection.body.connection.id}`, {
     status: 'ACCEPTED'
@@ -69,7 +84,7 @@ test('conexão exige aceite antes do convite e comboio encerra o compartilhament
     1,
     'post',
     `/api/convoy/sessions/${convoy.body.convoy.id}/invites`,
-    { contactId: 'RT-GUILH1' }
+    { contactId: 'RT-22222222222222222222222222222222' }
   ).expect(201);
   await mutate(app, 2, 'patch', `/api/convoy/invites/${invite.body.invite.id}`, {
     status: 'ACCEPTED'
@@ -107,7 +122,7 @@ test('provisionamento cria JOAO e GUILHERME como ADMIN sem senha pura', async ()
       rows.map(row => row.name),
       ['GUILHERME', 'JOAO']
     );
-    assert.ok(rows.every(row => row.role === 'ADMIN' && /^RT-[A-Z0-9]{6,16}$/.test(row.contactId)));
+    assert.ok(rows.every(row => row.role === 'ADMIN' && /^RT-[A-F0-9]{32}$/.test(row.contactId)));
     assert.ok(rows.every(row => !row.passwordHash.includes('Senha')));
   } finally {
     database.close();

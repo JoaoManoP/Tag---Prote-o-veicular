@@ -752,6 +752,20 @@ const migrations = [
           AND (public_contact_id IS NULL OR public_contact_id NOT GLOB 'RT-[A-Z0-9]*');
       `);
     }
+  },
+  {
+    version: 19,
+    name: 'secure_public_contact_ids_for_every_user',
+    up(database) {
+      database.exec(`
+        UPDATE users
+        SET public_contact_id = 'RT-' || upper(hex(randomblob(16)))
+        WHERE public_contact_id IS NULL
+           OR length(public_contact_id) != 35
+           OR substr(public_contact_id, 1, 3) != 'RT-'
+           OR substr(public_contact_id, 4) GLOB '*[^0-9A-F]*';
+      `);
+    }
   }
 ];
 

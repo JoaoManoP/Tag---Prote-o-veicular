@@ -869,6 +869,13 @@ body[data-map-theme='day'] .view.active:not(#trackingView) button:not(.danger) {
   grid-column: 1 / -1;
 }
 
+/* O resumo da conta faz parte do fluxo: nunca acompanha a rolagem do painel. */
+#profileView .profile-card {
+  position: static !important;
+  inset: auto !important;
+  align-self: start;
+}
+
 .profile-menu-card nav {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1349,6 +1356,28 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
 
   .profile-menu-card nav {
     grid-template-columns: 1fr 1fr;
+  }
+
+  #profileView .profile-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px;
+  }
+
+  #profileView .profile-layout > .card,
+  #profileView .profile-card,
+  #profileView .profile-menu-card {
+    width: 100%;
+    min-width: 0;
+    min-height: 0 !important;
+    box-sizing: border-box;
+  }
+
+  #profileView .profile-trip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #profileView .profile-contact-id code {
+    font-size: 11px;
   }
 
   #vehiclesView .vehicle-card {

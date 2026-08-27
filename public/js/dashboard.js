@@ -2150,6 +2150,13 @@ window.RastroMap.ready
       if (!res.ok) return;
       $('profileName').textContent = data.user.name;
       $('profileEmail').textContent = data.user.email;
+      if ($('profileContactId')) $('profileContactId').textContent = data.user.contactId || '—';
+      if ($('copyProfileContactId'))
+        $('copyProfileContactId').onclick = async () => {
+          if (!data.user.contactId) return;
+          await navigator.clipboard.writeText(data.user.contactId);
+          toast('ID RASTREON copiado.');
+        };
       renderProfileAvatar(data.user.avatarData, data.user.name);
       $('profileCreated').textContent = new Date(data.user.createdAt).toLocaleDateString('pt-BR');
       $('profilePlan').textContent = data.plan;

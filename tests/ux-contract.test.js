@@ -176,7 +176,7 @@ test('painéis secundários permanecem centralizados na área útil da janela', 
   );
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
   assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
-  assert.match(html, /navigation-redesign\.css\?v=20260827-hud-layout-1/);
+  assert.match(html, /navigation-redesign\.css\?v=20260827-profile-flow-2/);
   assert.match(html, /navigation-redesign\.js\?v=20260827-map-controls-1/);
 });
 

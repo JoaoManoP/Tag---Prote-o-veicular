@@ -54,7 +54,7 @@
       ),
       card(
         'Conexões administrativas',
-        `<form data-connect class="convoy-inline"><label>ID RASTREON<input name="contactId" required placeholder="RT-XXXXXX" maxlength="19"></label><button>Solicitar conexão</button></form><div class="convoy-list">${accepted.map(item => `<article><strong>${escape(item.name)}</strong><small>${escape(item.contactId)}</small></article>`).join('') || '<p class="muted-copy">Nenhuma conexão aceita.</p>'}</div>`
+        `<form data-connect class="convoy-inline"><label>ID RASTREON<input name="contactId" required placeholder="RT-..." minlength="35" maxlength="35" autocomplete="off" spellcheck="false"></label><button>Solicitar conexão</button></form><div class="convoy-list">${accepted.map(item => `<article><strong>${escape(item.name)}</strong><small>${escape(item.contactId)}</small></article>`).join('') || '<p class="muted-copy">Nenhuma conexão aceita.</p>'}</div>`
       ),
       card(
         'Solicitações e convites',
@@ -63,7 +63,7 @@
       state.convoy
         ? card(
             'Comboio ativo',
-            `<p>Localização compartilhada somente enquanto esta sessão estiver ativa.</p><div class="convoy-members">${state.convoy.members.map(member => `<span>${escape(member.name)}</span>`).join('')}</div>${state.convoy.ownerId === state.profile.userId ? `<form data-invite-form class="convoy-inline"><label>ID da conexão<input name="contactId" required placeholder="RT-XXXXXX"></label><button>Convidar</button></form><button data-end class="danger wide">Encerrar comboio</button>` : '<button data-leave class="danger wide">Sair do comboio</button>'}`
+            `<p>Localização compartilhada somente enquanto esta sessão estiver ativa.</p><div class="convoy-members">${state.convoy.members.map(member => `<span>${escape(member.name)}</span>`).join('')}</div>${state.convoy.ownerId === state.profile.userId ? `<form data-invite-form class="convoy-inline"><label>ID da conexão<input name="contactId" required placeholder="RT-..." minlength="35" maxlength="35" autocomplete="off" spellcheck="false"></label><button>Convidar</button></form><button data-end class="danger wide">Encerrar comboio</button>` : '<button data-leave class="danger wide">Sair do comboio</button>'}`
           )
         : card(
             'Viagem em comboio',

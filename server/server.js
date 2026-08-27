@@ -60,6 +60,7 @@ const { createAccountSecurityRouter } = require('./account-security');
 const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
 const { integrationStatus } = require('./external-integrations');
 const { createConvoyRouter, installConvoySocket } = require('./convoy');
+const { createPublicContactId } = require('./contact-id');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -1181,7 +1182,7 @@ function createApplication(options = {}) {
       const passwordHash = await hashPassword(validation.data.password);
       const result = database
         .prepare(
-          'INSERT INTO users (name, email, phone, password_hash, subscription_plan, subscription_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO users (name, email, phone, password_hash, subscription_plan, subscription_status, public_contact_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           validation.data.name,
@@ -1190,6 +1191,7 @@ function createApplication(options = {}) {
           passwordHash,
           validation.data.plan,
           'demo_active',
+          createPublicContactId(),
           Date.now()
         );
       req.session.regenerate(error => {
@@ -1320,7 +1322,7 @@ function createApplication(options = {}) {
   app.get('/api/profile', requireAuth, (req, res) => {
     const user = database
       .prepare(
-        'SELECT id, name, email, phone, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
+        'SELECT id, name, email, phone, public_contact_id AS contactId, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
       )
       .get(req.session.userId);
     if (!user) return res.status(401).json({ error: 'Sessão inválida.' });

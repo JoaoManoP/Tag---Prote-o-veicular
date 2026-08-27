@@ -1,7 +1,7 @@
 'use strict';
 
 require('dotenv').config();
-const crypto = require('crypto');
+const { createPublicContactId, CONTACT_ID_PATTERN } = require('./contact-id');
 const { createDatabase } = require('./database');
 const { hashPassword, normalizeEmail, validatePassword } = require('./auth');
 
@@ -38,16 +38,21 @@ async function provisionStaff(options = {}) {
   try {
     for (const member of configured) {
       const passwordHash = await hashPassword(member.password);
-      const contactId = `RT-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+      const contactId = createPublicContactId();
       const existing = database
         .prepare('SELECT id,public_contact_id AS contactId FROM users WHERE email=?')
         .get(member.email);
       if (existing)
         database
           .prepare(
-            "UPDATE users SET name=?,password_hash=?,role='ADMIN',public_contact_id=CASE WHEN public_contact_id GLOB 'RT-[A-Z0-9]*' THEN public_contact_id ELSE ? END WHERE id=?"
+            "UPDATE users SET name=?,password_hash=?,role='ADMIN',public_contact_id=? WHERE id=?"
           )
-          .run(member.name, passwordHash, contactId, existing.id);
+          .run(
+            member.name,
+            passwordHash,
+            CONTACT_ID_PATTERN.test(existing.contactId || '') ? existing.contactId : contactId,
+            existing.id
+          );
       else
         database
           .prepare(
