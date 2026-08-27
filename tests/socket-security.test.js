@@ -41,17 +41,55 @@ async function setup(t) {
   return { ...context, url };
 }
 
-function connect(url) {
+function connect(url, cookie) {
   return new Promise((resolve, reject) => {
     const socket = createClient(url, {
       transports: ['websocket'],
       forceNew: true,
-      reconnection: false
+      reconnection: false,
+      extraHeaders: cookie ? { Cookie: cookie } : undefined
     });
     socket.once('connect', () => resolve(socket));
     socket.once('connect_error', reject);
   });
 }
+
+test('Socket.IO do comboio aceita somente ADMIN integrante e limita posição', async t => {
+  const { app, database, url } = await setup(t);
+  const registration = await request(app)
+    .post('/api/auth/register')
+    .send({ name: 'Admin Comboio', email: 'comboio@example.com', password: 'Senha123' })
+    .expect(201);
+  const cookie = registration.headers['set-cookie'].map(value => value.split(';')[0]).join('; ');
+  const admin = database.prepare('SELECT id FROM users WHERE email=?').get('comboio@example.com');
+  database.prepare("UPDATE users SET role='ADMIN',two_factor_enabled=1 WHERE id=?").run(admin.id);
+  database
+    .prepare(
+      "INSERT INTO convoy_sessions (id,owner_user_id,status,created_at) VALUES ('convoy-test',?,'ACTIVE',?)"
+    )
+    .run(admin.id, Date.now());
+  database
+    .prepare(
+      "INSERT INTO convoy_members (convoy_id,user_id,status,joined_at) VALUES ('convoy-test',?,'ACCEPTED',?)"
+    )
+    .run(admin.id, Date.now());
+  const anonymous = await connect(url);
+  const authenticated = await connect(url, cookie);
+  t.after(() => {
+    anonymous.close();
+    authenticated.close();
+  });
+  assert.equal((await emit(anonymous, 'convoy:join', { convoyId: 'convoy-test' })).ok, false);
+  assert.equal((await emit(authenticated, 'convoy:join', { convoyId: 'convoy-test' })).ok, true);
+  assert.equal(
+    (await emit(authenticated, 'convoy:position', { latitude: -19.47, longitude: -42.54 })).ok,
+    true
+  );
+  assert.equal(
+    (await emit(authenticated, 'convoy:position', { latitude: -19.47, longitude: -42.54 })).ok,
+    false
+  );
+});
 
 function emit(socket, event, payload) {
   return new Promise(resolve => socket.emit(event, payload, resolve));

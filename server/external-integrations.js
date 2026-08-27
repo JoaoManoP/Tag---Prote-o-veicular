@@ -65,7 +65,7 @@ function integrationStatus(environment = process.env) {
     cnhProvider: environment.FEATURE_CNH_PROVIDER === 'true' ? 'configured' : 'manual-review',
     fuelAnpSync: environment.FEATURE_FUEL_ANP_SYNC === 'true',
     trafficFines: environment.FEATURE_SENATRAN === 'true',
-    convoy: environment.FEATURE_CONVOY === 'true',
+    convoy: true,
     payments: environment.FEATURE_PAYMENTS === 'true',
     googleLogin: environment.FEATURE_GOOGLE_LOGIN === 'true',
     appleLogin: environment.FEATURE_APPLE_LOGIN === 'true'

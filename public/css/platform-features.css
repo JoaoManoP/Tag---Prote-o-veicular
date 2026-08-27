@@ -229,3 +229,62 @@
     min-width: 104px;
   }
 }
+.convoy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.convoy-card {
+  min-width: 0;
+}
+
+.convoy-id,
+.convoy-inline,
+.convoy-card article,
+.convoy-members {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.convoy-id code {
+  font-size: clamp(18px, 3vw, 28px);
+  overflow-wrap: anywhere;
+}
+
+.convoy-inline label {
+  flex: 1 1 190px;
+}
+
+.convoy-list,
+.convoy-members {
+  margin-top: 14px;
+}
+
+.convoy-list article,
+.convoy-card article {
+  padding: 10px 0;
+  border-top: 1px solid #dce5ec;
+}
+
+.convoy-list small,
+.convoy-list strong {
+  display: block;
+}
+
+.convoy-members span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #e6f2fb;
+  color: #135b91;
+  font-weight: 700;
+}
+
+@media (max-width: 780px) {
+  .convoy-grid {
+    grid-template-columns: 1fr;
+  }
+}

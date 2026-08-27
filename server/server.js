@@ -59,6 +59,7 @@ const { createTwoFactorRouter, createTwoFactorGuard } = require('./two-factor');
 const { createAccountSecurityRouter } = require('./account-security');
 const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
 const { integrationStatus } = require('./external-integrations');
+const { createConvoyRouter, installConvoySocket } = require('./convoy');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -759,11 +760,13 @@ function createApplication(options = {}) {
     io,
     geocodingProvider
   });
+  const convoyRouter = createConvoyRouter({ database, requireCsrf, twoFactorGuard });
   app.use('/api/security/2fa', twoFactorRouter);
   app.use('/api/account-security', accountSecurity.router);
   app.use('/api/documents', driverDocuments.router);
   app.use('/api/community', communityRouter);
   app.use('/api/platform', platformRouter);
+  app.use('/api/convoy', convoyRouter);
   app.use('/api/v1/community', communityRouter);
   app.use('/api/v1/platform', platformRouter);
   app.use(
@@ -869,7 +872,7 @@ function createApplication(options = {}) {
       html = fs
         .readFileSync(path.join(publicDir, 'index.html'), 'utf8')
         .replace(
-          /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
+          /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|convoy\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
           `$1${revision}`
         );
     res.set('Cache-Control', 'no-store').type('html').send(html);
@@ -1241,7 +1244,7 @@ function createApplication(options = {}) {
   app.get('/api/auth/me', requireAuth, (req, res) => {
     const user = database
       .prepare(
-        'SELECT id, name, email, phone, email_verified_at AS emailVerifiedAt, phone_verified_at AS phoneVerifiedAt, created_at AS createdAt FROM users WHERE id = ?'
+        'SELECT id, name, email, phone, role, public_contact_id AS contactId, email_verified_at AS emailVerifiedAt, phone_verified_at AS phoneVerifiedAt, created_at AS createdAt FROM users WHERE id = ?'
       )
       .get(req.session.userId);
     if (!user)
@@ -2991,6 +2994,7 @@ function createApplication(options = {}) {
   });
 
   io.engine.use(sessionMiddleware);
+  installConvoySocket({ io, database });
   io.on('connection', socket => {
     if (socket.request.session?.userId) socket.join(`user:${socket.request.session.userId}`);
     socket.on(
