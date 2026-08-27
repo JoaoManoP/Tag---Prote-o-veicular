@@ -164,6 +164,32 @@ dialog::backdrop {
   line-height: 1.2;
 }
 
+.verification-row {
+  min-width: 0;
+  margin-top: var(--rs-space-3);
+  padding: var(--rs-space-3) 0;
+  border-top: 1px solid var(--rs-color-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-3);
+}
+
+.verification-row span,
+.verification-row b,
+.verification-row small,
+.driver-document-card > small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.verification-row small,
+.driver-document-card > small {
+  margin-top: var(--rs-space-1);
+  color: var(--rs-color-gray-500);
+}
+
 @media (max-width: 640px) {
   dialog {
     width: 100%;

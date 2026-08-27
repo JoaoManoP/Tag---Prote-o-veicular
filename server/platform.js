@@ -1422,7 +1422,15 @@ function createPlatformRouter({
     'COMMUNITY_PLACES_ENABLED',
     'COMMUNITY_PHOTO_AUTO_PUBLISH',
     'TRACCAR_ENABLED',
-    'FEATURE_REMOTE_BLOCK_HARDWARE'
+    'FEATURE_REMOTE_BLOCK_HARDWARE',
+    'FEATURE_CNH_REQUIRED',
+    'FEATURE_CNH_PROVIDER',
+    'FEATURE_FUEL_ANP_SYNC',
+    'FEATURE_SENATRAN',
+    'FEATURE_CONVOY',
+    'FEATURE_PAYMENTS',
+    'FEATURE_GOOGLE_LOGIN',
+    'FEATURE_APPLE_LOGIN'
   ]);
   router.get('/developer/feature-flags', developer, (_req, res) => {
     const stored = new Map(
