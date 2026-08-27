@@ -138,9 +138,9 @@ test('acabamentos do cerco e viagem permanecem progressivos', () => {
 });
 
 test('navegação usa ícones, separa Perfil e mantém cinco ações no celular', () => {
-  assert.match(html, /ui-icons\.svg#history/);
-  assert.match(html, /ui-icons\.svg#vehicle/);
-  assert.match(html, /ui-icons\.svg#profile/);
+  assert.match(html, /ui-icons\.svg\?v=20260826-2#history/);
+  assert.match(html, /ui-icons\.svg\?v=20260826-2#vehicle/);
+  assert.match(html, /ui-icons\.svg\?v=20260826-2#profile/);
   assert.match(html, /class="nav-pill nav-profile" data-view="profile"/);
   assert.match(compactCss, /grid-template-columns:minmax\(0,1fr\)68px/);
   assert.match(
@@ -167,7 +167,7 @@ test('painéis secundários permanecem centralizados na área útil da janela', 
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
   assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
   assert.match(html, /navigation-redesign\.css\?v=20260826-13/);
-  assert.match(html, /navigation-redesign\.js\?v=20260826-7/);
+  assert.match(html, /navigation-redesign\.js\?v=20260826-icon-cache-1/);
 });
 
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
