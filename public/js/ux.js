@@ -67,7 +67,7 @@
     tracking: [
       ['.map-column', 'Este é o mapa. Ele permanece como foco do rastreamento.'],
       ['#vehicleSheet', 'Toque no resumo para ver destino, distância e saúde.'],
-      ['#exploreBtn', 'Ative somente o tipo de local que deseja visualizar.']
+      ['#mapControls', 'Use aqui navegação, visão 3D, QR Code, trânsito e localização.']
     ],
     timeline: [
       ['#eventTimeline', 'Aqui aparecem os acontecimentos da viagem em ordem.'],
@@ -115,7 +115,7 @@
 
   function trackingMarkup() {
     return `<div id="vehicleHealthBadge" class="health-badge hidden"><button id="healthBadgeBtn" aria-label="Abrir avisos de saúde" aria-expanded="false">${icon('warning')}<b>1 aviso</b></button><div id="healthPopover" class="health-popover hidden"></div></div><aside id="arrivalPrompt" class="arrival-prompt hidden"><b id="arrivalTitle">Você chegou.</b><p>Ativar proteção?</p><div><button id="arrivalLater" class="secondary">Agora não</button><button id="arrivalActivate">Ativar</button></div></aside>
-      <div id="exploreMenu" class="explore-menu hidden"><b>Locais e serviços</b><select id="poiScope" aria-label="Área da busca"><option value="nearby">Nesta área do mapa</option><option value="route">Ao longo da rota</option></select><div class="poi-auto-categories" aria-label="Categorias carregadas automaticamente">${[
+      <div id="poiMetadata" class="hidden" aria-hidden="true"><div class="poi-auto-categories">${[
         ['fuel', 'Postos'],
         ['food', 'Restaurantes'],
         ['hotel', 'Hotéis'],
@@ -128,9 +128,7 @@
         ['police', 'Polícia']
       ]
         .map(x => `<span data-poi-category="${x[0]}">${x[1]}</span>`)
-        .join(
-          ''
-        )}</div><small>As categorias são carregadas automaticamente conforme a área, a rota e o nível de zoom.</small><button id="refreshPoisBtn" type="button" class="secondary wide">Atualizar esta área</button></div>
+        .join('')}</div></div>
       <section id="vehicleSheet" class="vehicle-sheet minimized" aria-label="Resumo do veículo"><button id="sheetHandle" class="sheet-handle" aria-expanded="false"><span><strong id="sheetVehicleName">Meu veículo</strong><small id="sheetOnline">● Aguardando</small><small id="sheetCurrentAddress"></small></span><span><strong><span id="sheetSpeed">0</span> km/h</strong><small id="sheetUpdated">sem dados</small></span>${icon('chevron-up')}</button><div class="sheet-details"><div><span>Destino</span><strong id="sheetDestination">Não definido</strong></div><div><span>Chegada</span><strong id="sheetEta">—</strong></div><div><span>Distância</span><strong id="sheetDistance">—</strong></div><div><span>Saúde</span><strong id="sheetHealth">Normal</strong></div><button id="openTechnical" class="secondary wide">Ver detalhes da viagem</button></div></section>`;
   }
 
@@ -151,15 +149,6 @@
     if (mapCard) {
       mapCard.insertAdjacentHTML('beforeend', trackingMarkup());
       const actions = mapCard.querySelector('.map-toolbar .actions');
-      if (!byId('exploreBtn')) {
-        const explore = document.createElement('button');
-        explore.id = 'exploreBtn';
-        explore.className = 'secondary';
-        explore.type = 'button';
-        explore.textContent = 'Locais';
-        explore.setAttribute('aria-expanded', 'false');
-        actions?.insertBefore(explore, byId('locateMeBtn'));
-      }
       if (!byId('trafficBtn')) {
         const traffic = document.createElement('button');
         traffic.id = 'trafficBtn';
@@ -716,7 +705,7 @@
     const current = window.rastreonLocation?.current(),
       center = current ? { lat: current.latitude, lng: current.longitude } : api.map.getCenter();
     try {
-      const scope = byId('poiScope')?.value || 'nearby',
+      const scope = activeRoute.length >= 2 ? 'route' : 'nearby',
         zoom = Number(api.map.getZoom?.() || 13),
         categories =
           scope === 'route' || zoom >= 15
@@ -920,18 +909,6 @@
             : 'Ver detalhes';
         }
       }
-      if (event.target.closest('#exploreBtn')) {
-        const exploreMenu = byId('exploreMenu');
-        const exploreBtn = byId('exploreBtn');
-        if (exploreMenu && exploreBtn) {
-          exploreMenu.classList.toggle('hidden');
-          exploreBtn.setAttribute(
-            'aria-expanded',
-            String(!exploreMenu.classList.contains('hidden'))
-          );
-          if (!exploreMenu.classList.contains('hidden')) loadPois();
-        }
-      }
       if (event.target.closest('#healthBadgeBtn')) {
         const popover = byId('healthPopover');
         if (popover) popover.classList.toggle('hidden');
@@ -1051,16 +1028,16 @@
         renderHealth();
       };
     }
-    byId('poiScope').onchange = loadPois;
-    byId('refreshPoisBtn').onclick = loadPois;
     window.rastreonMap?.map.on('moveend', () => {
-      if (byId('exploreMenu')?.classList.contains('hidden')) return;
       clearTimeout(poiRefreshTimer);
       poiRefreshTimer = setTimeout(loadPois, 450);
     });
     window.addEventListener('rastreon:route-selected', event => {
       activeRoute = Array.isArray(event.detail?.geometry) ? event.detail.geometry : [];
+      clearTimeout(poiRefreshTimer);
+      poiRefreshTimer = setTimeout(loadPois, 450);
     });
+    window.rastreonMap?.map.ready?.then(loadPois);
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,
       childList: true,

@@ -177,7 +177,7 @@ test('painéis secundários permanecem centralizados na área útil da janela', 
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
   assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
   assert.match(html, /navigation-redesign\.css\?v=20260826-navigation-clean-2/);
-  assert.match(html, /navigation-redesign\.js\?v=20260826-navigation-clean-2/);
+  assert.match(html, /navigation-redesign\.js\?v=20260827-map-controls-1/);
 });
 
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
@@ -209,8 +209,9 @@ test('controles do mapa não repetem trânsito e locais dentro de um menu de cam
   assert.doesNotMatch(navigationRedesign, /layersPanel|data\.mapAction = 'layers'|Camadas/);
   assert.doesNotMatch(navigationCss, /\.layers-popover/);
   assert.match(navigationRedesign, /traffic\.dataset\.mapAction = 'traffic'/);
-  assert.match(navigationRedesign, /places\.dataset\.mapAction = 'places'/);
-  assert.match(navigationRedesign, /byId\('exploreBtn'\)\?\.click\(\)/);
+  assert.doesNotMatch(navigationRedesign, /dataset\.mapAction = 'places'/);
+  assert.match(navigationRedesign, /mapMode\.dataset\.mapAction = '3d'/);
+  assert.match(navigationRedesign, /pairing\.dataset\.mapAction = 'qr'/);
 });
 
 test('cadastro do veículo oferece consulta por placa e não expõe dados pessoais', () => {
@@ -294,6 +295,8 @@ test('locais são automáticos e garagem é separada da visão operacional', () 
   assert.doesNotMatch(ux, /#exploreMenu input:checked/);
   assert.match(ux, /scope === 'route' \|\| zoom >= 15/);
   assert.match(ux, /setTimeout\(loadPois, 450\)/);
+  assert.match(ux, /map\.ready\?\.then\(loadPois\)/);
+  assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
 });
 
 test('planejamento aceita paradas reordenáveis e preferência de pedágio', () => {
