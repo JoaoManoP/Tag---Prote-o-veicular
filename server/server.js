@@ -743,6 +743,7 @@ function createApplication(options = {}) {
   app.use('/css', express.static(path.join(publicDir, 'css'), sourceAssetOptions));
   app.use('/js', express.static(path.join(publicDir, 'js'), sourceAssetOptions));
   app.use('/images', express.static(path.join(publicDir, 'images'), staticAssetOptions));
+  app.use('/videos', express.static(path.join(publicDir, 'videos'), sourceAssetOptions));
   app.use('/models', express.static(path.join(publicDir, 'models'), staticAssetOptions));
   app.use(
     '/vendor/leaflet',
