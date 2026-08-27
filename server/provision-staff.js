@@ -10,6 +10,13 @@ const staff = [
   { key: 'GUILHERME', name: 'GUILHERME' }
 ];
 
+function loadEnvironment(environment = process.env) {
+  if (!environment.STAFF_CONFIG_PATH) return environment;
+  const fs = require('node:fs');
+  const config = JSON.parse(fs.readFileSync(environment.STAFF_CONFIG_PATH, 'utf8'));
+  return { ...environment, ...config };
+}
+
 function configFor(member, environment = process.env) {
   return {
     name: member.name,
@@ -20,7 +27,7 @@ function configFor(member, environment = process.env) {
 
 async function provisionStaff(options = {}) {
   const database = options.database || createDatabase();
-  const environment = options.environment || process.env;
+  const environment = loadEnvironment(options.environment || process.env);
   const configured = staff.map(member => configFor(member, environment));
   for (const member of configured) {
     if (!member.email || !validatePassword(member.password))
@@ -64,4 +71,4 @@ if (require.main === module)
       process.exitCode = 1;
     });
 
-module.exports = { provisionStaff, configFor };
+module.exports = { provisionStaff, configFor, loadEnvironment };

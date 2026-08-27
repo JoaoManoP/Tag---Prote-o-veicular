@@ -29,7 +29,7 @@ Estas funções não exibem dados fictícios e permanecem indisponíveis até co
 
 Variáveis e flags estão documentadas em `.env.example` e `.env.production.example`. Segredos nunca devem ser versionados.
 
-As contas internas exigem `STAFF_JOAO_EMAIL`, `STAFF_JOAO_PASSWORD`, `STAFF_GUILHERME_EMAIL` e `STAFF_GUILHERME_PASSWORD`. O deploy executa o provisionamento somente quando as quatro variáveis estiverem preenchidas no `.env` privado da VPS.
+As contas internas exigem os GitHub Secrets `STAFF_JOAO_EMAIL`, `STAFF_JOAO_PASSWORD`, `STAFF_GUILHERME_EMAIL` e `STAFF_GUILHERME_PASSWORD`. O workflow transfere um arquivo efêmero com permissão restrita, provisiona somente os hashes e remove o arquivo da VPS ao terminar.
 
 ## Validação executada
 

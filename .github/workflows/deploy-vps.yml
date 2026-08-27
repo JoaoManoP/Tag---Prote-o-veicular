@@ -49,11 +49,18 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+          STAFF_JOAO_EMAIL: ${{ secrets.STAFF_JOAO_EMAIL }}
+          STAFF_JOAO_PASSWORD: ${{ secrets.STAFF_JOAO_PASSWORD }}
+          STAFF_GUILHERME_EMAIL: ${{ secrets.STAFF_GUILHERME_EMAIL }}
+          STAFF_GUILHERME_PASSWORD: ${{ secrets.STAFF_GUILHERME_PASSWORD }}
         run: |
           test -n "$VPS_HOST"
           test -n "$VPS_USER"
+          node -e "const fs=require('fs');const keys=['STAFF_JOAO_EMAIL','STAFF_JOAO_PASSWORD','STAFF_GUILHERME_EMAIL','STAFF_GUILHERME_PASSWORD'];const data=Object.fromEntries(keys.map(key=>[key,process.env[key]||'']));fs.writeFileSync('rastreon-staff.json',JSON.stringify(data),{mode:0o600})"
           scp -P "$VPS_PORT" rastreon-release.tar.gz \
             "$VPS_USER@$VPS_HOST:/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz"
+          scp -P "$VPS_PORT" rastreon-staff.json \
+            "$VPS_USER@$VPS_HOST:/tmp/rastreon-staff-${GITHUB_RUN_ID}.json"
 
       - name: Deploy tested release
         env:
@@ -64,10 +71,11 @@ jobs:
         run: |
           test -n "$VPS_APP_PATH"
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" <<'REMOTE'
+            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" "/tmp/rastreon-staff-${GITHUB_RUN_ID}.json" <<'REMOTE'
           set -Eeuo pipefail
           APP_PATH="$1"
           ARCHIVE_PATH="$2"
+          STAFF_PATH="$3"
           export NVM_DIR=/www/server/nvm
           test -s "$NVM_DIR/nvm.sh"
           . "$NVM_DIR/nvm.sh"
@@ -85,12 +93,17 @@ jobs:
             /tmp/rastreon-release-*.tar.gz) ;;
             *) exit 1 ;;
           esac
+          case "$STAFF_PATH" in
+            /tmp/rastreon-staff-*.json) ;;
+            *) exit 1 ;;
+          esac
           test -f "$ARCHIVE_PATH"
+          test -f "$STAFF_PATH"
           test -f package-lock.json
           test -f deploy/ecosystem.config.cjs
           npm run db:backup
           RELEASE_DIR="$(mktemp -d /tmp/rastreon-release.XXXXXX)"
-          trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH"' EXIT
+          trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH" "$STAFF_PATH"' EXIT
           tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
           rsync -a --delete \
             --exclude=.env \
@@ -102,12 +115,7 @@ jobs:
           npm ci --ignore-scripts
           npm run build
           npm run db:init
-          if grep -Eq '^STAFF_JOAO_EMAIL=.+$' .env && \
-             grep -Eq '^STAFF_JOAO_PASSWORD=.+$' .env && \
-             grep -Eq '^STAFF_GUILHERME_EMAIL=.+$' .env && \
-             grep -Eq '^STAFF_GUILHERME_PASSWORD=.+$' .env; then
-            npm run staff:provision
-          fi
+          STAFF_CONFIG_PATH="$STAFF_PATH" npm run staff:provision
           npm prune --omit=dev --ignore-scripts
           pm2 delete rastreon >/dev/null 2>&1 || true
           pm2 startOrReload deploy/ecosystem.config.cjs --update-env
