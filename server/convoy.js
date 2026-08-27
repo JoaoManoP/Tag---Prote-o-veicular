@@ -79,8 +79,7 @@ function createConvoyRouter({
 
   router.post('/connections', (req, res) => {
     const contactId = publicContactId(req.body?.contactId);
-    if (!contactId)
-      return res.status(400).json({ error: 'ID RASTREON inválido.' });
+    if (!contactId) return res.status(400).json({ error: 'ID RASTREON inválido.' });
     const recipient = database
       .prepare("SELECT id,name FROM users WHERE public_contact_id=? AND role='ADMIN'")
       .get(contactId);
