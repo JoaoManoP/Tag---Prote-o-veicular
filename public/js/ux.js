@@ -124,8 +124,7 @@
         ['mechanic', 'Oficinas'],
         ['charge', 'Carregadores'],
         ['parking', 'Estacionamento'],
-        ['police', 'Polícia'],
-        ['camera', 'Radares']
+        ['police', 'Polícia']
       ]
         .map(x => `<label><input type="checkbox" value="${x[0]}"> ${x[1]}</label>`)
         .join(

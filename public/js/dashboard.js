@@ -133,7 +133,7 @@ window.RastroMap.ready
       replayTimer = null,
       replayMarker = null,
       replayIndex = 0;
-    let roadEventsEnabled = false,
+    let roadEventsEnabled = true,
       lastRoadEventLoad = null,
       roadEventRequest = null,
       userPosition = null,
@@ -1074,6 +1074,15 @@ window.RastroMap.ready
         center = map.getCenter();
       loadRoadEvents(current || { latitude: center.lat, longitude: center.lng }, true);
     });
+    map.on('moveend', () => {
+      const center = map.getCenter();
+      loadRoadEvents({ latitude: center.lat, longitude: center.lng });
+    });
+    const initialRoadEventCenter = map.getCenter();
+    loadRoadEvents(
+      { latitude: initialRoadEventCenter.lat, longitude: initialRoadEventCenter.lng },
+      true
+    );
     window.addEventListener('rastreon:route-deviation', event =>
       rerouteFrom(event.detail.position)
     );
@@ -3423,7 +3432,10 @@ window.RastroMap.ready
       toast('Origem e destino invertidos.');
     });
     $('useMyLocationBtn').onclick = () => currentLocation({ setAsOrigin: true, center: true });
-    $('locateMeBtn').onclick = () => currentLocation({ center: true });
+    $('locateMeBtn').onclick = () => {
+      navigation.resumeFollow();
+      currentLocation({ center: true });
+    };
     $('startNavigationBtn').onclick = toggleDailyNavigation;
     $('addStopBtn').onclick = addStop;
     $('originMapBtn').onclick = () => {
@@ -3469,19 +3481,6 @@ window.RastroMap.ready
     $('simulateBtn').onclick = startSimulation;
     $('clearBtn').onclick = clearHistory;
     $('closeBtn').onclick = closeSession;
-    $('centerBtn').onclick = () =>
-      vehicleMarker
-        ? map.setView(
-            vehicleMarker.getLatLng(),
-            accuracyPresentation(positions.at(-1)?.accuracy).zoom
-          )
-        : userPosition
-          ? map.setView(
-              [userPosition.latitude, userPosition.longitude],
-              accuracyPresentation(userPosition.accuracy).zoom
-            )
-          : plannedRoutes.length &&
-            map.fitBounds(L.latLngBounds(plannedRoutes[selectedRoute].geometry));
     $('copyBtn').onclick = async () => {
       await navigator.clipboard.writeText(mobileUrl);
       toast('Link copiado.');
@@ -3592,7 +3591,6 @@ window.RastroMap.ready
     ensureMapControls();
     initializeMapMode();
     initializeTraffic();
-    ensureQuickRouteSearch();
     configureHistoryFilters();
     window.RastreonCommunity?.init();
     loadAccount();

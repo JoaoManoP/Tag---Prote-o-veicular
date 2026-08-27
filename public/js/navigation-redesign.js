@@ -13,12 +13,6 @@
   backdrop.setAttribute('aria-label', 'Fechar painel');
   (document.querySelector('#trackingView') || body).append(backdrop);
 
-  const layersPanel = document.createElement('section');
-  layersPanel.className = 'layers-popover hidden';
-  layersPanel.setAttribute('aria-label', 'Camadas do mapa');
-  layersPanel.innerHTML = `<header><strong>Camadas</strong><button type="button" aria-label="Fechar camadas">×</button></header><button type="button" data-layer-target="trafficBtn"><span>Trânsito</span><i></i></button><button type="button" data-layer-target="exploreBtn"><span>Locais e serviços</span><i></i></button><small>Escolha os dados que deseja ver sobre o mapa.</small>`;
-  document.querySelector('.smart-map')?.append(layersPanel);
-
   const controlPanel = document.querySelector('#trackingView .control-panel');
   const wizard = controlPanel?.querySelector('.wizard');
   if (wizard) {
@@ -123,15 +117,14 @@
       traffic.setAttribute('aria-label', 'Alternar trânsito');
       traffic.title = 'Trânsito';
       traffic.innerHTML = icon('traffic');
-      const layerButton = document.createElement('button');
-      layerButton.type = 'button';
-      layerButton.dataset.mapAction = 'layers';
-      layerButton.setAttribute('aria-label', 'Abrir camadas');
-      layerButton.setAttribute('aria-expanded', 'false');
-      layerButton.title = 'Camadas';
-      layerButton.innerHTML = icon('layers');
+      const places = document.createElement('button');
+      places.type = 'button';
+      places.dataset.mapAction = 'places';
+      places.setAttribute('aria-label', 'Explorar locais e serviços');
+      places.title = 'Locais e serviços';
+      places.innerHTML = icon('search');
       controls.prepend(navigation);
-      controls.append(traffic, layerButton);
+      controls.append(traffic, places);
       controls.addEventListener('click', event => {
         const button = event.target.closest('[data-map-action]');
         const action = button?.dataset.mapAction;
@@ -140,9 +133,9 @@
           byId('trafficBtn')?.click();
           button.classList.toggle('active');
         }
-        if (action === 'layers') {
-          layersPanel.classList.toggle('hidden');
-          button.setAttribute('aria-expanded', String(!layersPanel.classList.contains('hidden')));
+        if (action === 'places') {
+          byId('exploreBtn')?.click();
+          button.classList.toggle('active', byId('exploreBtn')?.getAttribute('aria-expanded') === 'true');
         }
       });
     }
@@ -171,13 +164,7 @@
   mapUiObserver.observe(document.querySelector('.smart-map'), { childList: true });
   enhanceMapUi();
   window.addEventListener('rastreon:open-navigation', openNavigation);
-  layersPanel.querySelector('header button').onclick = () => layersPanel.classList.add('hidden');
-  layersPanel.querySelectorAll('[data-layer-target]').forEach(button => {
-    button.onclick = () => {
-      byId(button.dataset.layerTarget)?.click();
-      button.classList.toggle('active');
-    };
-  });
+  window.addEventListener('rastreon:navigation-started', () => setPanel(null));
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && state.activePanel) setPanel(null);

@@ -97,45 +97,16 @@
       this.stepIndex = 0;
       this.traveled = 0;
       this.interpolator = new VehiclePositionInterpolator();
-      this.voice = false;
-      this.lastAnnouncedStep = -1;
       this.deviationCount = 0;
       this.lastRerouteAt = 0;
       container.insertAdjacentHTML(
         'beforeend',
-        `<section id="navigationHud" class="navigation-hud hidden" aria-live="polite"><div class="next-maneuver"><span id="navManeuver">↑</span><div><strong id="navDistance">—</strong><span id="navInstruction">Continue na rota</span><small id="navStreet"></small></div></div><div class="navigation-bottom"><div class="speed-orb"><strong id="navSpeed">0</strong><span>km/h</span></div><div class="road-now"><span>VIA ATUAL</span><strong id="navRoad">Rota planejada</strong></div><div class="eta-block"><strong id="navEta">—</strong><span id="navRemaining">—</span></div></div><div class="navigation-controls"><button id="navPerspective" type="button" aria-pressed="false">Perspectiva</button><button id="navVoice" type="button" aria-pressed="false">Voz</button><button id="navRoadEvents" type="button" aria-pressed="false">Radares</button><button id="nav2d" type="button">2D</button><button id="navRecenter" type="button">◎ Centralizar</button></div></section>`
+        `<section id="navigationHud" class="navigation-hud hidden" aria-live="polite"><div class="next-maneuver"><span id="navManeuver">↑</span><div><strong id="navDistance">—</strong><span id="navInstruction">Continue na rota</span><small id="navStreet"></small></div></div><div class="navigation-bottom"><div class="speed-orb"><strong id="navSpeed">0</strong><span>km/h</span></div><div class="road-now"><span>VIA ATUAL</span><strong id="navRoad">Rota planejada</strong></div><div class="eta-block"><strong id="navEta">—</strong><span id="navRemaining">—</span></div></div></section>`
       );
       this.hud = document.getElementById('navigationHud');
-      document.getElementById('navRecenter').onclick = () => {
-        this.follow = true;
-        this.lastPosition && this.center(this.lastPosition);
-        document.getElementById('navRecenter').classList.remove('attention');
-      };
-      document.getElementById('navPerspective').onclick = event => {
-        const enabled = event.currentTarget.getAttribute('aria-pressed') !== 'true';
-        event.currentTarget.setAttribute('aria-pressed', String(enabled));
-        this.map.setTilt?.(enabled ? 55 : 0);
-      };
-      document.getElementById('navVoice').onclick = event => {
-        this.voice = event.currentTarget.getAttribute('aria-pressed') !== 'true';
-        event.currentTarget.setAttribute('aria-pressed', String(this.voice));
-        if (!this.voice) globalThis.speechSynthesis?.cancel();
-      };
-      document.getElementById('navRoadEvents').onclick = event => {
-        const enabled = event.currentTarget.getAttribute('aria-pressed') !== 'true';
-        event.currentTarget.setAttribute('aria-pressed', String(enabled));
-        window.dispatchEvent(
-          new CustomEvent('rastreon:road-events-toggle', { detail: { enabled } })
-        );
-      };
-      document.getElementById('nav2d').onclick = () => {
-        this.map.setTilt?.(0);
-        this.map.setHeading?.(0);
-      };
       this.map.on('dragstart', () => {
         if (!this.active) return;
         this.follow = false;
-        document.getElementById('navRecenter').classList.add('attention');
       });
     }
     setRoute(route, destination = 'Destino') {
@@ -144,7 +115,6 @@
       this.stepIndex = 0;
       this.traveled = 0;
       this.deviationCount = 0;
-      this.lastAnnouncedStep = -1;
       this.render();
     }
     start() {
@@ -153,6 +123,10 @@
       this.follow = true;
       this.hud.classList.remove('hidden');
       document.body.classList.add('navigation-active');
+      window.dispatchEvent(
+        new CustomEvent('rastreon:road-events-toggle', { detail: { enabled: true } })
+      );
+      window.dispatchEvent(new CustomEvent('rastreon:navigation-started'));
       this.render();
     }
     stop() {
@@ -168,6 +142,10 @@
             Math.max(16, this.map.getZoom())
           );
     }
+    resumeFollow() {
+      this.follow = true;
+      if (this.active && this.lastPosition) this.center(this.lastPosition);
+    }
     update(position, speedKmh, traveledMeters) {
       this.lastPosition = position;
       this.traveled = traveledMeters || 0;
@@ -179,13 +157,6 @@
         this.stepIndex < steps.length - 1
       )
         step = steps[++this.stepIndex];
-      if (this.voice && step && this.lastAnnouncedStep !== this.stepIndex) {
-        this.lastAnnouncedStep = this.stepIndex;
-        globalThis.speechSynthesis?.cancel();
-        const message = new SpeechSynthesisUtterance(step.instruction || 'Continue na rota');
-        message.lang = 'pt-BR';
-        globalThis.speechSynthesis?.speak(message);
-      }
       const deviation = routeDistance(position, this.route?.geometry);
       this.deviationCount = deviation > 120 ? this.deviationCount + 1 : 0;
       if (this.active && this.deviationCount >= 3 && Date.now() - this.lastRerouteAt > 45000) {

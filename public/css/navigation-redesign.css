@@ -294,29 +294,12 @@ select {
   100% { box-shadow: 0 0 0 18px rgba(20, 120, 232, 0); }
 }
 
-.layers-popover {
-  position: absolute;
-  z-index: calc(var(--z-controls) + 1);
-  top: 50%;
-  right: 96px;
-  width: 260px;
-  padding: 16px;
-  border: 1px solid var(--nav-line);
-  border-radius: 18px;
-  background: var(--nav-surface);
-  color: var(--nav-text);
-  box-shadow: 0 22px 50px rgba(4, 13, 22, 0.38);
-  transform: translateY(12%);
-}
-
-.layers-popover header,
 .navigation-sheet-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
 }
 
-.layers-popover header button,
 .sheet-close,
 .panel-close {
   display: grid;
@@ -329,37 +312,6 @@ select {
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
   font-size: 25px;
-}
-
-.layers-popover > button {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 46px;
-  margin-top: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--nav-line);
-  border-radius: 12px;
-  background: transparent;
-  color: inherit;
-}
-
-.layers-popover > button i {
-  width: 20px;
-  height: 12px;
-  border-radius: 999px;
-  background: #556879;
-}
-
-.layers-popover > button.active i {
-  background: var(--nav-green);
-}
-
-.layers-popover small {
-  display: block;
-  margin-top: 12px;
-  color: var(--nav-muted);
-  line-height: 1.45;
 }
 
 .map-panel-backdrop {
@@ -1298,13 +1250,6 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
     height: 50px;
   }
 
-  .layers-popover {
-    top: auto;
-    right: 70px;
-    bottom: calc(92px + env(safe-area-inset-bottom));
-    transform: none;
-  }
-
   .trip-planning #trackingView .control-panel,
   .view.active:not(#trackingView) {
     inset: auto 6px calc(74px + env(safe-area-inset-bottom)) 6px !important;
@@ -1475,5 +1420,105 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Planejamento compacto: o mapa continua visível e interativo durante a escolha da rota. */
+body.trip-planning .map-panel-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.trip-planning #trackingView .control-panel {
+  inset: calc(88px + env(safe-area-inset-top)) auto 22px max(22px, env(safe-area-inset-left)) !important;
+  width: min(390px, calc(100vw - 44px)) !important;
+  height: auto !important;
+  max-height: calc(100dvh - 112px - env(safe-area-inset-top)) !important;
+  transform: none !important;
+  animation: route-drawer-in var(--motion-sheet) var(--ease-out) both;
+}
+
+@keyframes route-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.trip-planning #trackingView .wizard {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  max-height: calc(100dvh - 112px - env(safe-area-inset-top)) !important;
+  padding: 19px !important;
+  border-radius: 21px !important;
+  background: linear-gradient(160deg, rgba(13, 31, 48, 0.97), rgba(5, 17, 29, 0.97)) !important;
+  box-shadow: 0 22px 58px rgba(2, 10, 18, 0.38) !important;
+}
+
+.trip-planning #trackingView .wizard > .navigation-sheet-head,
+.trip-planning #trackingView .wizard > .field:first-of-type,
+.trip-planning #trackingView .wizard > .field:nth-of-type(2),
+.trip-planning #trackingView .wizard > .swap-route-points,
+.trip-planning #trackingView .wizard > #calculateBtn,
+.trip-planning #trackingView .wizard > #startNavigationBtn,
+.trip-planning #trackingView .wizard > #routeSummary:not(.hidden) {
+  grid-column: 1 !important;
+  grid-row: auto !important;
+}
+
+.trip-planning #trackingView .wizard > .navigation-sheet-head {
+  margin-bottom: 2px;
+}
+
+.trip-planning #trackingView .wizard > .navigation-sheet-head p {
+  max-width: 270px;
+}
+
+.trip-planning .swap-route-points {
+  width: 36px;
+  height: 32px;
+  margin: -5px auto !important;
+  transform: rotate(90deg);
+}
+
+.trip-planning .swap-route-points:active {
+  transform: rotate(270deg);
+}
+
+.trip-planning #calculateBtn,
+.trip-planning #startNavigationBtn {
+  width: 100% !important;
+  margin-top: 0 !important;
+}
+
+.trip-planning #routeSummary {
+  margin-top: 0 !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.navigation-active #quickRouteSearch,
+.trip-planning #quickRouteSearch {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .trip-planning #trackingView .control-panel {
+    inset: calc(66px + env(safe-area-inset-top)) 10px calc(76px + env(safe-area-inset-bottom)) 10px !important;
+    width: auto !important;
+    max-height: none !important;
+  }
+
+  .trip-planning #trackingView .wizard {
+    max-height: 100% !important;
+    padding: 16px !important;
+    border-radius: 18px !important;
   }
 }
