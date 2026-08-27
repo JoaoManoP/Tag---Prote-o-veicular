@@ -382,6 +382,34 @@ test('pareamento manual é autenticado, cria credencial própria e aceita uso ú
   await owner.post(`/api/pairings/${resolved.body.pairing.id}/confirm`).expect(409);
   await owner.get(`/api/pairings/resolve?code=${created.body.pairingCode}`).expect(409);
 });
+test('rastreador web independente pareia sem login usando convite temporário', async t => {
+  const { app, database } = setup(t),
+    owner = request.agent(app);
+  await register(owner).expect(201);
+  const created = await owner.post('/api/sessions').send({ vehicle }).expect(201);
+  const tracker = request(app),
+    resolved = await tracker
+      .get(`/api/tracker/pairings/resolve?code=${created.body.pairingCode}`)
+      .expect('Cache-Control', 'no-store')
+      .expect(200);
+  assert.equal(resolved.body.pairing.vehicle.nickname, vehicle.nickname);
+  assert.equal('plate' in resolved.body.pairing.vehicle, false);
+  const paired = await tracker
+    .post(`/api/tracker/pairings/${resolved.body.pairing.id}/confirm`)
+    .send({ code: created.body.pairingCode, name: 'Chrome independente' })
+    .expect('Cache-Control', 'no-store')
+    .expect(201);
+  assert.equal(paired.body.sessionId, created.body.id);
+  assert.ok(paired.body.credential);
+  assert.equal(
+    database.prepare('SELECT status FROM devices WHERE id=?').get(paired.body.device.id).status,
+    'ACTIVE'
+  );
+  await tracker
+    .post(`/api/tracker/pairings/${resolved.body.pairing.id}/confirm`)
+    .send({ code: created.body.pairingCode })
+    .expect(409);
+});
 test('outro usuário não reivindica pareamento nem dispositivo', async t => {
   const { app } = setup(t),
     owner = request.agent(app),

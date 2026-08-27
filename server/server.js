@@ -856,8 +856,12 @@ function createApplication(options = {}) {
       ? res.redirect('/dashboard')
       : res.sendFile(path.join(publicDir, 'forgot-password.html'))
   );
-  app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
-  app.get(['/pair', '/pair.html'], (_req, res) => res.sendFile(path.join(publicDir, 'pair.html')));
+  app.get(['/mobile', '/mobile.html'], (_req, res) =>
+    res.sendFile(path.join(publicDir, 'mobile.html'))
+  );
+  app.get(['/pair', '/pair.html', '/tracker', '/tracker.html'], (_req, res) =>
+    res.sendFile(path.join(publicDir, 'pair.html'))
+  );
   app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
   app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/login.html');
@@ -2584,6 +2588,137 @@ function createApplication(options = {}) {
     io.to(device.sessionId).emit('device:revoked', { deviceId: device.id });
     res.status(204).end();
   });
+  const pairingSecret = value => {
+    const token = String(value?.token || ''),
+      code = String(value?.code || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+    if (token.length >= 32 && token.length <= 128)
+      return { hash: hashMobileToken(token), type: 'token' };
+    if (code.length === 8) return { hash: hashMobileToken(code), type: 'code' };
+    return null;
+  };
+  const pairingBySecret = secret =>
+    secret
+      ? database
+          .prepare('SELECT * FROM pairing_sessions WHERE token_hash=? OR manual_code_hash=?')
+          .get(secret.hash, secret.hash)
+      : null;
+  const pairingError = (row, now = Date.now()) => {
+    if (!row) return { status: 404, error: 'QR Code ou código inválido.', code: 'PAIRING_INVALID' };
+    if (row.expires_at <= now && row.status !== 'CONFIRMED') {
+      database.prepare("UPDATE pairing_sessions SET status='EXPIRED' WHERE id=?").run(row.id);
+      return { status: 410, error: 'Este QR Code expirou.', code: 'PAIRING_EXPIRED' };
+    }
+    if (row.status === 'CONFIRMED')
+      return { status: 409, error: 'Este QR Code já foi utilizado.', code: 'PAIRING_USED' };
+    if (row.status === 'CANCELLED' || row.status === 'EXPIRED')
+      return {
+        status: 410,
+        error: 'Este pareamento não está mais disponível.',
+        code: 'PAIRING_UNAVAILABLE'
+      };
+    return null;
+  };
+  const confirmPairing = (row, requestedName) => {
+    const vehicle = database
+        .prepare('SELECT id FROM vehicles WHERE id=? AND user_id=?')
+        .get(row.vehicle_id, row.user_id),
+      tracking = ownedSession(row.tracking_session_id, row.user_id);
+    if (!vehicle || !tracking) return null;
+    const deviceId = crypto.randomBytes(16).toString('hex'),
+      credential = crypto.randomBytes(32).toString('base64url'),
+      credentialHash = hashMobileToken(credential),
+      now = Date.now(),
+      name =
+        String(requestedName || 'Celular rastreador')
+          .trim()
+          .slice(0, 60) || 'Celular rastreador';
+    const confirmed = database.transaction(() => {
+      const claimed = database
+        .prepare(
+          "UPDATE pairing_sessions SET status='CONFIRMED',confirmed_at=? WHERE id=? AND status IN ('PENDING','SCANNED') AND expires_at>?"
+        )
+        .run(now, row.id, now);
+      if (!claimed.changes) return false;
+      database
+        .prepare(
+          'INSERT INTO devices (id,user_id,vehicle_id,tracking_session_id,type,name,credential_hash,status,created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+        )
+        .run(
+          deviceId,
+          row.user_id,
+          vehicle.id,
+          tracking.id,
+          'PHONE',
+          name,
+          credentialHash,
+          'ACTIVE',
+          now
+        );
+      database.prepare('UPDATE pairing_sessions SET device_id=? WHERE id=?').run(deviceId, row.id);
+      database
+        .prepare('UPDATE tracking_sessions SET mobile_token_hash=? WHERE id=? AND user_id=?')
+        .run(credentialHash, tracking.id, row.user_id);
+      database
+        .prepare(
+          "INSERT INTO audit_events (actor_user_id,action,target_type,target_id,reason,created_at) VALUES (?,'DEVICE_PAIRED','DEVICE',?,'Rastreador independente confirmado por convite temporário',?)"
+        )
+        .run(row.user_id, deviceId, now);
+      return true;
+    })();
+    if (!confirmed) return false;
+    tracking.mobileTokenHash = credentialHash;
+    io.to(tracking.id).emit('device:paired', {
+      device: { id: deviceId, type: 'PHONE', name, status: 'ACTIVE', createdAt: now }
+    });
+    return {
+      device: { id: deviceId, type: 'PHONE', name, status: 'ACTIVE' },
+      sessionId: tracking.id,
+      credential
+    };
+  };
+  app.get('/api/tracker/pairings/resolve', pairingLimiter, (req, res) => {
+    const secret = pairingSecret(req.query),
+      row = pairingBySecret(secret),
+      failure = pairingError(row);
+    res.set('Cache-Control', 'no-store');
+    if (failure)
+      return res.status(failure.status).json({ error: failure.error, code: failure.code });
+    const vehicle = database
+      .prepare('SELECT nickname,brand,model FROM vehicles WHERE id=? AND user_id=?')
+      .get(row.vehicle_id, row.user_id);
+    if (!vehicle) return res.status(404).json({ error: 'Veículo não encontrado.' });
+    const now = Date.now();
+    database
+      .prepare(
+        "UPDATE pairing_sessions SET status='SCANNED',claimed_at=?,claimed_user_agent=? WHERE id=? AND status='PENDING'"
+      )
+      .run(now, String(req.get('user-agent') || 'Navegador').slice(0, 160), row.id);
+    io.to(row.tracking_session_id).emit('pairing:scanned', { pairingId: row.id });
+    res.json({
+      pairing: {
+        id: row.id,
+        expiresAt: row.expires_at,
+        vehicle: { nickname: vehicle.nickname, brand: vehicle.brand, model: vehicle.model }
+      }
+    });
+  });
+  app.post('/api/tracker/pairings/:id/confirm', pairingLimiter, (req, res) => {
+    const secret = pairingSecret(req.body),
+      row = pairingBySecret(secret),
+      failure = pairingError(row);
+    res.set('Cache-Control', 'no-store');
+    if (failure)
+      return res.status(failure.status).json({ error: failure.error, code: failure.code });
+    if (row.id !== req.params.id)
+      return res.status(403).json({ error: 'Convite não corresponde ao pareamento.' });
+    const result = confirmPairing(row, req.body?.name);
+    if (result === null) return res.status(404).json({ error: 'Veículo ou sessão indisponível.' });
+    if (result === false)
+      return res.status(409).json({ error: 'Este convite já foi utilizado ou expirou.' });
+    res.status(201).json(result);
+  });
   app.get('/api/pairings/resolve', requireAuth, pairingLimiter, (req, res) => {
     const rawToken = String(req.query.token || ''),
       code = String(req.query.code || '')
@@ -2829,7 +2964,7 @@ function createApplication(options = {}) {
           /\/$/,
           ''
         ),
-        pairUrl = `${baseUrl}/pair.html#token=${encodeURIComponent(pairToken)}`,
+        pairUrl = `${baseUrl}/tracker#token=${encodeURIComponent(pairToken)}`,
         qrCode = await QRCode.toDataURL(pairUrl, {
           width: 320,
           margin: 4,

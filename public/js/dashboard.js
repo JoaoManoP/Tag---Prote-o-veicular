@@ -2338,7 +2338,7 @@ window.RastroMap.ready
             minutes = Math.floor(remaining / 60000),
             seconds = Math.floor((remaining % 60000) / 1000);
           instructions.textContent = remaining
-            ? `No celular, abra ${new URL(d.pairUrl).origin}/pair e leia o QR ou digite o código. Expira em ${minutes}:${String(seconds).padStart(2, '0')}.`
+            ? `No celular, abra ${new URL(d.pairUrl).origin}/tracker e leia o QR ou digite o código. Não exige login e expira em ${minutes}:${String(seconds).padStart(2, '0')}.`
             : 'QR Code expirado. Gere uma nova sessão.';
           if (!remaining) {
             clearInterval(pairingTimer);

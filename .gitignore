@@ -1,6 +1,7 @@
 node_modules/
 mobile/.expo/
 mobile/.expo-*/
+mobile/.expo-export-check/
 .env
 data/*.sqlite-shm
 data/*.sqlite-wal
