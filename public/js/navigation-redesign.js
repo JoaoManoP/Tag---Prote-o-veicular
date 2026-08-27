@@ -67,6 +67,8 @@
     body.classList.toggle('map-panel-open', Boolean(panel));
     body.classList.toggle('trip-planning', panel === 'navigation');
     document.querySelector('#trackingView')?.classList.add('active');
+    const panelView = panel && panel !== 'navigation' ? byId(`${panel}View`) : null;
+    if (panelView) panelView.scrollTop = 0;
     if (panel === 'navigation') {
       body.classList.remove('floating-nav-open');
       document.querySelectorAll('.view:not(#trackingView)').forEach(view =>

@@ -17,6 +17,10 @@ const navigationCss = fs.readFileSync(
   path.join(root, 'public', 'css', 'navigation-redesign.css'),
   'utf8'
 );
+const navigationRedesign = fs.readFileSync(
+  path.join(root, 'public', 'js', 'navigation-redesign.js'),
+  'utf8'
+);
 const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnostics.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
 const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
@@ -155,13 +159,15 @@ test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
   assert.match(compactCss, /@media\(max-width:390px\)/);
 });
 
-test('painéis secundários permanecem centralizados sem translação horizontal', () => {
+test('painéis secundários permanecem centralizados na área útil da janela', () => {
   assert.match(
     compactNavigationCss,
-    /\.view\.active:not\(#trackingView\)\{[^}]*left:max\(120px,calc\(\(100vw-1040px\)\/2\)\)!important;right:max\(120px,calc\(\(100vw-1040px\)\/2\)\)!important;width:auto!important/s
+    /\.view\.active:not\(#trackingView\)\{[^}]*inset:calc\(72px\+env\(safe-area-inset-top\)\)00!important;width:min\(1040px,calc\(100vw-48px\)\)!important;[^}]*margin:auto!important;padding:0!important/s
   );
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
-  assert.match(html, /navigation-redesign\.css\?v=20260826-12/);
+  assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
+  assert.match(html, /navigation-redesign\.css\?v=20260826-13/);
+  assert.match(html, /navigation-redesign\.js\?v=20260826-7/);
 });
 
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {

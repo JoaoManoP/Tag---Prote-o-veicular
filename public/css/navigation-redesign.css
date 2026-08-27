@@ -652,15 +652,15 @@ body.trip-planning #trackingView {
 }
 
 .view.active:not(#trackingView) {
+  position: fixed !important;
   z-index: var(--z-sheet) !important;
-  top: calc(50% + 32px) !important;
-  bottom: auto !important;
-  left: max(120px, calc((100vw - 1040px) / 2)) !important;
-  right: max(120px, calc((100vw - 1040px) / 2)) !important;
-  width: auto !important;
-  height: min(540px, calc(100dvh - 190px)) !important;
+  inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
+  width: min(1040px, calc(100vw - 48px)) !important;
+  height: min(540px, calc(100dvh - 120px)) !important;
   min-height: 0 !important;
-  max-height: min(540px, calc(100dvh - 190px)) !important;
+  max-height: min(540px, calc(100dvh - 120px)) !important;
+  margin: auto !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
   overflow: auto !important;
   border: 1px solid var(--nav-line) !important;
@@ -668,7 +668,7 @@ body.trip-planning #trackingView {
   background: var(--nav-surface) !important;
   color: var(--nav-text) !important;
   box-shadow: 0 30px 80px rgba(2, 10, 18, 0.46) !important;
-  transform: translateY(-50%) !important;
+  transform: none !important;
   animation: centered-panel-in var(--motion-sheet) var(--ease-out) both;
   scrollbar-width: thin;
   scrollbar-color: rgba(117, 151, 179, 0.55) rgba(255, 255, 255, 0.045);
@@ -677,11 +677,11 @@ body.trip-planning #trackingView {
 @keyframes centered-panel-in {
   from {
     opacity: 0;
-    transform: translateY(calc(-50% + 28px)) scale(0.985);
+    transform: scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -1311,6 +1311,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
     width: auto !important;
     height: auto !important;
     max-height: min(86dvh, calc(100dvh - 88px - env(safe-area-inset-top))) !important;
+    margin: 0 !important;
     transform: none !important;
     border-radius: 24px 24px 18px 18px !important;
     animation-name: sheet-in-mobile;
@@ -1450,6 +1451,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
     width: min(520px, 60vw) !important;
     height: auto !important;
     max-height: none !important;
+    margin: 0 !important;
   }
 
   .trip-planning #trackingView .wizard {
