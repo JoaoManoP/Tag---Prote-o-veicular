@@ -3,7 +3,7 @@
 
   const byId = id => document.getElementById(id);
   const icon = name =>
-    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260826-2#${name}"></use></svg>`;
+    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
   const state = { activePanel: null };
   const body = document.body;
 

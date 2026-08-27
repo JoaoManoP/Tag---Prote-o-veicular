@@ -259,17 +259,17 @@ select {
   top: 50% !important;
   bottom: auto !important;
   display: grid !important;
-  gap: 9px !important;
+  gap: 7px !important;
   transform: translateY(-44%) !important;
 }
 
 #mapControls.map-controls button {
-  width: 46px !important;
-  height: 46px !important;
+  width: 40px !important;
+  height: 40px !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 1px solid rgba(185, 210, 231, 0.28) !important;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
   background: rgba(8, 24, 39, 0.88) !important;
   color: #eef6fc !important;
   box-shadow: 0 10px 24px rgba(4, 15, 25, 0.22) !important;
@@ -950,6 +950,37 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   border: 1px solid rgba(188, 211, 230, 0.18) !important;
   background: rgba(7, 20, 33, 0.92) !important;
   box-shadow: 0 18px 42px rgba(3, 14, 24, 0.3) !important;
+  padding-bottom: 72px !important;
+}
+
+#trackingView .vehicle-hud__identity {
+  margin-bottom: 8px;
+}
+
+#trackingView .vehicle-hud__meta {
+  display: grid !important;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin: 6px 0 0 !important;
+}
+
+#trackingView .vehicle-hud__meta strong,
+#trackingView .vehicle-hud__meta span {
+  min-width: 0;
+  margin: 0 !important;
+  line-height: 1.25;
+}
+
+#trackingView .vehicle-hud__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#trackingView .vehicle-hud > button {
+  min-height: 38px;
 }
 
 .quick-route-search {
@@ -1265,8 +1296,8 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
   }
 
   #mapControls.map-controls button {
-    width: 44px !important;
-    height: 44px !important;
+    width: 40px !important;
+    height: 40px !important;
   }
 
   .map-control-rail button {
