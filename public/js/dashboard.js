@@ -1925,7 +1925,7 @@ window.RastroMap.ready
         dialog.id = 'additionalVehicleDialog';
         dialog.className = 'upgrade-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade>×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
+          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade aria-label="Fechar">×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
         document.body.appendChild(dialog);
         dialog
           .querySelectorAll('[data-close-upgrade]')
@@ -2378,7 +2378,7 @@ window.RastroMap.ready
         dialog.id = 'trackerPairDialog';
         dialog.className = 'tracker-pair-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker>×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
+          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker aria-label="Fechar">×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
         document.body.appendChild(dialog);
         dialog.querySelector('[data-close-tracker]').onclick = () => dialog.close();
         dialog.querySelector('[data-new-tracker]').onclick = () => openTrackerPairing(true);
@@ -3173,6 +3173,121 @@ window.RastroMap.ready
       $('clearBtn').disabled = $('closeBtn').disabled = true;
       toast('Sessão encerrada.');
     }
+    async function accountCsrf() {
+      const response = await fetch('/api/auth/csrf'),
+        data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Não foi possível iniciar a ação segura.');
+      return data.token;
+    }
+    async function ensureAccountVerificationCard() {
+      const layout = document.querySelector('#profileView .profile-layout');
+      if (!layout || $('profileVerificationCard')) return;
+      const card = document.createElement('section');
+      card.id = 'profileVerificationCard';
+      card.className = 'card account-verification-card';
+      card.innerHTML =
+        '<span class="eyebrow">CONTATOS VERIFICADOS</span><h2>Identidade da conta</h2><p>Confirme seus contatos para recuperação e alertas. Nenhum SMS ou e-mail é apresentado como enviado sem provider configurado.</p><div class="verification-row"><span><b>E-mail</b><small id="emailVerificationStatus">Consultando…</small></span><button id="verifyEmailBtn" type="button" class="secondary">Verificar</button></div><div class="verification-row"><span><b>Telefone</b><small id="phoneVerificationStatus">Consultando…</small></span><button id="verifyPhoneBtn" type="button" class="secondary">Verificar</button></div>';
+      layout.insertBefore(card, layout.querySelector('.privacy-card'));
+      const meResponse = await fetch('/api/auth/me'),
+        me = await meResponse.json();
+      if (!meResponse.ok) throw new Error(me.error);
+      const configure = (kind, verified) => {
+        const label = kind === 'email' ? 'E-mail' : 'Telefone',
+          idSuffix = kind === 'email' ? 'Email' : 'Phone';
+        const status = $(`${kind}VerificationStatus`);
+        const button = $(`verify${idSuffix}Btn`);
+        status.textContent = verified ? 'Verificado' : 'Não verificado';
+        button.disabled = Boolean(verified);
+        button.onclick = async () => {
+          try {
+            const csrf = await accountCsrf();
+            const requestResponse = await fetch(`/api/account-security/${kind}/request`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+              body: '{}'
+            });
+            const requestData = await requestResponse.json();
+            if (!requestResponse.ok) throw new Error(requestData.error);
+            const code = prompt(
+              requestData.provider === 'mock'
+                ? `Provider MOCK — código: ${requestData.developmentCode}. Confirme abaixo:`
+                : `Digite o código enviado por ${kind === 'email' ? 'e-mail' : 'telefone'}:`
+            );
+            if (!code) return;
+            const confirmResponse = await fetch(`/api/account-security/${kind}/confirm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+              body: JSON.stringify({ challengeId: requestData.challengeId, code })
+            });
+            if (!confirmResponse.ok) {
+              const confirmData = await confirmResponse.json();
+              throw new Error(confirmData.error);
+            }
+            status.textContent = 'Verificado';
+            button.disabled = true;
+            toast(`${label} verificado.`);
+          } catch (error) {
+            toast(error.message);
+          }
+        };
+      };
+      configure('email', me.user.emailVerifiedAt);
+      configure('phone', me.user.phoneVerifiedAt);
+    }
+    async function ensureDriverDocumentCard() {
+      const layout = document.querySelector('#profileView .profile-layout');
+      if (!layout || $('profileDriverDocumentCard')) return;
+      const card = document.createElement('section');
+      card.id = 'profileDriverDocumentCard';
+      card.className = 'card driver-document-card';
+      card.innerHTML =
+        '<span class="eyebrow">DOCUMENTO DO CONDUTOR</span><h2>CNH</h2><p id="driverDocumentStatus">Consultando situação…</p><label class="field">Validade da CNH<input id="cnhExpiry" type="date"></label><label class="field">Arquivo privado (PDF, PNG ou JPEG; até 5 MB)<input id="cnhFile" type="file" accept="application/pdf,image/png,image/jpeg"></label><button id="uploadCnhBtn" type="button" class="secondary wide">Enviar para análise</button><small>O arquivo não possui URL pública e somente a equipe autorizada pode revisá-lo.</small>';
+      layout.insertBefore(card, layout.querySelector('.privacy-card'));
+      const refresh = async () => {
+        const response = await fetch('/api/documents/cnh'),
+          data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        const labels = {
+          PENDING: 'Documento em análise.',
+          APPROVED: 'Documento aprovado.',
+          REJECTED: `Documento rejeitado${data.document?.rejectionReason ? `: ${data.document.rejectionReason}` : '.'}`,
+          EXPIRED: 'CNH vencida. Envie um documento atualizado.'
+        };
+        $('driverDocumentStatus').textContent = data.document
+          ? labels[data.document.status]
+          : 'Plano indisponível — envie sua CNH para continuar.';
+        if (data.document?.expiryDate) $('cnhExpiry').value = data.document.expiryDate;
+      };
+      await refresh();
+      $('uploadCnhBtn').onclick = async () => {
+        const file = $('cnhFile').files[0],
+          expiry = $('cnhExpiry').value,
+          button = $('uploadCnhBtn');
+        if (!file || !expiry) return toast('Escolha o arquivo e informe a validade da CNH.');
+        button.disabled = true;
+        try {
+          const csrf = await accountCsrf();
+          const response = await fetch('/api/documents/cnh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-CSRF-Token': csrf,
+              'X-Document-Type': file.type,
+              'X-CNH-Expiry': expiry
+            },
+            body: await file.arrayBuffer()
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error);
+          await refresh();
+          toast('CNH enviada para análise.');
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          button.disabled = false;
+        }
+      };
+    }
     async function ensureTwoFactorCard() {
       const layout = document.querySelector('#profileView .profile-layout');
       if (!layout || $('profileTwoFactorCard')) return;
@@ -3359,6 +3474,8 @@ window.RastroMap.ready
           if (isTracking) setTimeout(() => map.invalidateSize(), 50);
           if (b.dataset.view === 'profile') {
             ensureFinesCard();
+            ensureAccountVerificationCard();
+            ensureDriverDocumentCard();
             ensureTwoFactorCard();
             ensureNotificationPreferencesCard();
             loadProfile();

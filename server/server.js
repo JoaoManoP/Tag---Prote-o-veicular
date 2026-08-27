@@ -56,6 +56,9 @@ const { calculateTrackMetrics } = require('./trip-metrics');
 const { createCommunityRouter, parseFeatureFlag } = require('./community');
 const { createPlatformRouter } = require('./platform');
 const { createTwoFactorRouter, createTwoFactorGuard } = require('./two-factor');
+const { createAccountSecurityRouter } = require('./account-security');
+const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
+const { integrationStatus } = require('./external-integrations');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -333,6 +336,19 @@ function validateProductionConfig(
     errors.push('Traccar exige segredos distintos e fortes para webhook e hash de dispositivo.');
   if (environment.FEATURE_REMOTE_BLOCK_HARDWARE === 'true')
     errors.push('FEATURE_REMOTE_BLOCK_HARDWARE deve permanecer false nesta versão.');
+  for (const flag of [
+    'FEATURE_CNH_PROVIDER',
+    'FEATURE_FUEL_ANP_SYNC',
+    'FEATURE_SENATRAN',
+    'FEATURE_CONVOY',
+    'FEATURE_PAYMENTS',
+    'FEATURE_GOOGLE_LOGIN',
+    'FEATURE_APPLE_LOGIN'
+  ])
+    if (environment[flag] === 'true')
+      errors.push(`${flag} deve permanecer false até o provider correspondente ser homologado.`);
+  if (environment.AUTH_DELIVERY_PROVIDER === 'mock')
+    errors.push('AUTH_DELIVERY_PROVIDER=mock é proibido em produção.');
   if (errors.length) throw new Error(`Configuração de produção inválida: ${errors.join(' ')}`);
   return { valid: true };
 }
@@ -716,6 +732,22 @@ function createApplication(options = {}) {
   });
   const twoFactorGuard = createTwoFactorGuard(database);
   const twoFactorRouter = createTwoFactorRouter({ database });
+  const accountSecurity = createAccountSecurityRouter({
+    database,
+    secret: sessionSecret,
+    requireCsrf,
+    deliveryProvider: options.deliveryProvider
+  });
+  const driverDocuments = createDriverDocumentsRouter({
+    database,
+    requireCsrf,
+    twoFactorGuard,
+    storageDirectory: options.privateDocumentsPath
+  });
+  const cnhGuard = requireApprovedCnh(
+    database,
+    options.cnhRequired ?? process.env.FEATURE_CNH_REQUIRED === 'true'
+  );
   const communityRouter = createCommunityRouter({
     database,
     enabled: process.env.COMMUNITY_PLACES_ENABLED
@@ -728,6 +760,8 @@ function createApplication(options = {}) {
     geocodingProvider
   });
   app.use('/api/security/2fa', twoFactorRouter);
+  app.use('/api/account-security', accountSecurity.router);
+  app.use('/api/documents', driverDocuments.router);
   app.use('/api/community', communityRouter);
   app.use('/api/platform', platformRouter);
   app.use('/api/v1/community', communityRouter);
@@ -816,6 +850,11 @@ function createApplication(options = {}) {
     req.session.userId
       ? res.redirect('/dashboard')
       : res.sendFile(path.join(publicDir, 'register.html'))
+  );
+  app.get('/forgot-password.html', (req, res) =>
+    req.session.userId
+      ? res.redirect('/dashboard')
+      : res.sendFile(path.join(publicDir, 'forgot-password.html'))
   );
   app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
   app.get(['/pair', '/pair.html'], (_req, res) => res.sendFile(path.join(publicDir, 'pair.html')));
@@ -981,6 +1020,7 @@ function createApplication(options = {}) {
         (process.env.MAP_PROVIDER === 'google' && Boolean(process.env.GOOGLE_MAPS_API_KEY)) ||
         (process.env.MAP_PROVIDER === 'mapbox' &&
           Boolean(process.env.MAPBOX_WEB_PUBLIC_TOKEN || process.env.MAPBOX_ACCESS_TOKEN));
+    const integrations = integrationStatus();
     res.json({
       version: 2,
       trackerMode: process.env.TRACCAR_ENABLED === 'true' ? 'mobile-and-traccar' : 'mobile-demo',
@@ -1023,9 +1063,13 @@ function createApplication(options = {}) {
         communityTraffic: true,
         mapMatching: 'adapter-unavailable',
         externalNotifications: false
-      }
+      },
+      integrations
     });
   });
+  app.get('/api/integrations/status', requireAuth, (_req, res) =>
+    res.json({ integrations: integrationStatus() })
+  );
   app.get('/api/road-events', requireAuth, (req, res) => {
     const latitude = Number(req.query.lat),
       longitude = Number(req.query.lng),
@@ -1192,7 +1236,9 @@ function createApplication(options = {}) {
   });
   app.get('/api/auth/me', requireAuth, (req, res) => {
     const user = database
-      .prepare('SELECT id, name, email, phone, created_at AS createdAt FROM users WHERE id = ?')
+      .prepare(
+        'SELECT id, name, email, phone, email_verified_at AS emailVerifiedAt, phone_verified_at AS phoneVerifiedAt, created_at AS createdAt FROM users WHERE id = ?'
+      )
       .get(req.session.userId);
     if (!user)
       return req.session.destroy(() => res.status(401).json({ error: 'Sessão inválida.' }));
@@ -1454,6 +1500,9 @@ function createApplication(options = {}) {
           .prepare('SELECT id FROM tracking_sessions WHERE user_id=?')
           .all(user.id)
           .map(row => row.id),
+        documentRow = database
+          .prepare('SELECT document_storage_key FROM driver_documents WHERE user_id=?')
+          .get(user.id),
         now = Date.now();
       database.transaction(() => {
         database
@@ -1469,6 +1518,15 @@ function createApplication(options = {}) {
         }
       })();
       for (const id of ownedIds) sessions.delete(id);
+      if (documentRow?.document_storage_key) {
+        const documentPath = path.join(
+          driverDocuments.privateDirectory,
+          path.basename(documentRow.document_storage_key)
+        );
+        try {
+          fs.unlinkSync(documentPath);
+        } catch {}
+      }
       req.session.destroy(error => {
         if (error) return next(error);
         res.clearCookie('rastro.sid');
@@ -2674,7 +2732,7 @@ function createApplication(options = {}) {
       .run(req.session.userId, req.params.id, Date.now());
     res.status(204).end();
   });
-  app.post('/api/sessions', requireAuth, pairingLimiter, async (req, res, next) => {
+  app.post('/api/sessions', requireAuth, cnhGuard, pairingLimiter, async (req, res, next) => {
     try {
       let vehicle;
       if (req.body?.vehicleId != null) {

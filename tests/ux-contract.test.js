@@ -17,6 +17,7 @@ const navigationCss = fs.readFileSync(
   path.join(root, 'public', 'css', 'navigation-redesign.css'),
   'utf8'
 );
+const designSystem = fs.readFileSync(path.join(root, 'public', 'css', 'design-system.css'), 'utf8');
 const navigationRedesign = fs.readFileSync(
   path.join(root, 'public', 'js', 'navigation-redesign.js'),
   'utf8'
@@ -270,6 +271,29 @@ test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
     assert.match(ux, new RegExp(category));
   assert.match(ux, /Adicionar como parada/);
   assert.match(ux, /escapeHtml\(popupName\)/);
+});
+
+test('design system centraliza tokens, overlays e foco responsivo', () => {
+  assert.match(html, /design-system\.css/);
+  assert.match(designSystem, /--rs-color-navy-950:/);
+  assert.match(designSystem, /--rs-space-4:/);
+  assert.match(designSystem, /--rs-modal-md:/);
+  assert.match(designSystem, /dialog\s*\{[^}]*max-height:\s*min\(90dvh, 900px\)/s);
+  assert.match(designSystem, /:focus-visible/);
+  assert.match(designSystem, /@media \(max-width: 640px\)/);
+  assert.match(designSystem, /--home-orange: var\(--rs-color-blue-600\)/);
+  assert.match(designSystem, /--rc-orange: var\(--rs-color-blue-600\)/);
+  assert.match(html, /aria-label="Selecionar origem no mapa"/);
+  assert.match(dashboard, /data-close-upgrade aria-label="Fechar"/);
+});
+
+test('locais são automáticos e garagem é separada da visão operacional', () => {
+  assert.match(html, /<span>Garagem<\/span>/);
+  assert.match(html, /<h2>Minha garagem<\/h2>/);
+  assert.match(ux, /poi-auto-categories/);
+  assert.doesNotMatch(ux, /#exploreMenu input:checked/);
+  assert.match(ux, /scope === 'route' \|\| zoom >= 15/);
+  assert.match(ux, /setTimeout\(loadPois, 450\)/);
 });
 
 test('planejamento aceita paradas reordenáveis e preferência de pedágio', () => {

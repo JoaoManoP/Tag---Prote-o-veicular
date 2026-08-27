@@ -25,6 +25,8 @@ jobs:
         run: npm run format:check
       - name: Lint
         run: npm run lint
+      - name: Public launch module syntax
+        run: npm run lint:launch
       - name: Tests
         run: npm test
       - name: Build check

@@ -32,7 +32,7 @@
           ><button class="nav-pill" data-view="vehicles">
             <svg class="nav-icon" aria-hidden="true">
               <use href="/images/ui-icons.svg?v=20260826-2#vehicle"></use></svg
-            ><span>Veículos</span></button
+            ><span>Garagem</span></button
           ><button class="nav-pill" data-view="community">
             <svg class="nav-icon" aria-hidden="true">
               <use href="/images/ui-icons.svg?v=20260826-2#community"></use></svg
@@ -52,6 +52,7 @@
     </header>
     <link rel="stylesheet" href="/css/platform-features.css?v=20260825-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260826-navigation-clean-2" />
+    <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -74,7 +75,13 @@
                     id="originInput"
                     autocomplete="off"
                     placeholder="Ex.: Santa Maria, Timóteo"
-                  /><button id="originMapBtn" title="Selecionar no mapa">⌖</button>
+                  /><button
+                    id="originMapBtn"
+                    title="Selecionar no mapa"
+                    aria-label="Selecionar origem no mapa"
+                  >
+                    ⌖
+                  </button>
                 </div>
                 <button id="useMyLocationBtn" type="button" class="text-btn location-origin-btn">
                   Usar minha localização atual
@@ -88,7 +95,13 @@
                     id="destinationInput"
                     autocomplete="off"
                     placeholder="Ex.: Canaã, Ipatinga"
-                  /><button id="destinationMapBtn" title="Selecionar no mapa">⌖</button>
+                  /><button
+                    id="destinationMapBtn"
+                    title="Selecionar no mapa"
+                    aria-label="Selecionar destino no mapa"
+                  >
+                    ⌖
+                  </button>
                 </div>
                 <div id="destinationResults" class="search-results hidden"></div
               ></label>
@@ -427,8 +440,8 @@
         <div class="page-content">
           <div class="page-heading">
             <div>
-              <span class="eyebrow">MINHA GARAGEM</span>
-              <h2>Meus veículos</h2>
+              <span class="eyebrow">ADMINISTRAÇÃO</span>
+              <h2>Minha garagem</h2>
               <p>Somente você pode visualizar e administrar estes veículos.</p>
             </div>
             <button id="newVehicleBtn">Adicionar veículo</button>
@@ -789,7 +802,7 @@
             <span class="eyebrow">PERFIL DO VEÍCULO</span>
             <h2>Configure o veículo da viagem</h2>
           </div>
-          <button type="button" id="closeVehicle" class="icon-btn">×</button>
+          <button type="button" id="closeVehicle" class="icon-btn" aria-label="Fechar">×</button>
         </div>
         <label class="field">Modelo de referência<select id="referenceModel"></select></label>
         <div class="form-grid">
