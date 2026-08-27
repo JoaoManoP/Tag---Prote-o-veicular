@@ -1925,7 +1925,7 @@ window.RastroMap.ready
         dialog.id = 'additionalVehicleDialog';
         dialog.className = 'upgrade-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade>×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
+          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade aria-label="Fechar">×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
         document.body.appendChild(dialog);
         dialog
           .querySelectorAll('[data-close-upgrade]')
@@ -2378,7 +2378,7 @@ window.RastroMap.ready
         dialog.id = 'trackerPairDialog';
         dialog.className = 'tracker-pair-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker>×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
+          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker aria-label="Fechar">×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
         document.body.appendChild(dialog);
         dialog.querySelector('[data-close-tracker]').onclick = () => dialog.close();
         dialog.querySelector('[data-new-tracker]').onclick = () => openTrackerPairing(true);

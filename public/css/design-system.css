@@ -1,0 +1,202 @@
+:root {
+  --rs-color-navy-950: #061321;
+  --rs-color-navy-900: #0b1f33;
+  --rs-color-blue-700: #135fa7;
+  --rs-color-blue-600: #1478c9;
+  --rs-color-blue-100: #e8f2fb;
+  --rs-color-teal-600: #168066;
+  --rs-color-orange-600: #d95a18;
+  --rs-color-red-600: #b4232b;
+  --rs-color-white: #fff;
+  --rs-color-gray-25: #fbfcfd;
+  --rs-color-gray-50: #f5f7f9;
+  --rs-color-gray-200: #dce3e9;
+  --rs-color-gray-500: #667789;
+  --rs-color-gray-900: #172536;
+  --rs-space-1: 4px;
+  --rs-space-2: 8px;
+  --rs-space-3: 12px;
+  --rs-space-4: 16px;
+  --rs-space-5: 20px;
+  --rs-space-6: 24px;
+  --rs-space-8: 32px;
+  --rs-radius-sm: 8px;
+  --rs-radius-md: 12px;
+  --rs-radius-lg: 18px;
+  --rs-radius-xl: 24px;
+  --rs-shadow-sm: 0 8px 24px rgb(16 35 52 / 10%);
+  --rs-shadow-lg: 0 28px 80px rgb(8 24 39 / 30%);
+  --rs-control-height: 44px;
+  --rs-modal-sm: 460px;
+  --rs-modal-md: 760px;
+  --rs-z-map: 0;
+  --rs-z-controls: 20;
+  --rs-z-backdrop: 50;
+  --rs-z-overlay: 60;
+  --rs-z-header: 70;
+  --rs-z-toast: 80;
+  --yellow: var(--rs-color-blue-600);
+  --yellow2: var(--rs-color-blue-700);
+  --blue: var(--rs-color-blue-600);
+  --home-orange: var(--rs-color-blue-600);
+  --rc-orange: var(--rs-color-blue-600);
+  --rc-orange-dark: var(--rs-color-blue-700);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 3px solid rgb(20 120 201 / 38%);
+  outline-offset: 2px;
+}
+
+:where(button, input, select, textarea) {
+  min-width: 0;
+}
+
+button:not(.danger):not([aria-pressed='true']),
+.button:not(.danger) {
+  border-radius: var(--rs-radius-md);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.card,
+.vehicle-card,
+.devices-panel {
+  border-color: var(--rs-color-gray-200);
+  box-shadow: var(--rs-shadow-sm);
+}
+
+.page-heading,
+.section-head,
+.modal-head,
+.vehicle-card header {
+  min-width: 0;
+  gap: var(--rs-space-4);
+}
+
+:where(.page-heading, .section-head, .modal-head, .vehicle-card header) > * {
+  min-width: 0;
+}
+
+:where(.page-heading, .section-head, .modal-head, .vehicle-card)
+  :where(h1, h2, h3, p, strong, small) {
+  overflow-wrap: anywhere;
+}
+
+dialog {
+  width: min(var(--rs-modal-md), calc(100vw - 32px));
+  max-width: none;
+  max-height: min(90dvh, 900px);
+  margin: auto;
+  overflow: auto;
+  border: 1px solid var(--rs-color-gray-200);
+  border-radius: var(--rs-radius-xl);
+  background: var(--rs-color-white);
+  color: var(--rs-color-gray-900);
+  box-shadow: var(--rs-shadow-lg);
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background: rgb(6 19 33 / 62%);
+  backdrop-filter: blur(5px);
+}
+
+.rc-community-header {
+  background: linear-gradient(125deg, var(--rs-color-navy-900), var(--rs-color-blue-700));
+}
+
+.rc-community-header h2 {
+  white-space: normal;
+}
+
+.rc-community-button--primary,
+.plan-card:not(.featured-plan) button,
+#vehiclesView button:not(.secondary):not(.danger),
+#profileView button:not(.secondary):not(.danger) {
+  border-color: var(--rs-color-blue-600);
+  background: var(--rs-color-blue-600);
+  color: var(--rs-color-white);
+}
+
+.map-toolbar .actions button:hover,
+.map-toolbar .actions button:focus-visible {
+  border-color: var(--rs-color-blue-600);
+  background: var(--rs-color-blue-100);
+  color: var(--rs-color-blue-700);
+}
+
+:where(.notice, .warning, [data-status='warning']) {
+  --yellow: var(--rs-color-orange-600);
+}
+
+.poi-auto-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rs-space-2);
+}
+
+.poi-auto-categories span {
+  padding: 6px 9px;
+  border: 1px solid var(--rs-color-gray-200);
+  border-radius: 999px;
+  background: var(--rs-color-gray-50);
+  color: var(--rs-color-gray-500);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  dialog {
+    width: 100%;
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+    margin: auto 0 0;
+    border-radius: var(--rs-radius-xl) var(--rs-radius-xl) 0 0;
+  }
+
+  dialog form,
+  .rc-report-shell {
+    padding-bottom: max(var(--rs-space-5), env(safe-area-inset-bottom));
+  }
+
+  .page-heading,
+  .section-head,
+  .modal-head {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .page-heading > button,
+  .section-head > button {
+    min-height: var(--rs-control-height);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
