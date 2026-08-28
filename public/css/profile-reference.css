@@ -1568,15 +1568,17 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
 /* Encaixe desktop: toda a grade permanece dentro da área útil destacada. */
 @media (min-width: 1121px) {
   #profileView .profile-reference-shell {
-    padding: 32px 40px 8px !important;
+    padding: 24px 40px 10px !important;
+    overflow: hidden !important;
   }
 
   #profileView .profile-reference-grid {
     height: auto;
     max-height: 100%;
     min-height: 0;
-    margin-right: 72px;
-    grid-template-columns: 294px minmax(0, 1.25fr) minmax(0, 0.98fr);
+    width: min(1380px, calc(100% - 326px));
+    margin-right: auto;
+    grid-template-columns: 280px minmax(0, 1.25fr) minmax(0, 0.98fr);
     grid-template-rows: auto auto auto;
     align-content: start;
   }
@@ -1592,26 +1594,26 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-reference-grid > .profile-summary-card {
-    height: 240px;
-    min-height: 240px;
+    height: 220px;
+    min-height: 220px;
     align-self: start;
   }
 
   #profileView .profile-vehicle-card {
-    min-height: 260px !important;
+    min-height: 242px !important;
   }
 
   #profileView .profile-activity-card,
   #profileView .profile-right-stack {
-    min-height: 340px !important;
+    min-height: 314px !important;
   }
 
   #profileView .profile-bottom-card {
-    min-height: 180px !important;
+    min-height: 164px !important;
   }
 
   #profileView .profile-ref-card {
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
 
   #profileView .profile-ref-card header {
@@ -1619,9 +1621,9 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-avatar {
-    width: 68px;
-    height: 68px;
-    margin-bottom: 8px;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 6px;
   }
 
   #profileView .profile-contact-id {
@@ -1630,8 +1632,8 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-contact-qr {
-    width: 132px;
-    height: 132px;
+    width: 120px;
+    height: 120px;
   }
 
   #profileView .profile-account-facts {
@@ -1643,12 +1645,12 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-summary-grid article {
-    min-height: 105px;
-    padding: 11px 12px;
+    min-height: 94px;
+    padding: 9px 10px;
   }
 
   #profileView .profile-vehicle-main {
-    min-height: 102px;
+    min-height: 92px;
   }
 
   #profileView .profile-vehicle-main > div {
@@ -1661,7 +1663,7 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView #profileVehicle3d {
-    height: 104px;
+    height: 94px;
   }
 
   #profileView .profile-vehicle-telemetry {
@@ -1680,12 +1682,12 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-trip {
-    min-height: 44px;
-    padding-block: 9px;
+    min-height: 41px;
+    padding-block: 7px;
   }
 
   #profileView .profile-right-stack {
-    grid-template-rows: repeat(2, minmax(158px, auto));
+    grid-template-rows: repeat(2, minmax(148px, auto));
   }
 
   #profileView .profile-action-card {
@@ -1693,7 +1695,7 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-bottom-card {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   #profileView .profile-bottom-card h3 {
@@ -1705,9 +1707,9 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-ok-symbol {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     margin: 0 auto 4px;
-    font-size: 18px;
+    font-size: 16px;
   }
 }
