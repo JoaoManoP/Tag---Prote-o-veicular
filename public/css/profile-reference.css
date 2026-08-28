@@ -343,6 +343,140 @@
   }
 }
 
+/* Perfil v3: painel central dimensionado como a referência, preservando o mapa ao redor. */
+#profileView.view.active {
+  inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
+  display: grid !important;
+  padding: clamp(14px, 2vw, 30px) !important;
+  overflow: hidden !important;
+  place-items: center;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-shell {
+  width: min(1680px, calc(100vw - 72px));
+  height: min(850px, calc(100dvh - 112px));
+  min-height: 0;
+  margin: 0;
+  padding: 22px 26px 28px;
+  overflow: auto;
+  border: 1px solid rgba(151, 171, 190, 0.48);
+  border-radius: 22px;
+  background: rgba(239, 244, 248, 0.95);
+  box-shadow: 0 24px 70px rgba(5, 25, 44, 0.2);
+  scrollbar-color: #9fb5c7 transparent;
+}
+
+#profileView .profile-left-tools {
+  inset: 22px auto 28px 26px;
+}
+
+#profileView .profile-reference-grid {
+  margin-left: 254px;
+}
+
+#profileView .profile-ref-card h2,
+#profileView .profile-ref-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#profileView .profile-card-icon {
+  width: 25px;
+  height: 25px;
+  color: #dce9f5;
+}
+
+#profileView .profile-weather-card strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#profileView .profile-weather-icon {
+  width: 25px;
+  height: 25px;
+  color: #ffc400;
+}
+
+#profileView .profile-contact-id button svg {
+  width: 17px;
+  height: 17px;
+}
+
+#profileView .profile-summary-card header small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#profileView .profile-summary-card header small svg {
+  width: 14px;
+  height: 14px;
+}
+
+#profileView .profile-icon-alert {
+  color: #ffc400;
+}
+
+#profileView .profile-icon-route {
+  color: #4b94ff;
+}
+
+#profileView .profile-title-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: #092744;
+}
+
+#profileView .profile-action-icon {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 1380px) {
+  #profileView .profile-reference-shell {
+    width: calc(100vw - 40px);
+    padding: 18px;
+  }
+
+  #profileView .profile-left-tools {
+    left: 18px;
+  }
+}
+
+@media (max-width: 1120px) {
+  #profileView .profile-left-tools {
+    position: static;
+    grid-template-columns: minmax(220px, 1fr) 150px;
+  }
+
+  #profileView .profile-reference-grid {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  #profileView.view.active {
+    inset: calc(64px + env(safe-area-inset-top)) 0 calc(62px + env(safe-area-inset-bottom)) !important;
+    padding: 7px !important;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  #profileView .profile-left-tools {
+    grid-template-columns: 1fr;
+  }
+}
+
 /*
  * O perfil é uma página de informação, não uma janela modal. Estas regras ficam no
  * fim do arquivo para neutralizar as dimensões fixas herdadas das demais telas secundárias.

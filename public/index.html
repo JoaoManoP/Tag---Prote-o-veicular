@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
-    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-2" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-3" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -646,23 +646,11 @@
               <strong><span id="profileLiveSpeed">0</span> <small>km/h</small></strong>
               <span id="profileLiveAddress">Localização ainda não recebida</span>
             </section>
-            <nav class="profile-map-rail">
-              <button type="button" data-profile-map-action="tracking" title="Abrir rastreamento">
-                ➤
-              </button>
-              <button type="button" data-profile-map-action="vehicles" title="Abrir garagem">
-                ◇
-              </button>
-              <button type="button" data-profile-map-action="community" title="Abrir comunidade">
-                ▦
-              </button>
-              <button type="button" id="profileAddVehicleRail" title="Adicionar veículo">+</button>
-              <button type="button" data-profile-map-action="tracking" title="Centralizar">
-                ⌖
-              </button>
-            </nav>
             <section class="profile-weather-card">
-              <strong>☀ <span>28°C</span></strong
+              <strong
+                ><svg class="profile-weather-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg#sun"></use></svg
+                ><span>28°C</span></strong
               ><small>Ensolarado</small><b>São Paulo, SP</b>
             </section>
           </aside>
@@ -681,7 +669,9 @@
                 />
                 <div>
                   <code id="profileContactId">—</code
-                  ><button id="copyProfileContactId" type="button" title="Copiar ID">▣</button>
+                  ><button id="copyProfileContactId" type="button" title="Copiar ID">
+                    <svg aria-hidden="true"><use href="/images/ui-icons.svg#copy"></use></svg>
+                  </button>
                 </div>
               </div>
               <dl class="profile-account-facts">
@@ -711,23 +701,34 @@
             <section class="profile-ref-card profile-summary-card">
               <header>
                 <h2>Resumo da sua conta</h2>
-                <small>Atualizado agora ↻</small>
+                <small
+                  >Atualizado agora
+                  <svg aria-hidden="true"><use href="/images/ui-icons.svg#refresh"></use></svg
+                ></small>
               </header>
               <div class="profile-summary-grid">
                 <article>
-                  <span>◇</span><strong id="profileSummaryVehicles">0</strong
-                  ><small>Veículo ativo</small><b>Online</b>
+                  <svg class="profile-card-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#vehicle"></use></svg
+                  ><strong id="profileSummaryVehicles">0</strong><small>Veículo ativo</small
+                  ><b>Online</b>
                 </article>
                 <article>
-                  <span>◎</span><strong id="profileSummaryAlerts">0</strong
-                  ><small>Alertas ativos</small><b>Ver todos</b>
+                  <svg class="profile-card-icon profile-icon-alert" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#bell"></use></svg
+                  ><strong id="profileSummaryAlerts">0</strong><small>Alertas ativos</small
+                  ><b>Ver todos</b>
                 </article>
                 <article>
-                  <span>⌖</span><strong id="profileSummaryTrips">0</strong
-                  ><small>Viagens hoje</small><b>Ver todas</b>
+                  <svg class="profile-card-icon profile-icon-route" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#route"></use></svg
+                  ><strong id="profileSummaryTrips">0</strong><small>Viagens hoje</small
+                  ><b>Ver todas</b>
                 </article>
                 <article>
-                  <span>▣</span><strong>0</strong><small>Multas</small><b>Nenhuma</b>
+                  <svg class="profile-card-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#document"></use></svg
+                  ><strong>0</strong><small>Multas</small><b>Nenhuma</b>
                 </article>
               </div>
             </section>
@@ -765,7 +766,11 @@
 
             <section class="profile-ref-card profile-activity-card">
               <header>
-                <h2>▣ &nbsp; Atividades recentes</h2>
+                <h2>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#document"></use></svg
+                  >Atividades recentes
+                </h2>
                 <button type="button" data-view-shortcut="timeline">Ver todas</button>
               </header>
               <div id="profileTrips" class="profile-trips">
@@ -775,7 +780,9 @@
 
             <div class="profile-right-stack">
               <section class="profile-ref-card profile-action-card">
-                <span class="profile-action-icon">♢</span>
+                <svg class="profile-action-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg#shield"></use>
+                </svg>
                 <div>
                   <h3>Segurança da conta</h3>
                   <p>Gerencie sua senha e autenticação.</p>
@@ -784,7 +791,9 @@
                 <button type="button" data-profile-settings="security">Gerenciar segurança</button>
               </section>
               <section class="profile-ref-card profile-action-card">
-                <span class="profile-action-icon">◎</span>
+                <svg class="profile-action-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg#bell"></use>
+                </svg>
                 <div>
                   <h3>Preferências de alertas</h3>
                   <p>Escolha quais eventos receber.</p>
@@ -796,31 +805,51 @@
 
             <section class="profile-bottom-grid">
               <article class="profile-ref-card profile-bottom-card" id="profileFinesSummaryCard">
-                <h3>▣ &nbsp; Multas e documentos</h3>
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#document"></use></svg
+                  >Multas e documentos
+                </h3>
                 <div class="profile-ok-symbol">✓</div>
                 <strong>Nenhuma multa encontrada</strong>
                 <p>Você está em dia com este veículo.</p>
                 <button type="button" data-profile-settings="fines">Ver documentos</button>
               </article>
               <article class="profile-ref-card profile-bottom-card">
-                <h3>◉ &nbsp; Aparência e tema do mapa</h3>
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#palette"></use></svg
+                  >Aparência e tema do mapa
+                </h3>
                 <p>Personalize o tema e os locais exibidos.</p>
                 <b>Automático</b
                 ><button type="button" data-profile-settings="map">Personalizar</button>
               </article>
               <article class="profile-ref-card profile-bottom-card">
-                <h3>▣ &nbsp; CNH do condutor</h3>
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#id-card"></use></svg
+                  >CNH do condutor
+                </h3>
                 <p>Envie sua CNH para validação.</p>
                 <b>Pendente</b><button type="button" data-profile-settings="cnh">Enviar CNH</button>
               </article>
               <article class="profile-ref-card profile-bottom-card">
-                <h3>▯ &nbsp; Dispositivos conectados</h3>
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#device"></use></svg
+                  >Dispositivos conectados
+                </h3>
                 <p>Gerencie os dispositivos vinculados.</p>
                 <b>Conta ativa</b
                 ><button type="button" data-profile-action="devices">Gerenciar dispositivos</button>
               </article>
               <article class="profile-ref-card profile-bottom-card profile-logout-card">
-                <h3>↪ &nbsp; Sair da conta</h3>
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg#logout"></use></svg
+                  >Sair da conta
+                </h3>
                 <p>Encerre sua sessão com segurança.</p>
                 <button type="button" id="profileLogoutBtn">Sair da conta</button>
               </article>
