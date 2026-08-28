@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
-    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-4" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-5" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -649,9 +649,10 @@
             <section class="profile-weather-card">
               <strong
                 ><svg class="profile-weather-icon" aria-hidden="true">
-                  <use href="/images/ui-icons.svg#sun"></use></svg
-                ><span>28°C</span></strong
-              ><small>Ensolarado</small><b>São Paulo, SP</b>
+                  <use href="/images/ui-icons.svg?v=20260828-3#sun"></use></svg
+                ><span id="profileWeatherTemperature">--°C</span></strong
+              ><small id="profileWeatherCondition">Consultando clima…</small
+              ><b id="profileWeatherLocation">Localização do mapa</b>
             </section>
           </aside>
 
@@ -670,7 +671,9 @@
                 <div>
                   <code id="profileContactId">—</code
                   ><button id="copyProfileContactId" type="button" title="Copiar ID">
-                    <svg aria-hidden="true"><use href="/images/ui-icons.svg#copy"></use></svg>
+                    <svg aria-hidden="true">
+                      <use href="/images/ui-icons.svg?v=20260828-3#copy"></use>
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -703,31 +706,32 @@
                 <h2>Resumo da sua conta</h2>
                 <small
                   >Atualizado agora
-                  <svg aria-hidden="true"><use href="/images/ui-icons.svg#refresh"></use></svg
+                  <svg aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#refresh"></use></svg
                 ></small>
               </header>
               <div class="profile-summary-grid">
                 <article>
                   <svg class="profile-card-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg?v=20260828-2#vehicle"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#vehicle"></use></svg
                   ><strong id="profileSummaryVehicles">0</strong><small>Veículo ativo</small
                   ><b>Online</b>
                 </article>
                 <article>
                   <svg class="profile-card-icon profile-icon-alert" aria-hidden="true">
-                    <use href="/images/ui-icons.svg?v=20260828-2#bell"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#bell"></use></svg
                   ><strong id="profileSummaryAlerts">0</strong><small>Alertas ativos</small
                   ><b>Ver todos</b>
                 </article>
                 <article>
                   <svg class="profile-card-icon profile-icon-route" aria-hidden="true">
-                    <use href="/images/ui-icons.svg?v=20260828-2#route"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#route"></use></svg
                   ><strong id="profileSummaryTrips">0</strong><small>Viagens hoje</small
                   ><b>Ver todas</b>
                 </article>
                 <article>
                   <svg class="profile-card-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg?v=20260828-2#document"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
                   ><strong>0</strong><small>Multas</small><b>Nenhuma</b>
                 </article>
               </div>
@@ -768,7 +772,7 @@
               <header>
                 <h2>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#document"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
                   >Atividades recentes
                 </h2>
                 <button type="button" data-view-shortcut="timeline">Ver todas</button>
@@ -781,7 +785,7 @@
             <div class="profile-right-stack">
               <section class="profile-ref-card profile-action-card">
                 <svg class="profile-action-icon" aria-hidden="true">
-                  <use href="/images/ui-icons.svg#shield"></use>
+                  <use href="/images/ui-icons.svg?v=20260828-3#shield"></use>
                 </svg>
                 <div>
                   <h3>Segurança da conta</h3>
@@ -792,7 +796,7 @@
               </section>
               <section class="profile-ref-card profile-action-card">
                 <svg class="profile-action-icon" aria-hidden="true">
-                  <use href="/images/ui-icons.svg#bell"></use>
+                  <use href="/images/ui-icons.svg?v=20260828-3#bell"></use>
                 </svg>
                 <div>
                   <h3>Preferências de alertas</h3>
@@ -807,7 +811,7 @@
               <article class="profile-ref-card profile-bottom-card" id="profileFinesSummaryCard">
                 <h3>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#document"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
                   >Multas e documentos
                 </h3>
                 <div class="profile-ok-symbol">✓</div>
@@ -818,7 +822,7 @@
               <article class="profile-ref-card profile-bottom-card">
                 <h3>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#palette"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#palette"></use></svg
                   >Aparência e tema do mapa
                 </h3>
                 <p>Personalize o tema e os locais exibidos.</p>
@@ -828,7 +832,7 @@
               <article class="profile-ref-card profile-bottom-card">
                 <h3>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#id-card"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#id-card"></use></svg
                   >CNH do condutor
                 </h3>
                 <p>Envie sua CNH para validação.</p>
@@ -837,7 +841,7 @@
               <article class="profile-ref-card profile-bottom-card">
                 <h3>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#device"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#device"></use></svg
                   >Dispositivos conectados
                 </h3>
                 <p>Gerencie os dispositivos vinculados.</p>
@@ -847,7 +851,7 @@
               <article class="profile-ref-card profile-bottom-card profile-logout-card">
                 <h3>
                   <svg class="profile-title-icon" aria-hidden="true">
-                    <use href="/images/ui-icons.svg#logout"></use></svg
+                    <use href="/images/ui-icons.svg?v=20260828-3#logout"></use></svg
                   >Sair da conta
                 </h3>
                 <p>Encerre sua sessão com segurança.</p>

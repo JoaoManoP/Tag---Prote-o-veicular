@@ -343,6 +343,24 @@
   }
 }
 
+#profileView .profile-weather-card {
+  z-index: 2;
+}
+
+#profileView .profile-weather-card b,
+#profileView .profile-weather-card small {
+  overflow-wrap: anywhere;
+}
+
+#profileView .profile-title-icon,
+#profileView .profile-action-icon,
+#profileView .profile-card-icon,
+#profileView .profile-weather-icon {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
 /* Resumo: mantém a proporção e o contraste exatos do cartão de referência. */
 #profileView .profile-reference-grid > .profile-summary-card {
   height: 240px;
@@ -1395,4 +1413,24 @@
   #profileView .profile-bottom-card {
     min-height: 175px;
   }
+}
+
+/* Regras finais do perfil: não permitir que estilos legados ocultem o mapa. */
+body[data-active-panel='profile'] .map-panel-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#profileView.view.active {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-shell {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }

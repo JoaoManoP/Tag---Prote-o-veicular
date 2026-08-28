@@ -819,9 +819,21 @@ window.RastroMap.ready
         card.querySelector('small').textContent = [data.location.name, data.location.region]
           .filter(Boolean)
           .join(' · ');
+        if ($('profileWeatherTemperature'))
+          $('profileWeatherTemperature').textContent = `${Math.round(data.current.temperatureC)}°C`;
+        if ($('profileWeatherCondition'))
+          $('profileWeatherCondition').textContent = data.current.condition || 'Condição atual';
+        if ($('profileWeatherLocation'))
+          $('profileWeatherLocation').textContent = [data.location.name, data.location.region]
+            .filter(Boolean)
+            .join(' · ');
       } catch (error) {
         card.querySelector('span:not(.weather-icon)').textContent = 'Clima indisponível';
         card.querySelector('small').textContent = error.message;
+        if ($('profileWeatherCondition'))
+          $('profileWeatherCondition').textContent = 'Clima indisponível';
+        if ($('profileWeatherLocation'))
+          $('profileWeatherLocation').textContent = error.message || 'Verifique a localização';
       }
     }
     const accuracyPresentation = accuracy => {
