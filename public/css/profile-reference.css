@@ -343,6 +343,80 @@
   }
 }
 
+/* Composição final: apenas os cartões flutuam; nunca existe uma placa branca por trás. */
+body:has(#profileView.active) .map-panel-backdrop,
+body:has(#profileView.active)::before,
+body:has(#profileView.active)::after {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body:has(#profileView.active) #profileView,
+body:has(#profileView.active) #profileView.view.active,
+body:has(#profileView.active) #profileView .profile-reference-shell {
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-grid,
+#profileView .profile-bottom-grid,
+#profileView .profile-right-stack {
+  gap: 12px !important;
+}
+
+#profileView .profile-ref-card {
+  border-color: rgba(151, 171, 190, 0.38) !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  box-shadow: 0 12px 30px rgba(13, 37, 61, 0.1) !important;
+}
+
+#profileView .profile-summary-card {
+  background:
+    radial-gradient(circle at 72% 0, rgba(8, 123, 240, 0.12), transparent 42%),
+    linear-gradient(140deg, #071d35, #0b2847) !important;
+}
+
+#profileView .profile-avatar:not(.has-photo) {
+  background: linear-gradient(145deg, #ff2d0a, #ff7900) !important;
+  color: #fff !important;
+}
+
+#profileView .profile-trip {
+  grid-template-columns: 34px minmax(0, 1fr) auto auto !important;
+  column-gap: 10px;
+}
+
+#profileView .profile-trip-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #247df2;
+  color: #fff !important;
+}
+
+#profileView .profile-trip-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (max-width: 760px) {
+  #profileView .profile-trip {
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+  }
+
+  #profileView .profile-trip > span:not(.profile-trip-icon),
+  #profileView .profile-trip > small {
+    grid-column: 2;
+  }
+}
+
 #profileView .profile-weather-card {
   z-index: 2;
 }

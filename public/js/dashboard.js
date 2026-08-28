@@ -2226,7 +2226,7 @@ window.RastroMap.ready
         ? data.recentTrips
             .map(
               t =>
-                `<div class="profile-trip"><b>${escapeHtml(t.vehicle?.nickname || 'Veículo')}</b><span>${new Date(t.createdAt).toLocaleString('pt-BR')}</span><small>${t.closedAt ? 'Finalizada' : 'Em aberto'}</small></div>`
+                `<div class="profile-trip"><span class="profile-trip-icon"><svg aria-hidden="true"><use href="/images/ui-icons.svg?v=20260828-3#location"></use></svg></span><b>${escapeHtml(t.vehicle?.nickname || 'Veículo')}</b><span>${new Date(t.createdAt).toLocaleString('pt-BR')}</span><small>${t.closedAt ? 'Finalizada' : 'Em aberto'}</small></div>`
             )
             .join('')
         : '<div class="empty-state">Nenhuma viagem registrada.</div>';
