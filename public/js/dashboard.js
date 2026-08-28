@@ -3718,6 +3718,7 @@ window.RastroMap.ready
     const openProfileSettings = section => {
       const dialog = $('profileSettingsDialog');
       if (!dialog) return;
+      const content = $('profileSettingsContent');
       const titles = {
         security: 'Segurança da conta',
         alerts: 'Preferências de alertas',
@@ -3727,18 +3728,20 @@ window.RastroMap.ready
       };
       $('profileSettingsTitle').textContent = titles[section] || 'Gerenciar perfil';
       dialog.dataset.section = section || '';
+      const visibility = {
+        map: card => card.matches('.profile-poi-card'),
+        cnh: card => card.matches('#profileDriverDocumentCard'),
+        alerts: card => card.matches('#profileNotificationCard'),
+        fines: card => card.matches('#profileFinesCard'),
+        security: card =>
+          card.matches('#profileTwoFactorCard, .account-verification-card, .privacy-card')
+      };
+      const isVisible = visibility[section] || (() => true);
+      content?.querySelectorAll(':scope > .card').forEach(card => {
+        card.hidden = !isVisible(card);
+      });
       dialog.showModal();
-      const target =
-        section === 'map'
-          ? $('profilePoiSettings')
-          : section === 'cnh'
-            ? $('profileDriverDocumentCard')
-            : section === 'alerts'
-              ? $('profileNotificationCard')
-              : section === 'fines'
-                ? $('profileFinesCard')
-                : $('profileTwoFactorCard') || dialog.querySelector('.privacy-card');
-      target?.scrollIntoView({ block: 'start' });
+      if (content) content.scrollTop = 0;
     };
     document
       .querySelectorAll('[data-profile-settings]')

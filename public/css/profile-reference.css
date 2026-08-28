@@ -1742,3 +1742,263 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
     padding-inline: 14px !important;
   }
 }
+
+/* Modal de configurações: cada atalho exibe apenas sua seção, sem herdar o painel escuro. */
+#profileView .profile-settings-dialog {
+  width: min(900px, calc(100vw - 40px));
+  max-width: 900px;
+  max-height: min(88dvh, 900px);
+  overflow: hidden;
+  color-scheme: light;
+  border: 1px solid #b9c9d7;
+  border-radius: 20px;
+  background: #eef3f7 !important;
+}
+
+#profileView .profile-settings-dialog > header {
+  min-height: 82px;
+  padding: 17px 22px;
+}
+
+#profileView .profile-settings-dialog > header h2 {
+  margin-top: 3px;
+  font-size: 23px;
+}
+
+#profileView .profile-settings-content {
+  display: block;
+  width: 100%;
+  max-height: calc(88dvh - 82px);
+  padding: 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: #eef3f7;
+}
+
+#profileView .profile-settings-content > .card[hidden] {
+  display: none !important;
+}
+
+#profileView .profile-settings-content > .card {
+  position: static !important;
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 0 16px !important;
+  padding: 24px !important;
+  overflow: visible !important;
+  border: 1px solid #d2dde6 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #12283c !important;
+  box-shadow: 0 8px 22px rgba(16, 43, 66, 0.08) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content > .card:last-child {
+  margin-bottom: 0 !important;
+}
+
+#profileView .profile-settings-content .card h2,
+#profileView .profile-settings-content .card h3,
+#profileView .profile-settings-content .card strong,
+#profileView .profile-settings-content .card b,
+#profileView .profile-settings-content .card label {
+  color: #12283c !important;
+}
+
+#profileView .profile-settings-content .card h2 {
+  margin: 3px 0 8px;
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+#profileView .profile-settings-content .card h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+#profileView .profile-settings-content .card p,
+#profileView .profile-settings-content .card small {
+  color: #65798b !important;
+  line-height: 1.5;
+}
+
+#profileView .profile-settings-content .eyebrow {
+  color: #087bf0 !important;
+}
+
+#profileView .profile-settings-content .profile-poi-settings,
+#profileView .profile-settings-content .notification-preference-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label,
+#profileView .profile-settings-content .notification-preference-list label {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid #d3dfe8;
+  border-radius: 11px;
+  background: #f6f9fb !important;
+  font-size: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content input[type='checkbox'] {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  flex: none;
+  accent-color: #087bf0;
+}
+
+#profileView .profile-settings-content input:not([type='checkbox']),
+#profileView .profile-settings-content select,
+#profileView .profile-settings-content textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  margin-top: 6px;
+  padding: 10px 12px !important;
+  border: 1px solid #c9d6e0 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #12283c !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content input[type='file'] {
+  padding: 7px !important;
+}
+
+#profileView .profile-settings-content button:not(.danger) {
+  min-height: 40px !important;
+  padding: 9px 14px !important;
+  border: 1px solid #b7cad9 !important;
+  border-radius: 10px !important;
+  background: #e8f1f8 !important;
+  color: #153b5c !important;
+  font-weight: 750 !important;
+}
+
+#profileView .profile-settings-content .verification-row,
+#profileView .profile-settings-content .empty-fines {
+  border-color: #d8e2ea !important;
+  background: #f6f9fb !important;
+}
+
+#profileView .profile-settings-content .privacy-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#profileView .profile-settings-content .privacy-card > h2 {
+  grid-column: 1 / -1;
+}
+
+#profileView .profile-settings-content .password-change,
+#profileView .profile-settings-content .privacy-export,
+#profileView .profile-settings-content .privacy-danger {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #d8e2ea;
+  border-radius: 13px;
+  background: #f7fafc;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content .privacy-danger {
+  grid-column: 1 / -1;
+  border-color: #f0c8c5;
+  background: #fff8f7;
+}
+
+#profileView .profile-settings-content .privacy-danger .danger {
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #e9322c !important;
+  color: #fff !important;
+}
+
+@media (max-width: 680px) {
+  #profileView .profile-settings-dialog {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  #profileView .profile-settings-content {
+    max-height: calc(100dvh - 102px);
+    padding: 14px;
+  }
+
+  #profileView .profile-settings-content > .card {
+    padding: 18px !important;
+  }
+
+  #profileView .profile-settings-content .profile-poi-settings,
+  #profileView .profile-settings-content .notification-preference-list,
+  #profileView .profile-settings-content .privacy-card {
+    grid-template-columns: 1fr;
+  }
+
+  #profileView .profile-settings-content .privacy-card > h2,
+  #profileView .profile-settings-content .privacy-danger {
+    grid-column: 1;
+  }
+}
+
+/* Especificidade deliberada: impede o tema do painel de recolorir o conteúdo do modal. */
+#profileView #profileSettingsDialog .profile-settings-content > .card {
+  position: static !important;
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  border-color: #d2dde6 !important;
+  background: #fff !important;
+  color: #12283c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content > .card[hidden] {
+  display: none !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content .card h2,
+#profileView #profileSettingsDialog .profile-settings-content .card h3,
+#profileView #profileSettingsDialog .profile-settings-content .card strong,
+#profileView #profileSettingsDialog .profile-settings-content .card label {
+  color: #12283c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content .card p,
+#profileView #profileSettingsDialog .profile-settings-content .card small {
+  color: #65798b !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content button:not(.danger) {
+  border-color: #b7cad9 !important;
+  background: #e8f1f8 !important;
+  color: #153b5c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content input,
+#profileView #profileSettingsDialog .profile-settings-content select,
+#profileView #profileSettingsDialog .profile-settings-content textarea {
+  border-color: #c9d6e0 !important;
+  background-color: #fff !important;
+  color: #12283c !important;
+}
