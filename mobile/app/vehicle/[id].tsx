@@ -55,7 +55,11 @@ export default function VehicleDetail() {
         {field('Consumo rodoviário', vehicle.road ? `${vehicle.road} km/L` : null)}
         {field('FIPE', 'Não disponível para este cadastro')}
       </Card>
-      <Button icon="car-cog" title="Horários, velocidade e combustível" onPress={() => router.push('/vehicle-controls')} />
+      <Button
+        icon="car-cog"
+        title="Horários, velocidade e combustível"
+        onPress={() => router.push('/vehicle-controls')}
+      />
     </Screen>
   );
 }

@@ -103,9 +103,7 @@ export default function Trips() {
           );
           return (
             <Pressable
-              onPress={() =>
-                router.push({ pathname: '/trip/[id]', params: { id: item.id } })
-              }
+              onPress={() => router.push({ pathname: '/trip/[id]', params: { id: item.id } })}
             >
               <Card>
                 <View

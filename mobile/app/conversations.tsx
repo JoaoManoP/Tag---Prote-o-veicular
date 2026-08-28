@@ -141,12 +141,12 @@ export default function Conversations() {
         }
         renderItem={({ item }) => (
           <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/conversation/[id]',
-                  params: { id: item.id, name: item.peer.displayName }
-                })
-              }
+            onPress={() =>
+              router.push({
+                pathname: '/conversation/[id]',
+                params: { id: item.id, name: item.peer.displayName }
+              })
+            }
           >
             <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View

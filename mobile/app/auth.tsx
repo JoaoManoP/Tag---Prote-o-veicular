@@ -65,7 +65,14 @@ export default function Auth() {
         title={mode === 'login' ? 'Criar minha conta' : 'Já tenho uma conta'}
         onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
       />
-      {mode === 'login' && <Button secondary icon="lock-reset" title="Esqueci minha senha" onPress={() => router.push('/recovery')} />}
+      {mode === 'login' && (
+        <Button
+          secondary
+          icon="lock-reset"
+          title="Esqueci minha senha"
+          onPress={() => router.push('/recovery')}
+        />
+      )}
     </Screen>
   );
 }

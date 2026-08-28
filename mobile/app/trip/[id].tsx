@@ -65,20 +65,22 @@ export default function TripDetail() {
             track={track}
             showUserLocation={false}
             perspective={false}
-            points={[
-              {
-                id: 'trip-start',
-                latitude: track[0].latitude,
-                longitude: track[0].longitude,
-                kind: 'start'
-              },
-              {
-                id: 'trip-end',
-                latitude: track[track.length - 1].latitude,
-                longitude: track[track.length - 1].longitude,
-                kind: 'end'
-              }
-            ] satisfies MapPoint[]}
+            points={
+              [
+                {
+                  id: 'trip-start',
+                  latitude: track[0].latitude,
+                  longitude: track[0].longitude,
+                  kind: 'start'
+                },
+                {
+                  id: 'trip-end',
+                  latitude: track[track.length - 1].latitude,
+                  longitude: track[track.length - 1].longitude,
+                  kind: 'end'
+                }
+              ] satisfies MapPoint[]
+            }
           />
         </View>
       ) : (
@@ -132,21 +134,36 @@ export default function TripDetail() {
           Amostras válidas de GPS: {comparison.metricSampleCount || track.length}
         </Text>
       </Card>
-      <Button icon="play-circle-outline" title="Reproduzir viagem" onPress={() => router.push(`/trip-replay/${trip.id}` as never)} />
-      {track.some((point, index) => index > 0 && point.timestamp - track[index - 1].timestamp > 30000) && (
-        <Button secondary icon="auto-fix" title="Reconstruir maior lacuna" onPress={async () => {
-          let gapIndex = 1;
-          for (let index = 2; index < track.length; index += 1)
-            if (track[index].timestamp - track[index - 1].timestamp > track[gapIndex].timestamp - track[gapIndex - 1].timestamp) gapIndex = index;
-          await api.post(`/api/trips/${trip.id}/reconstruct`, {
-            before: track[gapIndex - 1],
-            after: track[gapIndex],
-            lostAt: track[gapIndex - 1].timestamp,
-            reconnectedAt: track[gapIndex].timestamp,
-            duration: track[gapIndex].timestamp - track[gapIndex - 1].timestamp
-          });
-          await load();
-        }} />
+      <Button
+        icon="play-circle-outline"
+        title="Reproduzir viagem"
+        onPress={() => router.push(`/trip-replay/${trip.id}` as never)}
+      />
+      {track.some(
+        (point, index) => index > 0 && point.timestamp - track[index - 1].timestamp > 30000
+      ) && (
+        <Button
+          secondary
+          icon="auto-fix"
+          title="Reconstruir maior lacuna"
+          onPress={async () => {
+            let gapIndex = 1;
+            for (let index = 2; index < track.length; index += 1)
+              if (
+                track[index].timestamp - track[index - 1].timestamp >
+                track[gapIndex].timestamp - track[gapIndex - 1].timestamp
+              )
+                gapIndex = index;
+            await api.post(`/api/trips/${trip.id}/reconstruct`, {
+              before: track[gapIndex - 1],
+              after: track[gapIndex],
+              lostAt: track[gapIndex - 1].timestamp,
+              reconnectedAt: track[gapIndex].timestamp,
+              duration: track[gapIndex].timestamp - track[gapIndex - 1].timestamp
+            });
+            await load();
+          }}
+        />
       )}
       {!trip.endedAt && (
         <Button

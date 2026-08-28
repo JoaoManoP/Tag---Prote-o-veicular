@@ -104,7 +104,12 @@ export default function Profile() {
         </View>
       </Card>
       <Card>
-        {row('server-network', 'Central do sistema', 'APIs, provedores e módulos sincronizados', '/system')}
+        {row(
+          'server-network',
+          'Central do sistema',
+          'APIs, provedores e módulos sincronizados',
+          '/system'
+        )}
         {row('account-edit-outline', 'Minha conta', 'Dados pessoais e avatar', '/settings')}
         {row('car-multiple', 'Meus veículos', 'Garagem e detalhes técnicos', '/vehicles')}
         {row(
@@ -139,7 +144,12 @@ export default function Profile() {
           'Sessão, exportação e conta',
           '/privacy'
         )}
-        {row('shield-key-outline', 'Segurança da conta', 'Senha e autenticação em dois fatores', '/security')}
+        {row(
+          'shield-key-outline',
+          'Segurança da conta',
+          'Senha e autenticação em dois fatores',
+          '/security'
+        )}
         {row('lifebuoy', 'Central de ajuda', 'Suporte e orientações', '/help')}
       </Card>
       <Button danger icon="logout" title="Sair da conta" onPress={logout} />

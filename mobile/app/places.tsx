@@ -13,8 +13,11 @@ export default function Places() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>([]);
   const [message, setMessage] = useState('');
-  const load = () => api.get<{ places: SavedPlace[] }>('/api/saved-places').then(data => setPlaces(data.places));
-  useEffect(() => { void load().catch(() => setMessage('Não foi possível carregar os locais.')); }, []);
+  const load = () =>
+    api.get<{ places: SavedPlace[] }>('/api/saved-places').then(data => setPlaces(data.places));
+  useEffect(() => {
+    void load().catch(() => setMessage('Não foi possível carregar os locais.'));
+  }, []);
   const search = async () => {
     try {
       const [addresses, system] = await Promise.all([
@@ -26,7 +29,11 @@ export default function Places() {
       const combined = [
         ...system.results
           .filter(item => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
-          .map(item => ({ ...item, label: item.title || item.label, address: item.subtitle || item.address })),
+          .map(item => ({
+            ...item,
+            label: item.title || item.label,
+            address: item.subtitle || item.address
+          })),
         ...addresses
       ];
       setResults(combined);
@@ -48,7 +55,12 @@ export default function Places() {
     <Screen>
       <Header title="Locais e busca" subtitle="Os mesmos favoritos usados no planejador web" />
       <Card>
-        <Input label="Endereço, CEP ou estabelecimento" value={query} onChangeText={setQuery} onSubmitEditing={search} />
+        <Input
+          label="Endereço, CEP ou estabelecimento"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={search}
+        />
         <Button icon="magnify" title="Buscar" disabled={query.trim().length < 2} onPress={search} />
       </Card>
       {!!message && <Text style={{ color: theme.colors.muted }}>{message}</Text>}
@@ -57,18 +69,46 @@ export default function Places() {
           <Text style={{ color: theme.colors.text, fontWeight: '900' }}>{item.label}</Text>
           {!!item.address && <Text style={{ color: theme.colors.muted }}>{item.address}</Text>}
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1 }}><Button compact secondary title="Salvar Casa" onPress={() => save('home', item)} /></View>
-            <View style={{ flex: 1 }}><Button compact secondary title="Salvar Trabalho" onPress={() => save('work', item)} /></View>
+            <View style={{ flex: 1 }}>
+              <Button compact secondary title="Salvar Casa" onPress={() => save('home', item)} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                compact
+                secondary
+                title="Salvar Trabalho"
+                onPress={() => save('work', item)}
+              />
+            </View>
           </View>
         </Card>
       ))}
-      {places.length ? places.map(item => (
-        <Card key={item.placeKey}>
-          <Text style={{ color: theme.colors.text, fontWeight: '900', fontSize: 17 }}>{item.placeKey === 'home' ? 'Casa' : 'Trabalho'}</Text>
-          <Text style={{ color: theme.colors.muted }}>{item.address}</Text>
-          <Button secondary compact icon="delete-outline" title="Remover" onPress={async () => { await api.delete(`/api/saved-places/${item.placeKey}`); await load(); }} />
-        </Card>
-      )) : <EmptyState icon="map-marker-star-outline" title="Nenhum local salvo" message="Busque um endereço para sincronizar Casa ou Trabalho." />}
+      {places.length ? (
+        places.map(item => (
+          <Card key={item.placeKey}>
+            <Text style={{ color: theme.colors.text, fontWeight: '900', fontSize: 17 }}>
+              {item.placeKey === 'home' ? 'Casa' : 'Trabalho'}
+            </Text>
+            <Text style={{ color: theme.colors.muted }}>{item.address}</Text>
+            <Button
+              secondary
+              compact
+              icon="delete-outline"
+              title="Remover"
+              onPress={async () => {
+                await api.delete(`/api/saved-places/${item.placeKey}`);
+                await load();
+              }}
+            />
+          </Card>
+        ))
+      ) : (
+        <EmptyState
+          icon="map-marker-star-outline"
+          title="Nenhum local salvo"
+          message="Busque um endereço para sincronizar Casa ou Trabalho."
+        />
+      )}
     </Screen>
   );
 }

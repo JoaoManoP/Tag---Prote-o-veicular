@@ -209,10 +209,30 @@ export default function Community() {
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={{ flex: 1 }}>
-                    <Button compact secondary title="Confirmar" onPress={async () => { await api.securePut(`/api/platform/road-reports/${item.id}/vote`, { vote: 'CONFIRM' }); await load(); }} />
+                    <Button
+                      compact
+                      secondary
+                      title="Confirmar"
+                      onPress={async () => {
+                        await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
+                          vote: 'CONFIRM'
+                        });
+                        await load();
+                      }}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Button compact secondary title="Não está mais lá" onPress={async () => { await api.securePut(`/api/platform/road-reports/${item.id}/vote`, { vote: 'RESOLVED' }); await load(); }} />
+                    <Button
+                      compact
+                      secondary
+                      title="Não está mais lá"
+                      onPress={async () => {
+                        await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
+                          vote: 'RESOLVED'
+                        });
+                        await load();
+                      }}
+                    />
                   </View>
                 </View>
               </Card>

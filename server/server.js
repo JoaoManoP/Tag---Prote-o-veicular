@@ -2166,7 +2166,9 @@ function createApplication(options = {}) {
   });
   const gamificationProgress = userId => {
     const completedTrips = Number(
-        database.prepare('SELECT COUNT(*) AS count FROM trips WHERE user_id=? AND ended_at IS NOT NULL').get(userId)?.count || 0
+        database
+          .prepare('SELECT COUNT(*) AS count FROM trips WHERE user_id=? AND ended_at IS NOT NULL')
+          .get(userId)?.count || 0
       ),
       positionStats = database
         .prepare(
@@ -2174,13 +2176,21 @@ function createApplication(options = {}) {
         )
         .get(userId),
       activeFences = Number(
-        database.prepare('SELECT COUNT(*) AS count FROM geofences WHERE user_id=? AND enabled=1').get(userId)?.count || 0
+        database
+          .prepare('SELECT COUNT(*) AS count FROM geofences WHERE user_id=? AND enabled=1')
+          .get(userId)?.count || 0
       ),
       scheduleAlerts = Number(
-        database.prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='OUTSIDE_ALLOWED_TIME'").get(userId)?.count || 0
+        database
+          .prepare(
+            "SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='OUTSIDE_ALLOWED_TIME'"
+          )
+          .get(userId)?.count || 0
       ),
       fenceAlerts = Number(
-        database.prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='GEOFENCE_EXIT'").get(userId)?.count || 0
+        database
+          .prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='GEOFENCE_EXIT'")
+          .get(userId)?.count || 0
       ),
       totalPositions = Number(positionStats?.total || 0),
       suspiciousPositions = Number(positionStats?.suspicious || 0),
@@ -2208,18 +2218,26 @@ function createApplication(options = {}) {
   };
   app.get('/api/gamification/me', requireAuth, (req, res) => {
     const row = database
-      .prepare('SELECT enabled,display_name AS displayName,updated_at AS updatedAt FROM gamification_profiles WHERE user_id=?')
+      .prepare(
+        'SELECT enabled,display_name AS displayName,updated_at AS updatedAt FROM gamification_profiles WHERE user_id=?'
+      )
       .get(req.session.userId);
     res.json({
-      profile: row ? { ...row, enabled: Boolean(row.enabled) } : { enabled: false, displayName: '' },
+      profile: row
+        ? { ...row, enabled: Boolean(row.enabled) }
+        : { enabled: false, displayName: '' },
       progress: gamificationProgress(req.session.userId)
     });
   });
   app.put('/api/gamification/me', requireAuth, (req, res) => {
     const enabled = req.body?.enabled === true,
-      displayName = String(req.body?.displayName || '').trim().slice(0, 40);
+      displayName = String(req.body?.displayName || '')
+        .trim()
+        .slice(0, 40);
     if (enabled && displayName.length < 2)
-      return res.status(400).json({ error: 'Informe um nome público com pelo menos 2 caracteres.' });
+      return res
+        .status(400)
+        .json({ error: 'Informe um nome público com pelo menos 2 caracteres.' });
     const now = Date.now();
     database
       .prepare(
@@ -2235,9 +2253,16 @@ function createApplication(options = {}) {
       )
       .all()
       .map(item => ({ ...item, score: gamificationProgress(item.userId).score }))
-      .sort((left, right) => right.score - left.score || left.displayName.localeCompare(right.displayName, 'pt-BR'))
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.displayName.localeCompare(right.displayName, 'pt-BR')
+      )
       .slice(0, 50)
-      .map((item, index) => ({ position: index + 1, displayName: item.displayName, score: item.score }));
+      .map((item, index) => ({
+        position: index + 1,
+        displayName: item.displayName,
+        score: item.score
+      }));
     res.json({ ranking });
   });
   app.patch('/api/alerts/:id/read', requireAuth, (req, res) => {

@@ -79,7 +79,10 @@ function fenceCollection(geofences: Geofence[]): GeoJSON.FeatureCollection {
           type: 'Polygon',
           coordinates: [
             item.type === 'polygon' && item.points?.length
-              ? [...item.points.map(point => [point.longitude, point.latitude]), [item.points[0].longitude, item.points[0].latitude]]
+              ? [
+                  ...item.points.map(point => [point.longitude, point.latitude]),
+                  [item.points[0].longitude, item.points[0].latitude]
+                ]
               : circleCoordinates(item)
           ]
         }
@@ -121,12 +124,14 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
     api
       .get<MapConfig>('/api/map/config')
       .then(setConfig)
-      .catch(() => setConfig({
-        provider: 'maplibre',
-        styleUrl: DEFAULT_STYLE,
-        routeProvider: 'osrm',
-        geocodingProvider: 'photon'
-      }));
+      .catch(() =>
+        setConfig({
+          provider: 'maplibre',
+          styleUrl: DEFAULT_STYLE,
+          routeProvider: 'osrm',
+          geocodingProvider: 'photon'
+        })
+      );
   }, []);
   const center: LngLat = focus ? [focus.longitude, focus.latitude] : [-42.64, -19.58];
   const fences = useMemo(() => fenceCollection(geofences), [geofences]);

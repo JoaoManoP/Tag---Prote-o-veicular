@@ -38,7 +38,9 @@
       ],
       [
         "expo-camera",
-        { "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento e fotografe sua CNH." }
+        {
+          "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento e fotografe sua CNH."
+        }
       ],
       "expo-notifications",
       "expo-secure-store",

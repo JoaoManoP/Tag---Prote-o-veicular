@@ -75,10 +75,29 @@ export default function Geofences() {
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={{ flex: 1 }}>
-                    <Button compact secondary title={item.enabled ? 'Pausar' : 'Ativar'} onPress={async () => { await api.patch(`/api/geofences/${item.id}/status`, { enabled: !item.enabled }); await load(); }} />
+                    <Button
+                      compact
+                      secondary
+                      title={item.enabled ? 'Pausar' : 'Ativar'}
+                      onPress={async () => {
+                        await api.patch(`/api/geofences/${item.id}/status`, {
+                          enabled: !item.enabled
+                        });
+                        await load();
+                      }}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Button compact danger icon="delete-outline" title="Excluir" onPress={async () => { await api.delete(`/api/geofences/${item.id}`); await load(); }} />
+                    <Button
+                      compact
+                      danger
+                      icon="delete-outline"
+                      title="Excluir"
+                      onPress={async () => {
+                        await api.delete(`/api/geofences/${item.id}`);
+                        await load();
+                      }}
+                    />
                   </View>
                 </View>
               </Card>
