@@ -1564,3 +1564,119 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
     border-radius: 16px !important;
   }
 }
+
+/* Encaixe desktop: toda a grade permanece dentro da área útil destacada. */
+@media (min-width: 1121px) {
+  #profileView .profile-reference-shell {
+    padding: 32px 40px 8px !important;
+  }
+
+  #profileView .profile-reference-grid {
+    height: 100%;
+    min-height: 0;
+    margin-right: 96px;
+    grid-template-rows: minmax(0, 0.96fr) minmax(0, 1.32fr) minmax(0, 0.72fr);
+  }
+
+  #profileView .profile-identity-card,
+  #profileView .profile-summary-card,
+  #profileView .profile-vehicle-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-right-stack,
+  #profileView .profile-bottom-grid,
+  #profileView .profile-bottom-card {
+    min-height: 0 !important;
+  }
+
+  #profileView .profile-ref-card {
+    padding: 16px 18px;
+  }
+
+  #profileView .profile-ref-card header {
+    margin-bottom: 10px;
+  }
+
+  #profileView .profile-avatar {
+    width: 68px;
+    height: 68px;
+    margin-bottom: 8px;
+  }
+
+  #profileView .profile-contact-id {
+    margin: 10px 0 8px;
+    padding: 11px 13px;
+  }
+
+  #profileView .profile-contact-qr {
+    width: 132px;
+    height: 132px;
+  }
+
+  #profileView .profile-account-facts {
+    margin-top: 8px;
+  }
+
+  #profileView .profile-account-facts div {
+    padding: 6px 0;
+  }
+
+  #profileView .profile-summary-grid article {
+    min-height: 105px;
+    padding: 11px 12px;
+  }
+
+  #profileView .profile-vehicle-main {
+    min-height: 102px;
+  }
+
+  #profileView #profileVehicle3d {
+    height: 104px;
+  }
+
+  #profileView .profile-vehicle-telemetry {
+    margin: 2px 0 8px;
+  }
+
+  #profileView .profile-vehicle-telemetry > div {
+    padding: 8px 11px;
+  }
+
+  #profileView #profileVehicleDetailsBtn,
+  #profileView .profile-action-card > button,
+  #profileView .profile-bottom-card button {
+    min-height: 32px !important;
+    padding-block: 5px !important;
+  }
+
+  #profileView .profile-trip {
+    min-height: 44px;
+    padding-block: 9px;
+  }
+
+  #profileView .profile-right-stack {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  #profileView .profile-action-card {
+    padding: 14px 17px;
+  }
+
+  #profileView .profile-bottom-card {
+    padding: 14px 16px;
+  }
+
+  #profileView .profile-bottom-card h3 {
+    margin-bottom: 8px;
+  }
+
+  #profileView .profile-bottom-card p {
+    margin: 3px 0 7px;
+  }
+
+  #profileView .profile-ok-symbol {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 4px;
+    font-size: 18px;
+  }
+}
