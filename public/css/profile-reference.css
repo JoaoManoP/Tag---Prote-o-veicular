@@ -1572,11 +1572,13 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-reference-grid {
-    height: 100%;
+    height: auto;
+    max-height: 100%;
     min-height: 0;
     margin-right: 72px;
     grid-template-columns: 294px minmax(0, 1.25fr) minmax(0, 0.98fr);
-    grid-template-rows: minmax(0, 0.96fr) minmax(0, 1.32fr) minmax(0, 0.72fr);
+    grid-template-rows: auto auto auto;
+    align-content: start;
   }
 
   #profileView .profile-identity-card,
@@ -1590,9 +1592,22 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-reference-grid > .profile-summary-card {
-    height: auto;
-    min-height: 0;
-    align-self: stretch;
+    height: 240px;
+    min-height: 240px;
+    align-self: start;
+  }
+
+  #profileView .profile-vehicle-card {
+    min-height: 260px !important;
+  }
+
+  #profileView .profile-activity-card,
+  #profileView .profile-right-stack {
+    min-height: 340px !important;
+  }
+
+  #profileView .profile-bottom-card {
+    min-height: 180px !important;
   }
 
   #profileView .profile-ref-card {
@@ -1670,7 +1685,7 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   }
 
   #profileView .profile-right-stack {
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(158px, auto));
   }
 
   #profileView .profile-action-card {
