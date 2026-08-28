@@ -343,6 +343,68 @@
   }
 }
 
+/* Resumo: mantém a proporção e o contraste exatos do cartão de referência. */
+#profileView .profile-reference-grid > .profile-summary-card {
+  height: 240px;
+  min-height: 240px;
+  align-self: start;
+  padding: 22px;
+  color: #fff;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card header h2,
+#profileView .profile-reference-grid > .profile-summary-card header small,
+#profileView
+  .profile-reference-grid
+  > .profile-summary-card
+  .profile-summary-grid
+  article
+  > strong {
+  color: #fff !important;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > small {
+  color: #d2dfeb !important;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article {
+  display: grid;
+  min-height: 122px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  column-gap: 8px;
+  row-gap: 7px;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-card-icon {
+  display: block;
+  align-self: center;
+}
+
+#profileView
+  .profile-reference-grid
+  > .profile-summary-card
+  .profile-summary-grid
+  article
+  > strong {
+  align-self: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > small,
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > b {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  #profileView .profile-reference-grid > .profile-summary-card {
+    height: auto;
+    min-height: 0;
+  }
+}
+
 /* Perfil v3: painel central dimensionado como a referência, preservando o mapa ao redor. */
 #profileView.view.active {
   inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
