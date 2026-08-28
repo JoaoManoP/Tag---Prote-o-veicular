@@ -342,3 +342,204 @@
     grid-column: 1 !important;
   }
 }
+
+/*
+ * O perfil é uma página de informação, não uma janela modal. Estas regras ficam no
+ * fim do arquivo para neutralizar as dimensões fixas herdadas das demais telas secundárias.
+ */
+#profileView.view.active {
+  position: fixed !important;
+  inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+#profileView.view.active .profile-page {
+  width: min(100%, 1780px) !important;
+  min-height: 100% !important;
+  margin-inline: auto !important;
+  padding: clamp(22px, 2.3vw, 44px) clamp(18px, 3vw, 56px) 64px clamp(286px, 20vw, 336px) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-layout {
+  grid-template-columns:
+    minmax(270px, 0.72fr)
+    minmax(430px, 1.35fr)
+    minmax(350px, 1fr);
+}
+
+#profileView .profile-live-card {
+  top: clamp(96px, 9vw, 132px);
+  left: clamp(18px, 3vw, 56px);
+  width: clamp(226px, 16.5vw, 260px);
+  box-sizing: border-box;
+}
+
+#profileView .card {
+  min-width: 0;
+  padding: clamp(18px, 1.65vw, 28px) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-contact-id code,
+#profileView .profile-trip > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1500px) {
+  #profileView .profile-layout {
+    gap: 18px;
+  }
+  #profileView .profile-summary-grid article {
+    min-height: 126px;
+  }
+}
+
+/* Notebook, monitor 4:3 e CRT largo: duas colunas confortáveis. */
+@media (max-width: 1280px) {
+  #profileView.view.active .profile-page {
+    padding-left: clamp(238px, 23vw, 286px) !important;
+  }
+  #profileView .profile-live-card {
+    width: clamp(204px, 19vw, 238px);
+  }
+  #profileView .profile-layout {
+    grid-template-columns: minmax(245px, 0.72fr) minmax(430px, 1.28fr);
+  }
+  #profileView .profile-card {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  #profileView .profile-summary-card,
+  #profileView .profile-vehicle-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-poi-card {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 961px) and (max-width: 1280px) {
+  #profileView .profile-live-card {
+    position: absolute;
+    margin: 0;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CRT 800x600, tablets e janelas estreitas: fluxo vertical, sem painel lateral fixo. */
+@media (max-width: 960px) {
+  #profileView.view.active .profile-page {
+    padding: 22px 18px 54px !important;
+  }
+  #profileView .profile-live-card {
+    position: static;
+    width: 100%;
+    margin: 0 0 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  #profileView .profile-live-card > strong,
+  #profileView #profileLiveAddress {
+    text-align: right;
+  }
+  #profileView .profile-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  #profileView .profile-card,
+  #profileView .profile-summary-card,
+  #profileView .profile-activity-card,
+  #profileView .privacy-card {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  #profileView .profile-vehicle-card {
+    grid-column: 1;
+  }
+  #profileView .profile-poi-card {
+    grid-column: 2;
+  }
+  #profileView .privacy-card {
+    grid-template-columns: 1fr;
+  }
+  #profileView .privacy-card > * {
+    grid-column: 1 !important;
+  }
+}
+
+/* Telefones e CRT muito estreito: uma coluna e controles com área de toque adequada. */
+@media (max-width: 640px) {
+  #profileView.view.active {
+    inset: calc(64px + env(safe-area-inset-top)) 0 calc(64px + env(safe-area-inset-bottom)) !important;
+    scrollbar-gutter: auto;
+  }
+  #profileView.view.active .profile-page {
+    padding: 16px 10px 34px !important;
+  }
+  #profileView .page-heading {
+    padding-right: 0 !important;
+  }
+  #profileView .page-heading p {
+    max-width: none !important;
+  }
+  #profileView .profile-live-card {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+  #profileView .profile-live-card > strong,
+  #profileView #profileLiveAddress {
+    text-align: left;
+  }
+  #profileView .profile-layout,
+  #profileView .profile-summary-grid,
+  #profileView .profile-poi-settings,
+  #profileView .profile-vehicle-main,
+  #profileView .profile-vehicle-telemetry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #profileView .profile-layout > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+  #profileView .profile-summary-grid article {
+    min-height: 92px;
+  }
+  #profileView .profile-vehicle-main {
+    text-align: center;
+  }
+  #profileVehicle3d {
+    height: 180px;
+  }
+  #profileView .profile-section-title {
+    flex-wrap: wrap;
+  }
+  #profileView button,
+  #profileView .profile-poi-settings label {
+    min-height: 44px !important;
+  }
+}
+
+/* Pouca altura (CRT 800x600 e celulares deitados): reduz apenas espaços, nunca o conteúdo. */
+@media (max-height: 640px) {
+  #profileView.view.active .profile-page {
+    padding-top: 16px !important;
+    padding-bottom: 34px !important;
+  }
+  #profileView .page-heading {
+    margin-bottom: 12px !important;
+  }
+  #profileView .card {
+    padding-block: 17px !important;
+  }
+}
