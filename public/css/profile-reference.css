@@ -1605,11 +1605,11 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
 
   #profileView .profile-activity-card,
   #profileView .profile-right-stack {
-    min-height: 314px !important;
+    min-height: 322px !important;
   }
 
   #profileView .profile-bottom-card {
-    min-height: 164px !important;
+    min-height: 156px !important;
   }
 
   #profileView .profile-ref-card {
@@ -1686,6 +1686,10 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
     padding-block: 7px;
   }
 
+  #profileView .profile-activity-card header h2 {
+    font-size: 17px;
+  }
+
   #profileView .profile-right-stack {
     grid-template-rows: repeat(2, minmax(148px, auto));
   }
@@ -1711,5 +1715,30 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
     height: 30px;
     margin: 0 auto 4px;
     font-size: 16px;
+  }
+
+  #profileView .profile-ref-card button:not(#profileLogoutBtn) {
+    border: 1px solid #c7d6e2 !important;
+    background: #edf3f7 !important;
+    color: #17344f !important;
+    font-weight: 750 !important;
+    opacity: 1 !important;
+  }
+
+  #profileView .profile-ref-card button:not(#profileLogoutBtn):hover:not(:disabled) {
+    border-color: #6da9dc !important;
+    background: #e2effa !important;
+    color: #075fae !important;
+  }
+
+  #profileView .profile-ref-card button:disabled:not(#profileLogoutBtn) {
+    border-color: #d2dce4 !important;
+    background: #f0f4f7 !important;
+    color: #687e91 !important;
+    opacity: 1 !important;
+  }
+
+  #profileView .profile-activity-card header button {
+    padding-inline: 14px !important;
   }
 }
