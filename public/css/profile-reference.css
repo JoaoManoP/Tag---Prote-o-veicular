@@ -2007,3 +2007,13 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   background-color: #fff !important;
   color: #12283c !important;
 }
+
+/* No Perfil, somente os cartões flutuantes permanecem nítidos; o mapa usa o backdrop padrão. */
+body:has(#profileView.active) .map-panel-backdrop,
+body[data-active-panel='profile'] .map-panel-backdrop {
+  opacity: 1 !important;
+  pointer-events: none !important;
+  background: rgba(4, 12, 22, 0.16) !important;
+  backdrop-filter: blur(1px) !important;
+  -webkit-backdrop-filter: blur(1px) !important;
+}
