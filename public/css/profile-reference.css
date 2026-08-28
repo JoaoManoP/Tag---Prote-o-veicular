@@ -1434,3 +1434,59 @@ body[data-active-panel='profile'] .map-panel-backdrop {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* Ocupa a área útil como na referência, mantendo respiro apenas nas bordas. */
+#profileView.view.active {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#profileView .profile-reference-shell {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  padding: clamp(20px, 2vw, 40px) !important;
+  border-radius: 0 !important;
+}
+
+#profileView .profile-left-tools {
+  inset: clamp(20px, 2vw, 40px) auto clamp(20px, 2vw, 40px) clamp(20px, 2vw, 40px) !important;
+}
+
+#profileView .profile-reference-grid {
+  width: auto;
+  margin-left: 254px !important;
+}
+
+body[data-active-panel='profile'] #trackingView #map,
+body[data-active-panel='profile'] #trackingView .maplibregl-canvas,
+body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
+  opacity: 1 !important;
+  filter: saturate(1.22) contrast(1.06) brightness(0.96) !important;
+}
+
+#profileView .profile-action-card > button,
+#profileView .profile-bottom-card button,
+#profileView #profileVehicleDetailsBtn {
+  min-height: 34px !important;
+  margin-inline: 0 !important;
+  padding: 7px 12px !important;
+}
+
+@media (max-width: 1120px) {
+  #profileView .profile-reference-grid {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #profileView.view.active {
+    padding: 7px !important;
+  }
+
+  #profileView .profile-reference-shell {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+}
