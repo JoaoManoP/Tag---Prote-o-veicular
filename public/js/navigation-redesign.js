@@ -31,29 +31,17 @@
     if (byId('startNavigationBtn')) byId('startNavigationBtn').textContent = 'Iniciar navegação';
   }
 
-  document.querySelectorAll('.view:not(#trackingView) .page-content').forEach(content => {
-    if (content.querySelector(':scope > .panel-close')) return;
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'panel-close';
-    close.setAttribute('aria-label', 'Fechar painel');
-    close.textContent = '×';
-    content.prepend(close);
-  });
-
-  const profileLayout = document.querySelector('#profileView .profile-layout');
-  if (profileLayout) {
-    const menu = document.createElement('section');
-    menu.className = 'card profile-menu-card';
-    menu.innerHTML = `<span class="eyebrow">PREFERÊNCIAS</span><h2>Perfil</h2><nav><button type="button" data-profile-view="account">Minha conta</button><button type="button" data-open-view="vehicles">Meus veículos</button><button type="button" data-open-view="vehicles">Dispositivos</button><button type="button" data-profile-view="appearance">Aparência</button><button type="button" data-profile-view="settings">Configurações</button></nav><div class="map-theme-setting"><strong>Tema do mapa</strong><label><input type="radio" name="mapTheme" value="auto"> Automático</label><label><input type="radio" name="mapTheme" value="day"> Claro</label><label><input type="radio" name="mapTheme" value="night"> Escuro</label><small id="mapThemeSchedule"></small></div>`;
-    profileLayout.prepend(menu);
-    const logout = byId('logoutBtn');
-    if (logout) {
-      logout.className = 'profile-logout';
-      logout.textContent = 'Sair da conta';
-      menu.append(logout);
-    }
-  }
+  document
+    .querySelectorAll('.view:not(#trackingView):not(#profileView) .page-content')
+    .forEach(content => {
+      if (content.querySelector(':scope > .panel-close')) return;
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'panel-close';
+      close.setAttribute('aria-label', 'Fechar painel');
+      close.textContent = '×';
+      content.prepend(close);
+    });
 
   function setPanel(panel) {
     state.activePanel = panel;

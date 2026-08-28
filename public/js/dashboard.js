@@ -1821,6 +1821,13 @@ window.RastroMap.ready
         });
       }
       if (button) button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+      const addVehicle = () => openVehicleForm();
+      if ($('profileAddVehicleBtn')) $('profileAddVehicleBtn').onclick = addVehicle;
+      if ($('profileAddVehicleRail')) $('profileAddVehicleRail').onclick = addVehicle;
+      if ($('profileRemoveVehicleBtn')) {
+        $('profileRemoveVehicleBtn').disabled = !vehicle;
+        $('profileRemoveVehicleBtn').onclick = () => vehicle && deleteVehicle(vehicle.id);
+      }
     }
     function renderFuelPrice() {
       const input = $('fuelPriceInput'),
@@ -1969,7 +1976,7 @@ window.RastroMap.ready
       dialog.showModal();
     }
     function ensureFinesCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileFinesCard')) return;
       const card = document.createElement('section');
       card.id = 'profileFinesCard';
@@ -3241,7 +3248,7 @@ window.RastroMap.ready
       return data.token;
     }
     async function ensureAccountVerificationCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileVerificationCard')) return;
       const card = document.createElement('section');
       card.id = 'profileVerificationCard';
@@ -3296,7 +3303,7 @@ window.RastroMap.ready
       configure('phone', me.user.phoneVerifiedAt);
     }
     async function ensureDriverDocumentCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileDriverDocumentCard')) return;
       const card = document.createElement('section');
       card.id = 'profileDriverDocumentCard';
@@ -3350,7 +3357,7 @@ window.RastroMap.ready
       };
     }
     async function ensureTwoFactorCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileTwoFactorCard')) return;
       const card = document.createElement('section');
       card.id = 'profileTwoFactorCard';
@@ -3416,7 +3423,7 @@ window.RastroMap.ready
       };
     }
     async function ensureNotificationPreferencesCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileNotificationCard')) return;
       const labels = {
           VEHICLE_OFFLINE: 'Veículo offline',
@@ -3696,6 +3703,50 @@ window.RastroMap.ready
     $('changePasswordBtn').onclick = changePassword;
     $('exportDataBtn').onclick = exportPrivacyData;
     $('deleteAccountBtn').onclick = deletePrivacyAccount;
+    const openProfileSettings = section => {
+      const dialog = $('profileSettingsDialog');
+      if (!dialog) return;
+      const titles = {
+        security: 'Segurança da conta',
+        alerts: 'Preferências de alertas',
+        fines: 'Multas e documentos',
+        map: 'Aparência e locais do mapa',
+        cnh: 'CNH do condutor'
+      };
+      $('profileSettingsTitle').textContent = titles[section] || 'Gerenciar perfil';
+      dialog.dataset.section = section || '';
+      dialog.showModal();
+      const target =
+        section === 'map'
+          ? $('profilePoiSettings')
+          : section === 'cnh'
+            ? $('profileDriverDocumentCard')
+            : section === 'alerts'
+              ? $('profileNotificationCard')
+              : section === 'fines'
+                ? $('profileFinesCard')
+                : $('profileTwoFactorCard') || dialog.querySelector('.privacy-card');
+      target?.scrollIntoView({ block: 'start' });
+    };
+    document
+      .querySelectorAll('[data-profile-settings]')
+      .forEach(
+        button => (button.onclick = () => openProfileSettings(button.dataset.profileSettings))
+      );
+    document.querySelectorAll('[data-profile-map-action]').forEach(button => {
+      button.onclick = () =>
+        document.querySelector(`[data-view="${button.dataset.profileMapAction}"]`)?.click();
+    });
+    if ($('closeProfileSettings'))
+      $('closeProfileSettings').onclick = () => $('profileSettingsDialog').close();
+    if ($('profileSettingsDialog'))
+      $('profileSettingsDialog').onclick = event => {
+        if (event.target === $('profileSettingsDialog')) $('profileSettingsDialog').close();
+      };
+    if ($('profileLogoutBtn')) $('profileLogoutBtn').onclick = () => $('logoutBtn').click();
+    document.querySelectorAll('[data-profile-action="devices"]').forEach(button => {
+      button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+    });
     $('logoutBtn').onclick = async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       location.replace('/login.html');

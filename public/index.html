@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
-    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-1" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-2" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -638,22 +638,37 @@
         </div>
       </section>
       <section id="profileView" class="view">
-        <div class="page-content profile-page">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">CENTRAL DA CONTA</span>
-              <h2>Perfil</h2>
-              <p>Dados, atividade e recursos vinculados à sua conta.</p>
-            </div>
-          </div>
-          <div class="profile-live-card">
-            <span class="profile-live-label">Status ao vivo</span>
-            <b id="profileLiveState"><i></i> Aguardando rastreador</b>
-            <strong><span id="profileLiveSpeed">0</span> <small>km/h</small></strong>
-            <span id="profileLiveAddress">Localização ainda não recebida</span>
-          </div>
-          <div class="profile-layout">
-            <section class="card profile-card">
+        <div class="profile-reference-shell">
+          <aside class="profile-left-tools" aria-label="Atalhos do mapa">
+            <section class="profile-live-card">
+              <span class="profile-live-label">Status ao vivo</span>
+              <b id="profileLiveState"><i></i> Aguardando rastreador</b>
+              <strong><span id="profileLiveSpeed">0</span> <small>km/h</small></strong>
+              <span id="profileLiveAddress">Localização ainda não recebida</span>
+            </section>
+            <nav class="profile-map-rail">
+              <button type="button" data-profile-map-action="tracking" title="Abrir rastreamento">
+                ➤
+              </button>
+              <button type="button" data-profile-map-action="vehicles" title="Abrir garagem">
+                ◇
+              </button>
+              <button type="button" data-profile-map-action="community" title="Abrir comunidade">
+                ▦
+              </button>
+              <button type="button" id="profileAddVehicleRail" title="Adicionar veículo">+</button>
+              <button type="button" data-profile-map-action="tracking" title="Centralizar">
+                ⌖
+              </button>
+            </nav>
+            <section class="profile-weather-card">
+              <strong>☀ <span>28°C</span></strong
+              ><small>Ensolarado</small><b>São Paulo, SP</b>
+            </section>
+          </aside>
+
+          <main class="profile-reference-grid">
+            <section class="profile-ref-card profile-identity-card">
               <div class="profile-avatar" id="profileInitial">U</div>
               <h2 id="profileName">Carregando…</h2>
               <p id="profileEmail">—</p>
@@ -664,11 +679,12 @@
                   class="profile-contact-qr"
                   alt="QR Code do meu ID RASTREON"
                 />
-                <code id="profileContactId">—</code>
-                <button id="copyProfileContactId" type="button" class="secondary">Copiar ID</button>
-                <small>Identificador privado e exclusivo para receber solicitações.</small>
+                <div>
+                  <code id="profileContactId">—</code
+                  ><button id="copyProfileContactId" type="button" title="Copiar ID">▣</button>
+                </div>
               </div>
-              <dl class="stat-list">
+              <dl class="profile-account-facts">
                 <div>
                   <dt>Cadastro</dt>
                   <dd id="profileCreated">—</dd>
@@ -682,50 +698,57 @@
                   <dd id="profileVehicleCount">0</dd>
                 </div>
                 <div>
-                  <dt>Alertas recentes</dt>
+                  <dt>Alertas ativos</dt>
                   <dd id="profileAlertCount">0</dd>
+                </div>
+                <div>
+                  <dt>Último acesso</dt>
+                  <dd>Agora</dd>
                 </div>
               </dl>
             </section>
-            <section class="card profile-summary-card">
-              <div class="profile-section-title">
-                <div>
-                  <span class="eyebrow">VISÃO GERAL</span>
-                  <h2>Resumo da sua conta</h2>
-                </div>
-                <small>Atualizado agora</small>
-              </div>
+
+            <section class="profile-ref-card profile-summary-card">
+              <header>
+                <h2>Resumo da sua conta</h2>
+                <small>Atualizado agora ↻</small>
+              </header>
               <div class="profile-summary-grid">
                 <article>
-                  <span>◈</span><strong id="profileSummaryVehicles">0</strong><small>Veículos</small
-                  ><b>Ativos</b>
+                  <span>◇</span><strong id="profileSummaryVehicles">0</strong
+                  ><small>Veículo ativo</small><b>Online</b>
                 </article>
                 <article>
                   <span>◎</span><strong id="profileSummaryAlerts">0</strong
-                  ><small>Alertas recentes</small><b>Ver detalhes</b>
+                  ><small>Alertas ativos</small><b>Ver todos</b>
                 </article>
                 <article>
                   <span>⌖</span><strong id="profileSummaryTrips">0</strong
-                  ><small>Viagens recentes</small><b>Histórico</b>
+                  ><small>Viagens hoje</small><b>Ver todas</b>
                 </article>
                 <article>
-                  <span>✓</span><strong>Protegida</strong><small>Conta</small><b>Segura</b>
+                  <span>▣</span><strong>0</strong><small>Multas</small><b>Nenhuma</b>
                 </article>
               </div>
             </section>
-            <section class="card profile-vehicle-card">
-              <div class="profile-section-title">
-                <div>
-                  <span class="eyebrow">GARAGEM</span>
-                  <h2>Veículo principal</h2>
+
+            <section class="profile-ref-card profile-vehicle-card">
+              <header>
+                <h2>Veículo principal</h2>
+                <div class="profile-vehicle-actions">
+                  <button id="profileAddVehicleBtn" type="button" title="Adicionar veículo">
+                    +</button
+                  ><button id="profileRemoveVehicleBtn" type="button" title="Remover veículo">
+                    ⋮
+                  </button>
                 </div>
-                <span id="profileVehicleStatus" class="profile-online-pill">Sem rastreador</span>
-              </div>
+              </header>
               <div class="profile-vehicle-main">
                 <canvas id="profileVehicle3d" aria-label="Modelo 3D do veículo principal"></canvas>
                 <div>
                   <strong id="profileVehicleName">Nenhum veículo selecionado</strong
-                  ><span id="profileVehicleDetails">—</span><span id="profileVehiclePlate">—</span>
+                  ><span id="profileVehicleDetails">—</span><span id="profileVehiclePlate">—</span
+                  ><b id="profileVehicleStatus" class="profile-online-pill">Sem rastreador</b>
                 </div>
               </div>
               <div class="profile-vehicle-telemetry">
@@ -735,69 +758,113 @@
                 </div>
                 <div><small>Status</small><strong id="profileVehicleMovement">Parado</strong></div>
               </div>
-              <button type="button" id="profileVehicleDetailsBtn" class="secondary wide">
-                Ver detalhes do veículo
+              <button type="button" id="profileVehicleDetailsBtn">
+                Ver detalhes do veículo <span>›</span>
               </button>
             </section>
-            <section class="card profile-activity-card">
-              <div class="profile-section-title">
-                <div>
-                  <span class="eyebrow">ATIVIDADES</span>
-                  <h2>Últimas atividades</h2>
-                </div>
-                <button type="button" class="text-btn" data-view-shortcut="timeline">
-                  Ver todas
-                </button>
-              </div>
+
+            <section class="profile-ref-card profile-activity-card">
+              <header>
+                <h2>▣ &nbsp; Atividades recentes</h2>
+                <button type="button" data-view-shortcut="timeline">Ver todas</button>
+              </header>
               <div id="profileTrips" class="profile-trips">
                 <div class="empty-state">Nenhuma viagem registrada.</div>
               </div>
             </section>
-            <section class="card profile-poi-card">
-              <div class="profile-section-title">
+
+            <div class="profile-right-stack">
+              <section class="profile-ref-card profile-action-card">
+                <span class="profile-action-icon">♢</span>
                 <div>
-                  <span class="eyebrow">MAPA</span>
-                  <h2>Locais e serviços no mapa</h2>
+                  <h3>Segurança da conta</h3>
+                  <p>Gerencie sua senha e autenticação.</p>
+                  <b>Protegida</b>
                 </div>
-                <span class="profile-enabled-pill">Habilitados</span>
-              </div>
-              <p>
-                Escolha internamente quais ícones devem aparecer automaticamente próximos ao veículo
-                e à rota.
-              </p>
+                <button type="button" data-profile-settings="security">Gerenciar segurança</button>
+              </section>
+              <section class="profile-ref-card profile-action-card">
+                <span class="profile-action-icon">◎</span>
+                <div>
+                  <h3>Preferências de alertas</h3>
+                  <p>Escolha quais eventos receber.</p>
+                  <b id="profileAlertPreferenceStatus">Ativos</b>
+                </div>
+                <button type="button" data-profile-settings="alerts">Gerenciar alertas</button>
+              </section>
+            </div>
+
+            <section class="profile-bottom-grid">
+              <article class="profile-ref-card profile-bottom-card" id="profileFinesSummaryCard">
+                <h3>▣ &nbsp; Multas e documentos</h3>
+                <div class="profile-ok-symbol">✓</div>
+                <strong>Nenhuma multa encontrada</strong>
+                <p>Você está em dia com este veículo.</p>
+                <button type="button" data-profile-settings="fines">Ver documentos</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>◉ &nbsp; Aparência e tema do mapa</h3>
+                <p>Personalize o tema e os locais exibidos.</p>
+                <b>Automático</b
+                ><button type="button" data-profile-settings="map">Personalizar</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>▣ &nbsp; CNH do condutor</h3>
+                <p>Envie sua CNH para validação.</p>
+                <b>Pendente</b><button type="button" data-profile-settings="cnh">Enviar CNH</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>▯ &nbsp; Dispositivos conectados</h3>
+                <p>Gerencie os dispositivos vinculados.</p>
+                <b>Conta ativa</b
+                ><button type="button" data-profile-action="devices">Gerenciar dispositivos</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card profile-logout-card">
+                <h3>↪ &nbsp; Sair da conta</h3>
+                <p>Encerre sua sessão com segurança.</p>
+                <button type="button" id="profileLogoutBtn">Sair da conta</button>
+              </article>
+            </section>
+          </main>
+        </div>
+
+        <dialog id="profileSettingsDialog" class="profile-settings-dialog">
+          <header>
+            <div>
+              <small>CONFIGURAÇÕES DA CONTA</small>
+              <h2 id="profileSettingsTitle">Gerenciar perfil</h2>
+            </div>
+            <button type="button" id="closeProfileSettings" aria-label="Fechar">×</button>
+          </header>
+          <div id="profileSettingsContent" class="profile-settings-content">
+            <section class="card profile-poi-card">
+              <h2>Locais e serviços no mapa</h2>
+              <p>Escolha quais ícones aparecem automaticamente.</p>
               <div id="profilePoiSettings" class="profile-poi-settings">
-                <label><input type="checkbox" value="fuel" checked /><span>Postos</span></label>
-                <label
+                <label><input type="checkbox" value="fuel" checked /><span>Postos</span></label
+                ><label
                   ><input type="checkbox" value="hospital" checked /><span
                     >Centros de saúde</span
                   ></label
-                >
-                <label
+                ><label
                   ><input type="checkbox" value="pharmacy" checked /><span>Farmácias</span></label
-                >
-                <label
+                ><label
                   ><input type="checkbox" value="food" checked /><span>Restaurantes</span></label
-                >
-                <label
+                ><label
                   ><input type="checkbox" value="supermarket" checked /><span>Mercados</span></label
-                >
-                <label
+                ><label
                   ><input type="checkbox" value="mechanic" checked /><span>Oficinas</span></label
-                >
-                <label
+                ><label
                   ><input type="checkbox" value="parking" checked /><span
                     >Estacionamentos</span
                   ></label
-                >
-                <label><input type="checkbox" value="police" checked /><span>Polícia</span></label>
+                ><label><input type="checkbox" value="police" checked /><span>Polícia</span></label>
               </div>
             </section>
             <section class="card privacy-card">
-              <span class="eyebrow">SEGURANÇA E LGPD</span>
               <h2>Controle da conta</h2>
               <div class="password-change">
                 <h3>Alterar senha</h3>
-                <p>A troca encerra as outras sessões abertas da sua conta.</p>
                 <label class="field"
                   >Senha atual<input
                     id="changeCurrentPassword"
@@ -810,26 +877,14 @@
                     minlength="8"
                     maxlength="72"
                     autocomplete="new-password" /></label
-                ><button type="button" id="changePasswordBtn" class="secondary wide">
-                  Atualizar senha
-                </button>
+                ><button type="button" id="changePasswordBtn">Atualizar senha</button>
               </div>
               <div class="privacy-export">
                 <h3>Baixar meus dados</h3>
-                <p>
-                  O arquivo inclui os dados vinculados à sua conta. Senhas, tokens e sessões de
-                  autenticação nunca entram na exportação.
-                </p>
-                <button type="button" id="exportDataBtn" class="secondary wide">
-                  Gerar arquivo de dados
-                </button>
+                <button type="button" id="exportDataBtn">Gerar arquivo de dados</button>
               </div>
               <div class="privacy-danger">
                 <h3>Excluir conta</h3>
-                <p>
-                  A exclusão é permanente e remove veículos, viagens, posições, cercos, alertas e
-                  consentimentos associados.
-                </p>
                 <label class="field"
                   >Senha atual<input
                     id="privacyPassword"
@@ -838,13 +893,13 @@
                 ><label class="field"
                   >Digite <b>EXCLUIR MINHA CONTA</b
                   ><input id="deleteConfirmation" autocomplete="off" /></label
-                ><button type="button" id="deleteAccountBtn" class="danger wide">
+                ><button type="button" id="deleteAccountBtn" class="danger">
                   Excluir minha conta
                 </button>
               </div>
             </section>
           </div>
-        </div>
+        </dialog>
       </section>
       <section id="gamificationView" class="view">
         <div class="page-content">
