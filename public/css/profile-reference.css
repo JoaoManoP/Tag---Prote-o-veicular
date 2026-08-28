@@ -1574,7 +1574,8 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   #profileView .profile-reference-grid {
     height: 100%;
     min-height: 0;
-    margin-right: 96px;
+    margin-right: 72px;
+    grid-template-columns: 294px minmax(0, 1.25fr) minmax(0, 0.98fr);
     grid-template-rows: minmax(0, 0.96fr) minmax(0, 1.32fr) minmax(0, 0.72fr);
   }
 
@@ -1586,6 +1587,12 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   #profileView .profile-bottom-grid,
   #profileView .profile-bottom-card {
     min-height: 0 !important;
+  }
+
+  #profileView .profile-reference-grid > .profile-summary-card {
+    height: auto;
+    min-height: 0;
+    align-self: stretch;
   }
 
   #profileView .profile-ref-card {
@@ -1627,6 +1634,15 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
 
   #profileView .profile-vehicle-main {
     min-height: 102px;
+  }
+
+  #profileView .profile-vehicle-main > div {
+    min-width: 0;
+  }
+
+  #profileView .profile-vehicle-main > div strong,
+  #profileView .profile-vehicle-main > div span {
+    overflow-wrap: anywhere;
   }
 
   #profileView #profileVehicle3d {
