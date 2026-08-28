@@ -18,3 +18,10 @@ npm-debug.log*
 cookies.txt
 out.txt
 releases/*.apk
+
+# Local Android build toolchains and generated artifacts
+mobile/android/.gradle-user-home/
+mobile/android/.jdk17/
+mobile/android/temurin17-jdk.zip
+mobile/android/app/debug.keystore
+mobile/dist/
