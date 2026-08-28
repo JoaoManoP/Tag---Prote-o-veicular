@@ -67,7 +67,7 @@
     tracking: [
       ['.map-column', 'Este é o mapa. Ele permanece como foco do rastreamento.'],
       ['#vehicleSheet', 'Toque no resumo para ver destino, distância e saúde.'],
-      ['#exploreBtn', 'Ative somente o tipo de local que deseja visualizar.']
+      ['#mapControls', 'Use aqui navegação, visão 3D, QR Code, trânsito e localização.']
     ],
     timeline: [
       ['#eventTimeline', 'Aqui aparecem os acontecimentos da viagem em ordem.'],
@@ -102,6 +102,7 @@
   let selectedVehicleId = null;
   let healthSaveTimer = null;
   let poiRequest = null;
+  let poiRefreshTimer = null;
   let activeRoute = [];
   let fencePoint = null;
   let fencePreview = null;
@@ -110,11 +111,11 @@
   let customPolygon = null;
   let polygonPreview = null;
   const icon = name =>
-    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260826-2#${name}"></use></svg>`;
+    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
 
   function trackingMarkup() {
     return `<div id="vehicleHealthBadge" class="health-badge hidden"><button id="healthBadgeBtn" aria-label="Abrir avisos de saúde" aria-expanded="false">${icon('warning')}<b>1 aviso</b></button><div id="healthPopover" class="health-popover hidden"></div></div><aside id="arrivalPrompt" class="arrival-prompt hidden"><b id="arrivalTitle">Você chegou.</b><p>Ativar proteção?</p><div><button id="arrivalLater" class="secondary">Agora não</button><button id="arrivalActivate">Ativar</button></div></aside>
-      <div id="exploreMenu" class="explore-menu hidden"><b>Explorar locais</b><select id="poiScope" aria-label="Área da busca"><option value="nearby">Perto de mim</option><option value="route">Ao longo da rota</option></select>${[
+      <div id="poiMetadata" class="hidden" aria-hidden="true"><div class="poi-auto-categories">${[
         ['fuel', 'Postos'],
         ['food', 'Restaurantes'],
         ['hotel', 'Hotéis'],
@@ -126,10 +127,8 @@
         ['parking', 'Estacionamento'],
         ['police', 'Polícia']
       ]
-        .map(x => `<label><input type="checkbox" value="${x[0]}"> ${x[1]}</label>`)
-        .join(
-          ''
-        )}<small>Use sua posição atual ou o corredor da rota calculada. Escolha uma categoria por vez.</small></div>
+        .map(x => `<span data-poi-category="${x[0]}">${x[1]}</span>`)
+        .join('')}</div></div>
       <section id="vehicleSheet" class="vehicle-sheet minimized" aria-label="Resumo do veículo"><button id="sheetHandle" class="sheet-handle" aria-expanded="false"><span><strong id="sheetVehicleName">Meu veículo</strong><small id="sheetOnline">● Aguardando</small><small id="sheetCurrentAddress"></small></span><span><strong><span id="sheetSpeed">0</span> km/h</strong><small id="sheetUpdated">sem dados</small></span>${icon('chevron-up')}</button><div class="sheet-details"><div><span>Destino</span><strong id="sheetDestination">Não definido</strong></div><div><span>Chegada</span><strong id="sheetEta">—</strong></div><div><span>Distância</span><strong id="sheetDistance">—</strong></div><div><span>Saúde</span><strong id="sheetHealth">Normal</strong></div><button id="openTechnical" class="secondary wide">Ver detalhes da viagem</button></div></section>`;
   }
 
@@ -150,15 +149,6 @@
     if (mapCard) {
       mapCard.insertAdjacentHTML('beforeend', trackingMarkup());
       const actions = mapCard.querySelector('.map-toolbar .actions');
-      if (!byId('exploreBtn')) {
-        const explore = document.createElement('button');
-        explore.id = 'exploreBtn';
-        explore.className = 'secondary';
-        explore.type = 'button';
-        explore.textContent = 'Locais';
-        explore.setAttribute('aria-expanded', 'false');
-        actions?.insertBefore(explore, byId('locateMeBtn'));
-      }
       if (!byId('trafficBtn')) {
         const traffic = document.createElement('button');
         traffic.id = 'trafficBtn';
@@ -710,17 +700,30 @@
   async function loadPois() {
     const api = window.rastreonMap;
     if (!api) return;
-    const selected = [...document.querySelectorAll('#exploreMenu input:checked')];
-    if (!selected.length) {
-      api.layers.pois?.clearLayers();
-      return;
-    }
     poiRequest?.abort();
     poiRequest = new AbortController();
     const current = window.rastreonLocation?.current(),
       center = current ? { lat: current.latitude, lng: current.longitude } : api.map.getCenter();
     try {
-      const scope = byId('poiScope')?.value || 'nearby';
+      const scope = activeRoute.length >= 2 ? 'route' : 'nearby',
+        zoom = Number(api.map.getZoom?.() || 13),
+        categories =
+          scope === 'route' || zoom >= 15
+            ? [
+                'fuel',
+                'food',
+                'hotel',
+                'hospital',
+                'pharmacy',
+                'supermarket',
+                'mechanic',
+                'charge',
+                'parking',
+                'police'
+              ]
+            : zoom >= 13
+              ? ['fuel', 'food', 'hospital', 'pharmacy', 'supermarket', 'mechanic']
+              : ['fuel', 'hospital', 'pharmacy'];
       if (scope === 'route' && activeRoute.length < 2)
         throw new Error('Calcule uma rota antes de buscar no corredor.');
       const sample =
@@ -735,14 +738,16 @@
             ? `&route=${encodeURIComponent(sample.map(point => `${point[1]},${point[0]}`).join(';'))}`
             : '';
       const payloads = await Promise.all(
-        selected.map(async input => {
+        categories.map(async category => {
           const response = await fetch(
-              `/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}${route}`,
+              `/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(category)}${route}`,
               { signal: poiRequest.signal }
             ),
             data = await response.json();
           if (!response.ok) throw new Error(data.error);
-          const categoryLabel = input.parentElement.textContent.trim();
+          const categoryLabel = document.querySelector(
+            `[data-poi-category="${category}"]`
+          )?.textContent;
           return (data.places || []).map(place => ({ ...place, categoryLabel }));
         })
       );
@@ -904,27 +909,6 @@
             : 'Ver detalhes';
         }
       }
-      if (event.target.closest('#exploreBtn')) {
-        const exploreMenu = byId('exploreMenu');
-        const exploreBtn = byId('exploreBtn');
-        if (exploreMenu && exploreBtn) {
-          exploreMenu.classList.toggle('hidden');
-          exploreBtn.setAttribute(
-            'aria-expanded',
-            String(!exploreMenu.classList.contains('hidden'))
-          );
-          if (
-            !exploreMenu.classList.contains('hidden') &&
-            !exploreMenu.querySelector('input:checked')
-          ) {
-            for (const value of ['fuel', 'food']) {
-              const input = exploreMenu.querySelector(`input[value="${value}"]`);
-              if (input) input.checked = true;
-            }
-            loadPois();
-          }
-        }
-      }
       if (event.target.closest('#healthBadgeBtn')) {
         const popover = byId('healthPopover');
         if (popover) popover.classList.toggle('hidden');
@@ -1044,11 +1028,16 @@
         renderHealth();
       };
     }
-    document.querySelectorAll('#exploreMenu input').forEach(input => (input.onchange = loadPois));
-    byId('poiScope').onchange = loadPois;
+    window.rastreonMap?.map.on('moveend', () => {
+      clearTimeout(poiRefreshTimer);
+      poiRefreshTimer = setTimeout(loadPois, 450);
+    });
     window.addEventListener('rastreon:route-selected', event => {
       activeRoute = Array.isArray(event.detail?.geometry) ? event.detail.geometry : [];
+      clearTimeout(poiRefreshTimer);
+      poiRefreshTimer = setTimeout(loadPois, 450);
     });
+    window.rastreonMap?.map.ready?.then(loadPois);
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,
       childList: true,

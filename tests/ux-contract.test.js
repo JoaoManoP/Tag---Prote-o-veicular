@@ -17,6 +17,7 @@ const navigationCss = fs.readFileSync(
   path.join(root, 'public', 'css', 'navigation-redesign.css'),
   'utf8'
 );
+const designSystem = fs.readFileSync(path.join(root, 'public', 'css', 'design-system.css'), 'utf8');
 const navigationRedesign = fs.readFileSync(
   path.join(root, 'public', 'js', 'navigation-redesign.js'),
   'utf8'
@@ -31,6 +32,7 @@ const navigationState = fs.readFileSync(
 const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
 const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
 const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
+const convoyClient = fs.readFileSync(path.join(root, 'public', 'js', 'convoy.js'), 'utf8');
 // Contratos de conteúdo não devem depender da indentação escolhida pelo formatador.
 const compact = source => source.replace(/\s+/g, '').replace(/;}/g, '}');
 const compactCss = compact(css);
@@ -147,10 +149,15 @@ test('acabamentos do cerco e viagem permanecem progressivos', () => {
 });
 
 test('navegação usa ícones, separa Perfil e mantém cinco ações no celular', () => {
-  assert.match(html, /ui-icons\.svg\?v=20260826-2#history/);
-  assert.match(html, /ui-icons\.svg\?v=20260826-2#vehicle/);
-  assert.match(html, /ui-icons\.svg\?v=20260826-2#profile/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#history/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#vehicle/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#profile/);
   assert.match(html, /class="nav-pill nav-profile" data-view="profile"/);
+  assert.match(html, /data-view="community"/);
+  assert.doesNotMatch(
+    navigationCss,
+    /\.nav-pill\[data-view='community'\][^{]*\{[^}]*display:\s*none\s*!important/
+  );
   assert.match(compactCss, /grid-template-columns:minmax\(0,1fr\)68px/);
   assert.match(
     compactCss,
@@ -175,8 +182,8 @@ test('painéis secundários permanecem centralizados na área útil da janela', 
   );
   assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
   assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
-  assert.match(html, /navigation-redesign\.css\?v=20260826-navigation-clean-2/);
-  assert.match(html, /navigation-redesign\.js\?v=20260826-navigation-clean-2/);
+  assert.match(html, /navigation-redesign\.css\?v=20260827-community-nav-3/);
+  assert.match(html, /navigation-redesign\.js\?v=20260827-map-controls-1/);
 });
 
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
@@ -208,8 +215,9 @@ test('controles do mapa não repetem trânsito e locais dentro de um menu de cam
   assert.doesNotMatch(navigationRedesign, /layersPanel|data\.mapAction = 'layers'|Camadas/);
   assert.doesNotMatch(navigationCss, /\.layers-popover/);
   assert.match(navigationRedesign, /traffic\.dataset\.mapAction = 'traffic'/);
-  assert.match(navigationRedesign, /places\.dataset\.mapAction = 'places'/);
-  assert.match(navigationRedesign, /byId\('exploreBtn'\)\?\.click\(\)/);
+  assert.doesNotMatch(navigationRedesign, /dataset\.mapAction = 'places'/);
+  assert.match(navigationRedesign, /mapMode\.dataset\.mapAction = '3d'/);
+  assert.match(navigationRedesign, /pairing\.dataset\.mapAction = 'qr'/);
 });
 
 test('cadastro do veículo oferece consulta por placa e não expõe dados pessoais', () => {
@@ -272,6 +280,31 @@ test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
   assert.match(ux, /escapeHtml\(popupName\)/);
 });
 
+test('design system centraliza tokens, overlays e foco responsivo', () => {
+  assert.match(html, /design-system\.css/);
+  assert.match(designSystem, /--rs-color-navy-950:/);
+  assert.match(designSystem, /--rs-space-4:/);
+  assert.match(designSystem, /--rs-modal-md:/);
+  assert.match(designSystem, /dialog\s*\{[^}]*max-height:\s*min\(90dvh, 900px\)/s);
+  assert.match(designSystem, /:focus-visible/);
+  assert.match(designSystem, /@media \(max-width: 640px\)/);
+  assert.match(designSystem, /--home-orange: var\(--rs-color-blue-600\)/);
+  assert.match(designSystem, /--rc-orange: var\(--rs-color-blue-600\)/);
+  assert.match(html, /aria-label="Selecionar origem no mapa"/);
+  assert.match(dashboard, /data-close-upgrade aria-label="Fechar"/);
+});
+
+test('locais são automáticos e garagem é separada da visão operacional', () => {
+  assert.match(html, /<span>Garagem<\/span>/);
+  assert.match(html, /<h2>Minha garagem<\/h2>/);
+  assert.match(ux, /poi-auto-categories/);
+  assert.doesNotMatch(ux, /#exploreMenu input:checked/);
+  assert.match(ux, /scope === 'route' \|\| zoom >= 15/);
+  assert.match(ux, /setTimeout\(loadPois, 450\)/);
+  assert.match(ux, /map\.ready\?\.then\(loadPois\)/);
+  assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
+});
+
 test('planejamento aceita paradas reordenáveis e preferência de pedágio', () => {
   assert.match(html, /id="addStopBtn"/);
   assert.match(html, /id="avoidTolls"/);
@@ -286,6 +319,16 @@ test('perfil oferece troca de senha, exportação e exclusão protegida', () => 
   assert.match(html, /id="deleteAccountBtn"/);
   assert.match(dashboard, /\/api\/auth\/csrf/);
   assert.match(dashboard, /X-CSRF-Token/);
+});
+
+test('perfil e comboio oferecem ID por QR Code e leitura pela câmera', () => {
+  assert.match(html, /profileContactQr/);
+  assert.match(html, /zxing-browser\.min\.js/);
+  assert.match(convoyClient, /RASTREON:CONTACT:/);
+  assert.match(convoyClient, /BarcodeDetector/);
+  assert.match(convoyClient, /ZXingBrowser\.BrowserQRCodeReader/);
+  assert.match(convoyClient, /getUserMedia/);
+  assert.match(convoyClient, /dataset\.scanId/);
 });
 
 test('preço de combustível é separado do cadastro do veículo e mostra fonte', () => {

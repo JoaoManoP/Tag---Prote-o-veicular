@@ -31,7 +31,7 @@ function setup(t, routerOptions = {}) {
     uploadDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'rastreon-platform-'));
   database
     .prepare(
-      "INSERT INTO users (id,name,email,password_hash,role,public_contact_id,chat_enabled,created_at) VALUES (1,'Usuário Um','one@example.com','hash','USER','contact-one',1,?), (2,'Usuário Dois','two@example.com','hash','USER','contact-two',1,?), (3,'Admin RASTREON','admin@example.com','hash','ADMIN','contact-admin',0,?)"
+      "INSERT INTO users (id,name,email,password_hash,role,public_contact_id,chat_enabled,created_at) VALUES (1,'Usuário Um','one@example.com','hash','USER','RT-11111111111111111111111111111111',1,?), (2,'Usuário Dois','two@example.com','hash','USER','RT-22222222222222222222222222222222',1,?), (3,'Admin RASTREON','admin@example.com','hash','ADMIN','RT-33333333333333333333333333333333',0,?)"
     )
     .run(Date.now(), Date.now(), Date.now());
   const app = express();
@@ -144,7 +144,7 @@ test('conversa só nasce após aceite e não revela e-mail, telefone, placa ou p
   const { app } = setup(t);
   const pending = await auth(
     request(app).post('/api/platform/conversation-requests').send({
-      recipientContactId: 'contact-two',
+      recipientContactId: 'RT-22222222222222222222222222222222',
       contextType: 'PLACE_REVIEW',
       contextId: 'review-123'
     }),

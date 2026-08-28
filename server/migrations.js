@@ -631,6 +631,141 @@ const migrations = [
         'CREATE INDEX IF NOT EXISTS idx_road_events_status_bounds ON road_events(status, latitude, longitude)'
       );
     }
+  },
+  {
+    version: 15,
+    name: 'public-account-verification',
+    up(database) {
+      addColumn(database, 'users', 'email_verified_at INTEGER');
+      addColumn(database, 'users', 'phone_verified_at INTEGER');
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS account_challenges (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          purpose TEXT NOT NULL CHECK(purpose IN ('EMAIL_VERIFY','PHONE_VERIFY','PASSWORD_RESET')),
+          code_hash TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          max_attempts INTEGER NOT NULL DEFAULT 5,
+          consumed_at INTEGER,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_account_challenges_user_purpose
+          ON account_challenges(user_id, purpose, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_account_challenges_expiry
+          ON account_challenges(expires_at);
+      `);
+    }
+  },
+  {
+    version: 16,
+    name: 'private-driver-documents',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS driver_documents (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL CHECK(status IN ('PENDING','APPROVED','REJECTED','EXPIRED')),
+          cnh_expiry_date TEXT NOT NULL,
+          cnh_verified_at INTEGER,
+          cnh_verified_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          document_storage_key TEXT NOT NULL UNIQUE,
+          mime_type TEXT NOT NULL,
+          rejection_reason TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_driver_documents_status
+          ON driver_documents(status, updated_at DESC);
+      `);
+    }
+  },
+  {
+    version: 17,
+    name: 'public-services-foundation',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS auth_identities (
+          id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL,provider_subject TEXT NOT NULL,email_at_link TEXT,created_at INTEGER NOT NULL,
+          UNIQUE(provider,provider_subject)
+        );
+        CREATE TABLE IF NOT EXISTS plans (
+          id TEXT PRIMARY KEY,name TEXT NOT NULL,billing_period TEXT NOT NULL CHECK(billing_period IN ('MONTHLY','QUARTERLY','ANNUAL')),
+          amount_cents INTEGER NOT NULL CHECK(amount_cents>=0),currency TEXT NOT NULL DEFAULT 'BRL',active INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS subscriptions (
+          id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,plan_id TEXT NOT NULL REFERENCES plans(id),
+          provider TEXT,provider_subscription_id TEXT,status TEXT NOT NULL CHECK(status IN ('PENDING','ACTIVE','PAST_DUE','CANCELED','EXPIRED','REFUNDED')),
+          current_period_end INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS payments (
+          id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,subscription_id TEXT REFERENCES subscriptions(id) ON DELETE SET NULL,
+          provider TEXT NOT NULL,provider_payment_id TEXT,amount_cents INTEGER NOT NULL,currency TEXT NOT NULL DEFAULT 'BRL',status TEXT NOT NULL,
+          idempotency_key TEXT NOT NULL UNIQUE,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS payment_events (
+          id TEXT PRIMARY KEY,provider TEXT NOT NULL,provider_event_id TEXT NOT NULL UNIQUE,event_type TEXT NOT NULL,payload_hash TEXT NOT NULL,
+          processed_at INTEGER,created_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS traffic_fine_snapshots (
+          id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL,checked_at INTEGER NOT NULL,result_json TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS toll_plazas (
+          id TEXT PRIMARY KEY,road TEXT NOT NULL,km TEXT,latitude REAL NOT NULL,longitude REAL NOT NULL,operator TEXT NOT NULL,source TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS toll_tariffs (
+          id TEXT PRIMARY KEY,plaza_id TEXT NOT NULL REFERENCES toll_plazas(id) ON DELETE CASCADE,vehicle_category TEXT NOT NULL,
+          price_cents INTEGER NOT NULL,effective_from TEXT NOT NULL,effective_to TEXT,source_reference TEXT NOT NULL,
+          UNIQUE(plaza_id,vehicle_category,effective_from)
+        );
+        CREATE TABLE IF NOT EXISTS user_connections (
+          id TEXT PRIMARY KEY,requester_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          recipient_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED')),
+          created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(requester_user_id,recipient_user_id)
+        );
+        CREATE TABLE IF NOT EXISTS convoy_sessions (
+          id TEXT PRIMARY KEY,owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,status TEXT NOT NULL CHECK(status IN ('ACTIVE','ENDED')),
+          created_at INTEGER NOT NULL,ended_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS convoy_members (
+          convoy_id TEXT NOT NULL REFERENCES convoy_sessions(id) ON DELETE CASCADE,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED','LEFT','REMOVED','ENDED')),joined_at INTEGER,left_at INTEGER,
+          PRIMARY KEY(convoy_id,user_id)
+        );
+        CREATE TABLE IF NOT EXISTS convoy_invites (
+          id TEXT PRIMARY KEY,convoy_id TEXT NOT NULL REFERENCES convoy_sessions(id) ON DELETE CASCADE,invited_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL UNIQUE,status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED','ENDED')),expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL
+        );
+      `);
+    }
+  },
+  {
+    version: 18,
+    name: 'admin_public_rastreon_ids',
+    up(database) {
+      database.exec(`
+        UPDATE users
+        SET public_contact_id = 'RT-' || upper(substr(hex(randomblob(8)), 1, 10))
+        WHERE role = 'ADMIN'
+          AND (public_contact_id IS NULL OR public_contact_id NOT GLOB 'RT-[A-Z0-9]*');
+      `);
+    }
+  },
+  {
+    version: 19,
+    name: 'secure_public_contact_ids_for_every_user',
+    up(database) {
+      database.exec(`
+        UPDATE users
+        SET public_contact_id = 'RT-' || upper(hex(randomblob(16)))
+        WHERE public_contact_id IS NULL
+           OR length(public_contact_id) != 35
+           OR substr(public_contact_id, 1, 3) != 'RT-'
+           OR substr(public_contact_id, 4) GLOB '*[^0-9A-F]*';
+      `);
+    }
   }
 ];
 

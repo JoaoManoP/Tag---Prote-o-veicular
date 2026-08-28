@@ -3,7 +3,7 @@
 
   const byId = id => document.getElementById(id);
   const icon = name =>
-    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260826-2#${name}"></use></svg>`;
+    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
   const state = { activePanel: null };
   const body = document.body;
 
@@ -112,34 +112,41 @@
       navigation.setAttribute('aria-label', 'Abrir navegação');
       navigation.title = 'Navegação';
       navigation.innerHTML = icon('navigation');
+      const mapMode = document.createElement('button');
+      mapMode.type = 'button';
+      mapMode.dataset.mapAction = '3d';
+      mapMode.setAttribute('aria-label', 'Alternar visão 3D do mapa');
+      mapMode.title = 'Visão 3D';
+      mapMode.innerHTML = icon('cube');
+      const pairing = document.createElement('button');
+      pairing.type = 'button';
+      pairing.dataset.mapAction = 'qr';
+      pairing.setAttribute('aria-label', 'Mostrar QR Code do rastreador');
+      pairing.title = 'QR Code';
+      pairing.innerHTML = icon('qr-code');
       const traffic = document.createElement('button');
       traffic.type = 'button';
       traffic.dataset.mapAction = 'traffic';
       traffic.setAttribute('aria-label', 'Alternar trânsito');
       traffic.title = 'Trânsito';
       traffic.innerHTML = icon('traffic');
-      const places = document.createElement('button');
-      places.type = 'button';
-      places.dataset.mapAction = 'places';
-      places.setAttribute('aria-label', 'Explorar locais e serviços');
-      places.title = 'Locais e serviços';
-      places.innerHTML = icon('search');
-      controls.prepend(navigation);
-      controls.append(traffic, places);
+      controls.prepend(navigation, mapMode, pairing);
+      controls.append(traffic);
       controls.addEventListener('click', event => {
         const button = event.target.closest('[data-map-action]');
         const action = button?.dataset.mapAction;
         if (action === 'navigation') openNavigation();
+        if (action === '3d') {
+          byId('mapModeBtn')?.click();
+          button.classList.toggle(
+            'active',
+            byId('mapModeBtn')?.getAttribute('aria-pressed') === 'true'
+          );
+        }
+        if (action === 'qr') byId('trackerPairBtn')?.click();
         if (action === 'traffic') {
           byId('trafficBtn')?.click();
           button.classList.toggle('active');
-        }
-        if (action === 'places') {
-          byId('exploreBtn')?.click();
-          button.classList.toggle(
-            'active',
-            byId('exploreBtn')?.getAttribute('aria-expanded') === 'true'
-          );
         }
       });
     }

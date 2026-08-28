@@ -456,6 +456,10 @@ test('perfil apresenta resumo real da conta autenticada', async t => {
   assert.equal(response.body.plan, 'Plano Inteligente — demonstração');
   assert.equal(response.body.vehicleCount, 0);
   assert.deepEqual(response.body.recentTrips, []);
+  assert.match(response.body.user.contactId, /^RT-[A-F0-9]{32}$/);
+  const contactCard = await agent.get('/api/profile/contact-card').expect(200);
+  assert.equal(contactCard.body.contactId, response.body.user.contactId);
+  assert.match(contactCard.body.qrCode, /^data:image\/png;base64,/);
 });
 
 test('titular exporta somente os próprios dados sem credenciais ou tokens', async t => {

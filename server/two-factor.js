@@ -125,10 +125,7 @@ function verifyUserCode(database, user, code, sessionSecret) {
 
 function createTwoFactorGuard(
   database,
-  {
-    sessionSecret = process.env.SESSION_SECRET,
-    requiredRoles = [ROLES.ADMIN, ROLES.DEVELOPER]
-  } = {}
+  { sessionSecret = process.env.SESSION_SECRET, requiredRoles = [ROLES.DEVELOPER] } = {}
 ) {
   const required = new Set(requiredRoles);
   return (req, res, next) => {
@@ -140,13 +137,12 @@ function createTwoFactorGuard(
         )
         .get(req.session.userId);
     const mandatory = required.has(role) && process.env.ADMIN_2FA_REQUIRED !== 'false';
+    if (!mandatory) return next();
     if (!user?.two_factor_enabled)
-      return mandatory
-        ? res.status(428).json({
-            error: 'Ative a verificação em duas etapas antes desta ação.',
-            code: 'TWO_FACTOR_SETUP_REQUIRED'
-          })
-        : next();
+      return res.status(428).json({
+        error: 'Ative a verificação em duas etapas antes desta ação.',
+        code: 'TWO_FACTOR_SETUP_REQUIRED'
+      });
     const verification = verifyUserCode(
       database,
       user,
@@ -180,9 +176,7 @@ function createTwoFactorRouter({ database, sessionSecret = process.env.SESSION_S
     res.json({
       twoFactor: {
         enabled: Boolean(user?.enabled),
-        required:
-          [ROLES.ADMIN, ROLES.DEVELOPER].includes(role) &&
-          process.env.ADMIN_2FA_REQUIRED !== 'false'
+        required: role === ROLES.DEVELOPER && process.env.ADMIN_2FA_REQUIRED !== 'false'
       }
     });
   });
