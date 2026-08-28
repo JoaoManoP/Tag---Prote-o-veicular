@@ -6,6 +6,6 @@ export default function Index() {
   return booting ? (
     <LoadingState label="Protegendo sua sessão…" />
   ) : (
-    <Redirect href={user ? '/(tabs)' : '/auth'} />
+    <Redirect href={user ? '/(tabs)/map' : '/auth'} />
   );
 }

@@ -101,6 +101,8 @@ export type RastreonMapProps = {
   follow?: boolean;
   onUserInteraction?: () => void;
   showUserLocation?: boolean;
+  onMapReady?: () => void;
+  onMapError?: () => void;
 };
 
 export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function RastreonMap(
@@ -114,12 +116,19 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
     perspective = true,
     follow = true,
     onUserInteraction,
-    showUserLocation = true
+    showUserLocation = true,
+    onMapReady,
+    onMapError
   },
   ref
 ) {
   const { theme } = useApp();
-  const [config, setConfig] = useState<MapConfig>();
+  const [config, setConfig] = useState<MapConfig>({
+    provider: 'maplibre',
+    styleUrl: DEFAULT_STYLE,
+    routeProvider: 'osrm',
+    geocodingProvider: 'photon'
+  });
   useEffect(() => {
     api
       .get<MapConfig>('/api/map/config')
@@ -140,12 +149,15 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
     <Map
       style={{ flex: 1 }}
       mapStyle={nativeStyleUrl(config)}
+      androidView="texture"
       logo={false}
       attribution
       attributionPosition={{ bottom: 4, left: 4 }}
       compass
       compassPosition={{ top: 72, right: 12 }}
       scaleBar={false}
+      onDidFinishLoadingMap={onMapReady}
+      onDidFailLoadingMap={onMapError}
       onRegionWillChange={event => {
         if (event.nativeEvent.userInteraction) onUserInteraction?.();
       }}

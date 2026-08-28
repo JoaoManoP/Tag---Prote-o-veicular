@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 import { useApp } from '../../src/state/AppContext';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const tabIcon =
@@ -12,6 +13,7 @@ export default function TabsLayout() {
   const { theme } = useApp();
   return (
     <Tabs
+      initialRouteName="map"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primaryBright,
@@ -35,11 +37,32 @@ export default function TabsLayout() {
         name="index"
         options={{ title: 'Início', tabBarIcon: tabIcon('home-variant-outline') }}
       />
+      <Tabs.Screen name="trips" options={{ title: 'Viagens', tabBarIcon: tabIcon('routes') }} />
       <Tabs.Screen
         name="map"
-        options={{ title: 'Mapa', tabBarIcon: tabIcon('map-marker-radius-outline') }}
+        options={{
+          title: 'Mapa',
+          tabBarLabelStyle: { fontSize: 10, fontWeight: '900', marginTop: 5 },
+          tabBarIcon: ({ color }) => (
+            <View
+              style={{
+                width: 54,
+                height: 54,
+                marginTop: -24,
+                borderRadius: 27,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.colors.primary,
+                borderWidth: 4,
+                borderColor: theme.colors.backgroundElevated,
+                elevation: 10
+              }}
+            >
+              <MaterialCommunityIcons name="navigation-variant" color="#FFFFFF" size={27} />
+            </View>
+          )
+        }}
       />
-      <Tabs.Screen name="trips" options={{ title: 'Viagens', tabBarIcon: tabIcon('routes') }} />
       <Tabs.Screen
         name="community"
         options={{ title: 'Comunidade', tabBarIcon: tabIcon('account-group-outline') }}

@@ -1,5 +1,12 @@
 import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  Component,
+  type ErrorInfo,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { CameraRef } from '@maplibre/maplibre-react-native';
 import { RastreonMap, type MapPoint } from '../components/RastreonMap';
@@ -9,6 +16,38 @@ import { currentLocation, requestLocationPermission, watchLocation } from '../se
 import { socketService } from '../services/socket';
 import { useApp } from '../state/AppContext';
 import type { Geofence, Position } from '../types';
+
+const DEFAULT_MAP_POSITION: Position = {
+  latitude: -19.58,
+  longitude: -42.64,
+  accuracy: 0,
+  timestamp: 0
+};
+
+class MapErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode; resetKey: number },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    console.warn('map_render_failed');
+  }
+
+  componentDidUpdate(previous: Readonly<{ resetKey: number }>) {
+    if (previous.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
 
 export default function MapScreen() {
   const { session, setConnection, connection, selectedVehicle, theme } = useApp();
@@ -23,6 +62,8 @@ export default function MapScreen() {
   const [perspective, setPerspective] = useState(true);
   const [roadLayers, setRoadLayers] = useState(false);
   const [message, setMessage] = useState('Aguardando o rastreador do veículo');
+  const [mapFailed, setMapFailed] = useState(false);
+  const [mapResetKey, setMapResetKey] = useState(0);
 
   useEffect(() => {
     const socket = socketService.connect(position => {
@@ -47,7 +88,7 @@ export default function MapScreen() {
     (async () => {
       try {
         if (!(await requestLocationPermission()))
-          return setMessage('Localização do telefone não autorizada');
+          return setMessage('Localização não autorizada — o mapa continua disponível');
         const initial = await currentLocation();
         if (!active) return;
         setPhonePosition(initial);
@@ -57,7 +98,7 @@ export default function MapScreen() {
           if (active) setPhonePosition(position);
         });
       } catch {
-        if (active) setMessage('GPS indisponível no momento');
+        if (active) setMessage('GPS indisponível — exibindo a visão geral');
       }
     })();
     return () => {
@@ -66,13 +107,14 @@ export default function MapScreen() {
     };
   }, []);
 
-  const focusPosition = vehiclePosition || phonePosition;
+  const liveFocusPosition = vehiclePosition || phonePosition;
+  const focusPosition = liveFocusPosition || DEFAULT_MAP_POSITION;
   useEffect(() => {
-    if (!focusPosition || !roadLayers) {
+    if (!liveFocusPosition || !roadLayers) {
       setMapPoints([]);
       return;
     }
-    const query = `lat=${focusPosition.latitude}&lng=${focusPosition.longitude}`;
+    const query = `lat=${liveFocusPosition.latitude}&lng=${liveFocusPosition.longitude}`;
     Promise.all([
       api.get<{ radars: Array<MapPoint & { category?: string }> }>(
         `/api/map/radars/nearby?${query}&radiusMeters=7000`
@@ -90,27 +132,31 @@ export default function MapScreen() {
         ])
       )
       .catch(() => setMapPoints([]));
-  }, [focusPosition?.latitude, focusPosition?.longitude, roadLayers]);
+  }, [liveFocusPosition?.latitude, liveFocusPosition?.longitude, roadLayers]);
   useEffect(() => {
-    if (follow && focusPosition)
+    if (follow && liveFocusPosition)
       cameraRef.current?.easeTo({
-        center: [focusPosition.longitude, focusPosition.latitude],
+        center: [liveFocusPosition.longitude, liveFocusPosition.latitude],
         zoom: perspective ? 17.5 : 15.5,
         pitch: perspective ? 55 : 0,
-        bearing: focusPosition.heading || 0,
+        bearing: liveFocusPosition.heading || 0,
         duration: 650
       });
-  }, [follow, focusPosition, perspective]);
+  }, [follow, liveFocusPosition, perspective]);
   const recenter = () => {
-    if (!focusPosition) return;
+    if (!liveFocusPosition) return;
     setFollow(true);
     cameraRef.current?.easeTo({
-      center: [focusPosition.longitude, focusPosition.latitude],
+      center: [liveFocusPosition.longitude, liveFocusPosition.latitude],
       zoom: perspective ? 17.5 : 15.5,
       pitch: perspective ? 55 : 0,
-      bearing: focusPosition.heading || 0,
+      bearing: liveFocusPosition.heading || 0,
       duration: 500
     });
+  };
+  const retryMap = () => {
+    setMapFailed(false);
+    setMapResetKey(value => value + 1);
   };
   const speed =
     vehiclePosition?.speed != null && vehiclePosition.speed >= 0
@@ -120,8 +166,32 @@ export default function MapScreen() {
   return (
     <Screen scroll={false} style={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 76 }}>
       <View style={{ flex: 1, overflow: 'hidden' }}>
-        {focusPosition ? (
+        <MapErrorBoundary
+          resetKey={mapResetKey}
+          fallback={
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: theme.colors.background,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12
+              }}
+            >
+              <Icon name="map-marker-off-outline" size={44} color={theme.colors.muted} />
+              <Text style={{ color: theme.colors.text, fontWeight: '900' }}>
+                Não foi possível iniciar o mapa
+              </Text>
+              <Pressable onPress={retryMap} style={{ padding: 14 }}>
+                <Text style={{ color: theme.colors.primaryBright, fontWeight: '900' }}>
+                  Tentar novamente
+                </Text>
+              </Pressable>
+            </View>
+          }
+        >
           <RastreonMap
+            key={mapResetKey}
             ref={cameraRef}
             focus={focusPosition}
             vehiclePosition={vehiclePosition}
@@ -129,25 +199,38 @@ export default function MapScreen() {
             track={session?.positions}
             geofences={geofences}
             points={mapPoints}
-            perspective={perspective}
+            perspective={liveFocusPosition ? perspective : false}
             follow={follow}
             onUserInteraction={() => setFollow(false)}
+            onMapReady={() => setMapFailed(false)}
+            onMapError={() => setMapFailed(true)}
           />
-        ) : (
+        </MapErrorBoundary>
+
+        {mapFailed && (
           <View
             style={{
-              flex: 1,
-              backgroundColor: theme.colors.background,
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              bottom: 220,
+              padding: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: theme.colors.danger,
+              backgroundColor: theme.colors.mapOverlay,
               alignItems: 'center',
-              justifyContent: 'center',
               gap: 12
             }}
           >
-            <Icon name="map-marker-off-outline" size={44} color={theme.colors.muted} />
             <Text style={{ color: theme.colors.text, fontWeight: '900' }}>
-              Aguardando localização
+              Falha ao carregar os dados visuais do mapa
             </Text>
-            <Text style={{ color: theme.colors.muted }}>{message}</Text>
+            <Pressable onPress={retryMap}>
+              <Text style={{ color: theme.colors.primaryBright, fontWeight: '900' }}>
+                Recarregar
+              </Text>
+            </Pressable>
           </View>
         )}
 
