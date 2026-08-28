@@ -196,6 +196,39 @@ test('configuração do mapa preserva o estilo vetorial Mapbox para todo o siste
   assert.match(response.text, /"mapboxAccessToken":"pk\.test-token"/);
   assert.doesNotMatch(response.text, /"type":"raster"/);
   assert.doesNotMatch(response.text, /tile\.openstreetmap\.org/);
+  const agent = request.agent(app);
+  await register(agent).expect(201);
+  const mobileConfig = await agent.get('/api/map/config').expect(200);
+  assert.equal(mobileConfig.body.provider, 'mapbox');
+  assert.equal(mobileConfig.body.styleUrl, 'mapbox://styles/mapbox/navigation-day-v1');
+  assert.equal(mobileConfig.body.mapboxAccessToken, 'pk.test-token');
+});
+test('gamificação usada no web e mobile compartilha perfil, progresso e ranking opcional', async t => {
+  const { app, database } = setup(t),
+    agent = request.agent(app);
+  await register(agent).expect(201);
+  const mine = await agent.get('/api/gamification/me').expect(200);
+  assert.equal(mine.body.profile.enabled, false);
+  assert.equal(mine.body.progress.score, 0);
+  await agent
+    .put('/api/gamification/me')
+    .send({ enabled: true, displayName: 'Motorista Teste' })
+    .expect(200);
+  database
+    .prepare(
+      "INSERT INTO tracking_sessions (id,user_id,vehicle_json,trip_json,created_at,expires_at) VALUES ('gamification-session',1,'{}','{}',?,?)"
+    )
+    .run(Date.now(), Date.now() + 60000);
+  database
+    .prepare(
+      "INSERT INTO trips (id,user_id,vehicle_id,tracking_session_id,planned_route_json,started_at,ended_at,created_at,updated_at) VALUES ('gamification-trip',1,NULL,'gamification-session','{}',?,?,?,?)"
+    )
+    .run(Date.now() - 10000, Date.now(), Date.now() - 10000, Date.now());
+  const progressed = await agent.get('/api/gamification/me').expect(200);
+  assert.ok(progressed.body.progress.score >= 5);
+  assert.ok(progressed.body.progress.achievements.includes('PRIMEIRA_VIAGEM'));
+  const ranking = await agent.get('/api/gamification/ranking').expect(200);
+  assert.equal(ranking.body.ranking[0].displayName, 'Motorista Teste');
 });
 test('fontes do mapa são revalidadas após cada publicação', async t => {
   const { app } = setup(t);

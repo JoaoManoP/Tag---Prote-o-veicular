@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, Text } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { Button, Card, EmptyState, Header, Input, Screen } from '../src/components/ui';
 import { api } from '../src/services/api';
 import { currentLocation, requestLocationPermission } from '../src/services/location';
@@ -73,6 +73,14 @@ export default function Geofences() {
                 <Text style={{ color: theme.colors.muted }}>
                   Raio: {item.radiusMeters} m · {item.enabled ? 'Ativa' : 'Pausada'}
                 </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Button compact secondary title={item.enabled ? 'Pausar' : 'Ativar'} onPress={async () => { await api.patch(`/api/geofences/${item.id}/status`, { enabled: !item.enabled }); await load(); }} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button compact danger icon="delete-outline" title="Excluir" onPress={async () => { await api.delete(`/api/geofences/${item.id}`); await load(); }} />
+                  </View>
+                </View>
               </Card>
             )}
           />

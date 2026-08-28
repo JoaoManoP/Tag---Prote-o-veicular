@@ -65,10 +65,7 @@ export default function Auth() {
         title={mode === 'login' ? 'Criar minha conta' : 'Já tenho uma conta'}
         onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
       />
-      <Text style={[styles.caption, { color: theme.colors.muted, textAlign: 'center' }]}>
-        Esqueci minha senha: recuperação por e-mail ficará disponível quando o provider for
-        configurado.
-      </Text>
+      {mode === 'login' && <Button secondary icon="lock-reset" title="Esqueci minha senha" onPress={() => router.push('/recovery')} />}
     </Screen>
   );
 }

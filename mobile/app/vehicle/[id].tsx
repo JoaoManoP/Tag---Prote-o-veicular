@@ -1,8 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Text, View } from 'react-native';
 import {
   Card,
+  Button,
   EmptyState,
   Header,
   Screen,
@@ -54,6 +55,7 @@ export default function VehicleDetail() {
         {field('Consumo rodoviário', vehicle.road ? `${vehicle.road} km/L` : null)}
         {field('FIPE', 'Não disponível para este cadastro')}
       </Card>
+      <Button icon="car-cog" title="Horários, velocidade e combustível" onPress={() => router.push('/vehicle-controls')} />
     </Screen>
   );
 }

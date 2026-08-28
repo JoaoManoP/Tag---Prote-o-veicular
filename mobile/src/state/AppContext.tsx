@@ -36,7 +36,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [alerts, setAlerts] = useState<Alert[]>([]),
     [session, setSession] = useState<TrackingSession | null>(null),
     [connection, setConnection] = useState('OFFLINE'),
-    [themePreference, setThemeState] = useState<ThemePreference>('system');
+    [themePreference, setThemeState] = useState<ThemePreference>('dark');
   const theme = useMemo(
     () =>
       makeTheme(themePreference === 'dark' || (themePreference === 'system' && scheme === 'dark')),

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Text } from 'react-native';
 import { Button, Card, EmptyState, Header, Screen, styles } from '../src/components/ui';
 import { api } from '../src/services/api';
@@ -7,7 +7,12 @@ import type { TrackingSession } from '../src/types';
 export default function Devices() {
   const { selectedVehicle, session, setSession, theme } = useApp(),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [devices, setDevices] = useState<Array<{ id: string; type: string; name: string; status: string; lastSeen?: number }>>([]);
+  const loadDevices = () => selectedVehicle
+    ? api.get<{ devices: typeof devices }>(`/api/vehicles/${selectedVehicle.id}/devices`).then(data => setDevices(data.devices))
+    : Promise.resolve();
+  useEffect(() => { void loadDevices(); }, [selectedVehicle?.id]);
   const create = async () => {
     if (!selectedVehicle) return;
     setLoading(true);
@@ -38,6 +43,13 @@ export default function Devices() {
             </Text>
             <Text style={{ color: theme.colors.muted }}>PHONE · GPS_TRACKER · DEMO · OTHER</Text>
           </Card>
+          {devices.map(device => (
+            <Card key={device.id}>
+              <Text style={{ color: theme.colors.text, fontWeight: '900' }}>{device.name || device.type}</Text>
+              <Text style={{ color: theme.colors.muted }}>{device.type} · {device.status}{device.lastSeen ? ` · ${new Date(device.lastSeen).toLocaleString('pt-BR')}` : ''}</Text>
+              {device.status === 'ACTIVE' && <Button danger compact icon="link-off" title="Revogar dispositivo" onPress={async () => { await api.delete(`/api/devices/${device.id}`); await loadDevices(); }} />}
+            </Card>
+          ))}
           {session?.qrCode ? (
             <Card>
               <Text style={[styles.subtitle, { color: theme.colors.text }]}>Conectar celular</Text>

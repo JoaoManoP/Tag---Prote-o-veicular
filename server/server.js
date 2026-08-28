@@ -56,6 +56,10 @@ const { calculateTrackMetrics } = require('./trip-metrics');
 const { createCommunityRouter, parseFeatureFlag } = require('./community');
 const { createPlatformRouter } = require('./platform');
 const { createTwoFactorRouter, createTwoFactorGuard } = require('./two-factor');
+const { createAccountSecurityRouter } = require('./account-security');
+const { createConvoyRouter, installConvoySocket } = require('./convoy');
+const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
+const { createPublicContactId, createPublicContactPayload } = require('./contact-id');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -716,6 +720,12 @@ function createApplication(options = {}) {
   });
   const twoFactorGuard = createTwoFactorGuard(database);
   const twoFactorRouter = createTwoFactorRouter({ database });
+  const { router: accountSecurityRouter } = createAccountSecurityRouter({
+    database,
+    secret: sessionSecret,
+    requireCsrf,
+    deliveryProvider: options.deliveryProvider
+  });
   const communityRouter = createCommunityRouter({
     database,
     enabled: process.env.COMMUNITY_PLACES_ENABLED
@@ -727,9 +737,23 @@ function createApplication(options = {}) {
     io,
     geocodingProvider
   });
+  const convoyRouter = createConvoyRouter({ database, requireCsrf, twoFactorGuard });
+  const { router: driverDocumentsRouter, privateDirectory } = createDriverDocumentsRouter({
+    database,
+    requireCsrf,
+    twoFactorGuard,
+    storageDirectory: options.privateDocumentsPath
+  });
+  const cnhGuard = requireApprovedCnh(
+    database,
+    options.cnhRequired ?? process.env.FEATURE_CNH_REQUIRED === 'true'
+  );
+  app.use('/api/account-security', accountSecurityRouter);
   app.use('/api/security/2fa', twoFactorRouter);
   app.use('/api/community', communityRouter);
   app.use('/api/platform', platformRouter);
+  app.use('/api/convoy', convoyRouter);
+  app.use('/api/documents', driverDocumentsRouter);
   app.use('/api/v1/community', communityRouter);
   app.use('/api/v1/platform', platformRouter);
   app.use(
@@ -805,6 +829,24 @@ function createApplication(options = {}) {
           enableDevTools
         })};`
       );
+  });
+  app.get('/api/map/config', requireAuth, (_req, res) => {
+    const provider = process.env.MAP_PROVIDER || 'maplibre';
+    const mapboxAccessToken =
+      provider === 'mapbox'
+        ? process.env.MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_WEB_PUBLIC_TOKEN || ''
+        : '';
+    res.json({
+      provider,
+      styleUrl:
+        provider === 'mapbox'
+          ? process.env.MAP_STYLE_URL || 'mapbox://styles/mapbox/navigation-day-v1'
+          : process.env.MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty',
+      mapboxAccessToken,
+      routeProvider: process.env.ROUTE_PROVIDER || 'osrm',
+      geocodingProvider:
+        process.env.GEOCODING_PROVIDER || (provider === 'mapbox' ? 'mapbox' : 'photon')
+    });
   });
   app.get('/login.html', (req, res) =>
     req.session.userId
@@ -1133,13 +1175,14 @@ function createApplication(options = {}) {
       const passwordHash = await hashPassword(validation.data.password);
       const result = database
         .prepare(
-          'INSERT INTO users (name, email, phone, password_hash, subscription_plan, subscription_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO users (name, email, phone, password_hash, public_contact_id, subscription_plan, subscription_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           validation.data.name,
           validation.data.email,
           validation.data.phone || null,
           passwordHash,
+          createPublicContactId(),
           validation.data.plan,
           'demo_active',
           Date.now()
@@ -1195,7 +1238,9 @@ function createApplication(options = {}) {
   });
   app.get('/api/auth/me', requireAuth, (req, res) => {
     const user = database
-      .prepare('SELECT id, name, email, phone, created_at AS createdAt FROM users WHERE id = ?')
+      .prepare(
+        'SELECT id, name, email, phone, role, public_contact_id AS publicContactId, created_at AS createdAt FROM users WHERE id = ?'
+      )
       .get(req.session.userId);
     if (!user)
       return req.session.destroy(() => res.status(401).json({ error: 'Sessão inválida.' }));
@@ -1270,7 +1315,7 @@ function createApplication(options = {}) {
   app.get('/api/profile', requireAuth, (req, res) => {
     const user = database
       .prepare(
-        'SELECT id, name, email, phone, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
+        'SELECT id, name, email, phone, public_contact_id AS contactId, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
       )
       .get(req.session.userId);
     if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
@@ -1304,6 +1349,19 @@ function createApplication(options = {}) {
       recentTrips,
       recentAlertCount
     });
+  });
+  app.get('/api/profile/contact-card', requireAuth, async (req, res, next) => {
+    try {
+      const contactId = database
+        .prepare('SELECT public_contact_id AS contactId FROM users WHERE id=?')
+        .get(req.session.userId)?.contactId;
+      const payload = createPublicContactPayload(contactId);
+      if (!payload) return res.status(409).json({ error: 'ID RASTREON indisponível.' });
+      const qrCode = await QRCode.toDataURL(payload, { width: 320, margin: 4 });
+      res.set('Cache-Control', 'no-store').json({ contactId, qrCode });
+    } catch (error) {
+      next(error);
+    }
   });
   app.get('/api/weather/current', requireAuth, async (req, res) => {
     const latitude = Number(req.query.lat),
@@ -1453,7 +1511,12 @@ function createApplication(options = {}) {
         return res.status(401).json({ error: 'Senha incorreta.' });
       if (confirmation !== 'EXCLUIR MINHA CONTA')
         return res.status(400).json({ error: 'Confirmação de exclusão inválida.' });
-      const ownedIds = database
+      const privateDocument = database
+          .prepare(
+            'SELECT document_storage_key AS storageKey FROM driver_documents WHERE user_id=?'
+          )
+          .get(user.id),
+        ownedIds = database
           .prepare('SELECT id FROM tracking_sessions WHERE user_id=?')
           .all(user.id)
           .map(row => row.id),
@@ -1471,6 +1534,12 @@ function createApplication(options = {}) {
             database.prepare('DELETE FROM auth_sessions WHERE sid=?').run(row.sid);
         }
       })();
+      if (privateDocument?.storageKey) {
+        const documentPath = path.join(privateDirectory, path.basename(privateDocument.storageKey));
+        try {
+          fs.unlinkSync(documentPath);
+        } catch {}
+      }
       for (const id of ownedIds) sessions.delete(id);
       req.session.destroy(error => {
         if (error) return next(error);
@@ -2094,6 +2163,82 @@ function createApplication(options = {}) {
         detailsJson: undefined
       }))
     });
+  });
+  const gamificationProgress = userId => {
+    const completedTrips = Number(
+        database.prepare('SELECT COUNT(*) AS count FROM trips WHERE user_id=? AND ended_at IS NOT NULL').get(userId)?.count || 0
+      ),
+      positionStats = database
+        .prepare(
+          'SELECT COUNT(*) AS total, SUM(CASE WHEN suspicious=1 THEN 1 ELSE 0 END) AS suspicious FROM positions WHERE tracking_session_id IN (SELECT id FROM tracking_sessions WHERE user_id=?)'
+        )
+        .get(userId),
+      activeFences = Number(
+        database.prepare('SELECT COUNT(*) AS count FROM geofences WHERE user_id=? AND enabled=1').get(userId)?.count || 0
+      ),
+      scheduleAlerts = Number(
+        database.prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='OUTSIDE_ALLOWED_TIME'").get(userId)?.count || 0
+      ),
+      fenceAlerts = Number(
+        database.prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='GEOFENCE_EXIT'").get(userId)?.count || 0
+      ),
+      totalPositions = Number(positionStats?.total || 0),
+      suspiciousPositions = Number(positionStats?.suspicious || 0),
+      breakdown = {
+        completedTrips: Math.min(40, completedTrips * 5),
+        continuity: Math.min(20, Math.floor(totalPositions / 50)),
+        scheduleCompliance: completedTrips ? Math.max(0, 15 - scheduleAlerts * 3) : 0,
+        geofenceCompliance: activeFences ? Math.max(0, 10 - fenceAlerts * 2) : 0,
+        dataQuality: totalPositions
+          ? Math.round(15 * Math.max(0, 1 - suspiciousPositions / totalPositions))
+          : 0
+      },
+      achievements = [];
+    if (completedTrips >= 1) achievements.push('PRIMEIRA_VIAGEM');
+    if (completedTrips >= 5) achievements.push('EXPLORADOR_RESPONSAVEL');
+    if (totalPositions >= 100 && suspiciousPositions / totalPositions < 0.05)
+      achievements.push('CONEXAO_CONSISTENTE');
+    if (completedTrips >= 1 && scheduleAlerts === 0) achievements.push('ROTINA_PROTEGIDA');
+    if (activeFences > 0 && fenceAlerts === 0) achievements.push('GUARDIAO_DA_AREA');
+    return {
+      score: Object.values(breakdown).reduce((total, value) => total + value, 0),
+      breakdown,
+      achievements
+    };
+  };
+  app.get('/api/gamification/me', requireAuth, (req, res) => {
+    const row = database
+      .prepare('SELECT enabled,display_name AS displayName,updated_at AS updatedAt FROM gamification_profiles WHERE user_id=?')
+      .get(req.session.userId);
+    res.json({
+      profile: row ? { ...row, enabled: Boolean(row.enabled) } : { enabled: false, displayName: '' },
+      progress: gamificationProgress(req.session.userId)
+    });
+  });
+  app.put('/api/gamification/me', requireAuth, (req, res) => {
+    const enabled = req.body?.enabled === true,
+      displayName = String(req.body?.displayName || '').trim().slice(0, 40);
+    if (enabled && displayName.length < 2)
+      return res.status(400).json({ error: 'Informe um nome público com pelo menos 2 caracteres.' });
+    const now = Date.now();
+    database
+      .prepare(
+        'INSERT INTO gamification_profiles (user_id,enabled,display_name,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled,display_name=excluded.display_name,updated_at=excluded.updated_at'
+      )
+      .run(req.session.userId, enabled ? 1 : 0, displayName || null, now);
+    res.json({ profile: { enabled, displayName, updatedAt: now } });
+  });
+  app.get('/api/gamification/ranking', requireAuth, (_req, res) => {
+    const ranking = database
+      .prepare(
+        "SELECT g.user_id AS userId,g.display_name AS displayName FROM gamification_profiles g JOIN users u ON u.id=g.user_id WHERE g.enabled=1 AND length(trim(COALESCE(g.display_name,'')))>=2 ORDER BY g.updated_at ASC LIMIT 100"
+      )
+      .all()
+      .map(item => ({ ...item, score: gamificationProgress(item.userId).score }))
+      .sort((left, right) => right.score - left.score || left.displayName.localeCompare(right.displayName, 'pt-BR'))
+      .slice(0, 50)
+      .map((item, index) => ({ position: index + 1, displayName: item.displayName, score: item.score }));
+    res.json({ ranking });
   });
   app.patch('/api/alerts/:id/read', requireAuth, (req, res) => {
     const result = database
@@ -2808,7 +2953,7 @@ function createApplication(options = {}) {
       .run(req.session.userId, req.params.id, Date.now());
     res.status(204).end();
   });
-  app.post('/api/sessions', requireAuth, pairingLimiter, async (req, res, next) => {
+  app.post('/api/sessions', requireAuth, cnhGuard, pairingLimiter, async (req, res, next) => {
     try {
       let vehicle;
       if (req.body?.vehicleId != null) {
@@ -2932,6 +3077,7 @@ function createApplication(options = {}) {
   });
 
   io.engine.use(sessionMiddleware);
+  installConvoySocket({ io, database });
   io.on('connection', socket => {
     if (socket.request.session?.userId) socket.join(`user:${socket.request.session.userId}`);
     socket.on(

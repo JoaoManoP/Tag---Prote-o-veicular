@@ -64,6 +64,31 @@ async function secureRequest<T>(
     throw error;
   }
 }
+async function secureUpload<T>(
+  path: string,
+  uri: string,
+  mimeType: string,
+  headers: Record<string, string> = {}
+) {
+  if (!csrfToken) csrfToken = (await request<{ token: string }>('/api/auth/csrf')).token;
+  const file = await fetch(uri);
+  const blob = await file.blob();
+  const send = () =>
+    request<T>(path, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken || '', 'Content-Type': mimeType, ...headers },
+      body: blob as unknown as BodyInit
+    });
+  try {
+    return await send();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      csrfToken = (await request<{ token: string }>('/api/auth/csrf')).token;
+      return send();
+    }
+    throw error;
+  }
+}
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
@@ -81,5 +106,11 @@ export const api = {
   securePut: <T>(path: string, body?: unknown) => secureRequest<T>(path, 'PUT', body),
   securePatch: <T>(path: string, body?: unknown) => secureRequest<T>(path, 'PATCH', body),
   secureDelete: <T>(path: string, body?: unknown) => secureRequest<T>(path, 'DELETE', body),
+  secureUpload: <T>(
+    path: string,
+    uri: string,
+    mimeType: string,
+    headers?: Record<string, string>
+  ) => secureUpload<T>(path, uri, mimeType, headers),
   url: (path: string) => `${API_URL}${path}`
 };
