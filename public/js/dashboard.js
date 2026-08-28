@@ -151,6 +151,7 @@ window.RastroMap.ready
     let vehicleMarker,
       vehicle3DLayer,
       hudVehicle3DPreview,
+      profileVehicle3DPreview,
       accuracyCircle,
       originMarker,
       destinationMarker;
@@ -1790,6 +1791,37 @@ window.RastroMap.ready
       } else applyVehicleImageFallback(image, vehicle);
       hud.classList.toggle('vehicle-identified', Boolean(vehicle.plate));
     }
+    function renderProfileVehicle() {
+      const canvas = $('profileVehicle3d');
+      if (!canvas) return;
+      profileVehicle3DPreview?.destroy?.();
+      profileVehicle3DPreview = null;
+      const name = $('profileVehicleName'),
+        details = $('profileVehicleDetails'),
+        plate = $('profileVehiclePlate'),
+        status = $('profileVehicleStatus'),
+        button = $('profileVehicleDetailsBtn');
+      if (!vehicle) {
+        canvas.hidden = true;
+        name.textContent = 'Nenhum veículo selecionado';
+        details.textContent = 'Cadastre um veículo na garagem';
+        plate.textContent = '—';
+        status.textContent = 'Sem veículo';
+      } else {
+        canvas.hidden = false;
+        name.textContent =
+          `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() || vehicle.nickname;
+        details.textContent = [vehicle.version, vehicle.year, vehicle.color]
+          .filter(Boolean)
+          .join(' · ');
+        plate.textContent = vehicle.plate || 'Sem placa';
+        status.textContent = positions.length ? 'Online' : 'Sem rastreador';
+        installVehiclePreview(canvas, vehicle).then(preview => {
+          if (preview) profileVehicle3DPreview = preview;
+        });
+      }
+      if (button) button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+    }
     function renderFuelPrice() {
       const input = $('fuelPriceInput'),
         source = $('fuelPriceSource');
@@ -2168,6 +2200,9 @@ window.RastroMap.ready
       $('profilePlan').textContent = data.plan;
       $('profileVehicleCount').textContent = data.vehicleCount;
       $('profileAlertCount').textContent = data.recentAlertCount;
+      if ($('profileSummaryVehicles')) $('profileSummaryVehicles').textContent = data.vehicleCount;
+      if ($('profileSummaryAlerts')) $('profileSummaryAlerts').textContent = data.recentAlertCount;
+      if ($('profileSummaryTrips')) $('profileSummaryTrips').textContent = data.recentTrips.length;
       $('profileTrips').innerHTML = data.recentTrips.length
         ? data.recentTrips
             .map(
@@ -2176,6 +2211,11 @@ window.RastroMap.ready
             )
             .join('')
         : '<div class="empty-state">Nenhuma viagem registrada.</div>';
+      renderProfileVehicle();
+      document.querySelectorAll('[data-view-shortcut]').forEach(button => {
+        button.onclick = () =>
+          document.querySelector(`[data-view="${button.dataset.viewShortcut}"]`)?.click();
+      });
     }
     async function exportPrivacyData() {
       const button = $('exportDataBtn');
@@ -2893,6 +2933,14 @@ window.RastroMap.ready
         hud.querySelector('.vehicle-hud__meta span').textContent =
           kmh > 3 ? 'Em movimento' : 'Parado';
       }
+      if ($('profileLiveSpeed')) $('profileLiveSpeed').textContent = br(kmh, 0);
+      if ($('profileVehicleSpeed')) $('profileVehicleSpeed').textContent = br(kmh, 0);
+      if ($('profileVehicleMovement'))
+        $('profileVehicleMovement').textContent = kmh > 3 ? 'Em movimento' : 'Parado';
+      if ($('profileLiveState'))
+        $('profileLiveState').innerHTML =
+          Date.now() - p.timestamp < 120000 ? '<i></i> Online' : '<i></i> Última posição';
+      if ($('profileVehicleStatus')) $('profileVehicleStatus').textContent = 'Online';
       speeds.push(kmh);
       lastTimestamp = p.timestamp;
       updateStats();

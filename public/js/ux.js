@@ -110,6 +110,19 @@
   let arrivalPlace = null;
   let customPolygon = null;
   let polygonPreview = null;
+  const poiPreferenceKey = 'rastreon-map-poi-categories';
+  const defaultPoiCategories = [
+    'fuel',
+    'food',
+    'hotel',
+    'hospital',
+    'pharmacy',
+    'supermarket',
+    'mechanic',
+    'charge',
+    'parking',
+    'police'
+  ];
   const icon = name =>
     `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
 
@@ -650,6 +663,35 @@
     if (value === 'camera' || value.includes('radar')) return 'camera';
     return 'hazard';
   }
+  function enabledPoiCategories() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(poiPreferenceKey) || 'null');
+      return Array.isArray(saved) ? saved : defaultPoiCategories;
+    } catch (_) {
+      return defaultPoiCategories;
+    }
+  }
+  function setupPoiPreferences() {
+    const settings = document.querySelectorAll('#profilePoiSettings input');
+    if (!settings.length) return;
+    const enabled = enabledPoiCategories();
+    settings.forEach(input => {
+      input.checked = enabled.includes(input.value);
+      input.onchange = () => {
+        const categories = Array.from(settings)
+          .filter(item => item.checked)
+          .map(item => item.value);
+        localStorage.setItem(poiPreferenceKey, JSON.stringify(categories));
+        clearTimeout(poiRefreshTimer);
+        poiRefreshTimer = setTimeout(loadPois, 100);
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Preferências de locais atualizadas no mapa.'
+          })
+        );
+      };
+    });
+  }
   function renderPois(places, category) {
     const api = window.rastreonMap;
     if (!api) return;
@@ -723,7 +765,10 @@
               ]
             : zoom >= 13
               ? ['fuel', 'food', 'hospital', 'pharmacy', 'supermarket', 'mechanic']
-              : ['fuel', 'hospital', 'pharmacy'];
+              : ['fuel', 'hospital', 'pharmacy'],
+        requestedCategories = categories.filter(category =>
+          enabledPoiCategories().includes(category)
+        );
       if (scope === 'route' && activeRoute.length < 2)
         throw new Error('Calcule uma rota antes de buscar no corredor.');
       const sample =
@@ -738,7 +783,7 @@
             ? `&route=${encodeURIComponent(sample.map(point => `${point[1]},${point[0]}`).join(';'))}`
             : '';
       const payloads = await Promise.all(
-        categories.map(async category => {
+        requestedCategories.map(async category => {
           const response = await fetch(
               `/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(category)}${route}`,
               { signal: poiRequest.signal }
@@ -1038,6 +1083,7 @@
       poiRefreshTimer = setTimeout(loadPois, 450);
     });
     window.rastreonMap?.map.ready?.then(loadPois);
+    setupPoiPreferences();
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,
       childList: true,

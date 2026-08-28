@@ -53,6 +53,7 @@
     <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-1" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -637,13 +638,19 @@
         </div>
       </section>
       <section id="profileView" class="view">
-        <div class="page-content">
+        <div class="page-content profile-page">
           <div class="page-heading">
             <div>
               <span class="eyebrow">CENTRAL DA CONTA</span>
               <h2>Perfil</h2>
               <p>Dados, atividade e recursos vinculados à sua conta.</p>
             </div>
+          </div>
+          <div class="profile-live-card">
+            <span class="profile-live-label">Status ao vivo</span>
+            <b id="profileLiveState"><i></i> Aguardando rastreador</b>
+            <strong><span id="profileLiveSpeed">0</span> <small>km/h</small></strong>
+            <span id="profileLiveAddress">Localização ainda não recebida</span>
           </div>
           <div class="profile-layout">
             <section class="card profile-card">
@@ -680,11 +687,109 @@
                 </div>
               </dl>
             </section>
-            <section class="card">
-              <span class="eyebrow">VIAGENS RECENTES</span>
-              <h2>Últimas atividades</h2>
+            <section class="card profile-summary-card">
+              <div class="profile-section-title">
+                <div>
+                  <span class="eyebrow">VISÃO GERAL</span>
+                  <h2>Resumo da sua conta</h2>
+                </div>
+                <small>Atualizado agora</small>
+              </div>
+              <div class="profile-summary-grid">
+                <article>
+                  <span>◈</span><strong id="profileSummaryVehicles">0</strong><small>Veículos</small
+                  ><b>Ativos</b>
+                </article>
+                <article>
+                  <span>◎</span><strong id="profileSummaryAlerts">0</strong
+                  ><small>Alertas recentes</small><b>Ver detalhes</b>
+                </article>
+                <article>
+                  <span>⌖</span><strong id="profileSummaryTrips">0</strong
+                  ><small>Viagens recentes</small><b>Histórico</b>
+                </article>
+                <article>
+                  <span>✓</span><strong>Protegida</strong><small>Conta</small><b>Segura</b>
+                </article>
+              </div>
+            </section>
+            <section class="card profile-vehicle-card">
+              <div class="profile-section-title">
+                <div>
+                  <span class="eyebrow">GARAGEM</span>
+                  <h2>Veículo principal</h2>
+                </div>
+                <span id="profileVehicleStatus" class="profile-online-pill">Sem rastreador</span>
+              </div>
+              <div class="profile-vehicle-main">
+                <canvas id="profileVehicle3d" aria-label="Modelo 3D do veículo principal"></canvas>
+                <div>
+                  <strong id="profileVehicleName">Nenhum veículo selecionado</strong
+                  ><span id="profileVehicleDetails">—</span><span id="profileVehiclePlate">—</span>
+                </div>
+              </div>
+              <div class="profile-vehicle-telemetry">
+                <div>
+                  <small>Velocidade</small
+                  ><strong><span id="profileVehicleSpeed">0</span> km/h</strong>
+                </div>
+                <div><small>Status</small><strong id="profileVehicleMovement">Parado</strong></div>
+              </div>
+              <button type="button" id="profileVehicleDetailsBtn" class="secondary wide">
+                Ver detalhes do veículo
+              </button>
+            </section>
+            <section class="card profile-activity-card">
+              <div class="profile-section-title">
+                <div>
+                  <span class="eyebrow">ATIVIDADES</span>
+                  <h2>Últimas atividades</h2>
+                </div>
+                <button type="button" class="text-btn" data-view-shortcut="timeline">
+                  Ver todas
+                </button>
+              </div>
               <div id="profileTrips" class="profile-trips">
                 <div class="empty-state">Nenhuma viagem registrada.</div>
+              </div>
+            </section>
+            <section class="card profile-poi-card">
+              <div class="profile-section-title">
+                <div>
+                  <span class="eyebrow">MAPA</span>
+                  <h2>Locais e serviços no mapa</h2>
+                </div>
+                <span class="profile-enabled-pill">Habilitados</span>
+              </div>
+              <p>
+                Escolha internamente quais ícones devem aparecer automaticamente próximos ao veículo
+                e à rota.
+              </p>
+              <div id="profilePoiSettings" class="profile-poi-settings">
+                <label><input type="checkbox" value="fuel" checked /><span>Postos</span></label>
+                <label
+                  ><input type="checkbox" value="hospital" checked /><span
+                    >Centros de saúde</span
+                  ></label
+                >
+                <label
+                  ><input type="checkbox" value="pharmacy" checked /><span>Farmácias</span></label
+                >
+                <label
+                  ><input type="checkbox" value="food" checked /><span>Restaurantes</span></label
+                >
+                <label
+                  ><input type="checkbox" value="supermarket" checked /><span>Mercados</span></label
+                >
+                <label
+                  ><input type="checkbox" value="mechanic" checked /><span>Oficinas</span></label
+                >
+                <label
+                  ><input type="checkbox" value="parking" checked /><span
+                    >Estacionamentos</span
+                  ></label
+                >
+                <label><input type="checkbox" value="police" checked /><span>Polícia</span></label>
               </div>
             </section>
             <section class="card privacy-card">
