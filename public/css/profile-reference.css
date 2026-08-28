@@ -1608,6 +1608,11 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
     min-height: 322px !important;
   }
 
+  #profileView .profile-activity-card {
+    min-height: 374px !important;
+    margin-top: -52px;
+  }
+
   #profileView .profile-bottom-card {
     min-height: 156px !important;
   }
