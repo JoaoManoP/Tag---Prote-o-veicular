@@ -4,11 +4,10 @@ import {
   Layer,
   Map,
   Marker,
-  UserLocation,
   type CameraRef,
   type LngLat
 } from '@maplibre/maplibre-react-native';
-import React, { forwardRef, useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { View } from 'react-native';
 import { api } from '../services/api';
 import { useApp } from '../state/AppContext';
@@ -33,12 +32,45 @@ type MapConfig = {
 
 const DEFAULT_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
-function nativeStyleUrl(config?: MapConfig) {
-  if (!config) return DEFAULT_STYLE;
-  if (config.provider !== 'mapbox' || !config.styleUrl.startsWith('mapbox://styles/'))
+type NativeMapStyle = NonNullable<ComponentProps<typeof Map>['mapStyle']>;
+
+function withMapboxToken(url: string, token: string) {
+  return `${url}${url.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`;
+}
+
+async function nativeMapStyle(config: MapConfig): Promise<NativeMapStyle> {
+  const token = config.mapboxAccessToken || '';
+  if (config.provider !== 'mapbox' || !config.styleUrl.startsWith('mapbox://styles/') || !token)
     return config.styleUrl;
-  const style = config.styleUrl.replace('mapbox://styles/', '');
-  return `https://api.mapbox.com/styles/v1/${style}?access_token=${encodeURIComponent(config.mapboxAccessToken || '')}`;
+  const stylePath = config.styleUrl.slice('mapbox://styles/'.length);
+  const tilesUrl = withMapboxToken(
+    `https://api.mapbox.com/styles/v1/${stylePath}/tiles/512/{z}/{x}/{y}@2x`,
+    token
+  );
+  return {
+    version: 8,
+    sources: {
+      'rastreon-mapbox': {
+        type: 'raster',
+        tiles: [tilesUrl],
+        tileSize: 512,
+        attribution: '© Mapbox © OpenStreetMap'
+      }
+    },
+    layers: [
+      {
+        id: 'rastreon-mapbox-background',
+        type: 'background',
+        paint: { 'background-color': '#06121d' }
+      },
+      {
+        id: 'rastreon-mapbox-tiles',
+        type: 'raster',
+        source: 'rastreon-mapbox',
+        paint: { 'raster-fade-duration': 0 }
+      }
+    ]
+  } as NativeMapStyle;
 }
 
 function lineFeature(points: Position[]): GeoJSON.Feature<GeoJSON.LineString> {
@@ -123,24 +155,13 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
   ref
 ) {
   const { theme } = useApp();
-  const [config, setConfig] = useState<MapConfig>({
-    provider: 'maplibre',
-    styleUrl: DEFAULT_STYLE,
-    routeProvider: 'osrm',
-    geocodingProvider: 'photon'
-  });
+  const [mapStyle, setMapStyle] = useState<NativeMapStyle>(DEFAULT_STYLE);
   useEffect(() => {
     api
       .get<MapConfig>('/api/map/config')
-      .then(setConfig)
-      .catch(() =>
-        setConfig({
-          provider: 'maplibre',
-          styleUrl: DEFAULT_STYLE,
-          routeProvider: 'osrm',
-          geocodingProvider: 'photon'
-        })
-      );
+      .then(nativeMapStyle)
+      .then(setMapStyle)
+      .catch(() => setMapStyle(DEFAULT_STYLE));
   }, []);
   const center: LngLat = focus ? [focus.longitude, focus.latitude] : [-42.64, -19.58];
   const fences = useMemo(() => fenceCollection(geofences), [geofences]);
@@ -148,7 +169,7 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
   return (
     <Map
       style={{ flex: 1 }}
-      mapStyle={nativeStyleUrl(config)}
+      mapStyle={mapStyle}
       androidView="texture"
       logo={false}
       attribution
@@ -171,7 +192,31 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
         duration={follow ? 650 : 0}
         easing="ease"
       />
-      {showUserLocation && phonePosition && <UserLocation animated accuracy heading />}
+      {showUserLocation && phonePosition && (
+        <Marker id="phone-location" lngLat={[phonePosition.longitude, phonePosition.latitude]}>
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: theme.colors.primaryBright + '44',
+              borderWidth: 2,
+              borderColor: theme.colors.text,
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: theme.colors.primaryBright
+              }}
+            />
+          </View>
+        </Marker>
+      )}
       {route && (
         <GeoJSONSource id="rastreon-track" data={route}>
           <Layer
