@@ -67,7 +67,7 @@
     tracking: [
       ['.map-column', 'Este é o mapa. Ele permanece como foco do rastreamento.'],
       ['#vehicleSheet', 'Toque no resumo para ver destino, distância e saúde.'],
-      ['#exploreBtn', 'Ative somente o tipo de local que deseja visualizar.']
+      ['#mapControls', 'Use aqui navegação, visão 3D, QR Code, trânsito e localização.']
     ],
     timeline: [
       ['#eventTimeline', 'Aqui aparecem os acontecimentos da viagem em ordem.'],
@@ -102,6 +102,11 @@
   let selectedVehicleId = null;
   let healthSaveTimer = null;
   let poiRequest = null;
+  let poiRefreshTimer = null;
+  let poiRetryTimer = null;
+  let poiActiveKey = null;
+  let poiLastSuccessKey = null;
+  let poiLastSuccessAt = 0;
   let activeRoute = [];
   let fencePoint = null;
   let fencePreview = null;
@@ -109,28 +114,46 @@
   let arrivalPlace = null;
   let customPolygon = null;
   let polygonPreview = null;
+  const poiPreferenceKey = 'rastreon-map-poi-categories';
+  const poiCategories = [
+    ['fuel', 'Postos', 'fuel', true],
+    ['hospital', 'Hospitais', 'hospital', true],
+    ['charge', 'Postos elétricos', 'fuel'],
+    ['parking', 'Estacionamentos', 'parking'],
+    ['airport', 'Aeroportos', 'parking'],
+    ['restaurant', 'Restaurantes e fast food', 'food'],
+    ['cafe', 'Cafeterias e sorveterias', 'food'],
+    ['bakery', 'Padarias', 'food'],
+    ['bar', 'Bares', 'food'],
+    ['pharmacy', 'Farmácias', 'hospital'],
+    ['dentist', 'Dentistas', 'hospital'],
+    ['veterinary', 'Veterinários', 'hospital'],
+    ['supermarket', 'Mercados e atacados', 'shopping'],
+    ['mechanic', 'Oficinas e mecânicas', 'mechanic'],
+    ['school', 'Escolas', 'shopping'],
+    ['university', 'Universidades', 'shopping'],
+    ['library', 'Bibliotecas', 'shopping'],
+    ['culture', 'Museus e galerias', 'shopping'],
+    ['leisure', 'Parques e áreas verdes', 'parking'],
+    ['tourism', 'Turismo e mirantes', 'parking'],
+    ['camping', 'Campings', 'parking'],
+    ['hotel', 'Hotéis e hospedagem', 'parking'],
+    ['worship', 'Templos e igrejas', 'hospital'],
+    ['police', 'Polícia', 'police'],
+    ['fire_station', 'Corpo de Bombeiros', 'police']
+  ];
+  const essentialPoiCategories = new Set(
+    poiCategories.filter(category => category[3]).map(category => category[0])
+  );
+  const defaultPoiCategories = [...essentialPoiCategories];
   const icon = name =>
-    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg#${name}"></use></svg>`;
+    `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
 
   function trackingMarkup() {
     return `<div id="vehicleHealthBadge" class="health-badge hidden"><button id="healthBadgeBtn" aria-label="Abrir avisos de saúde" aria-expanded="false">${icon('warning')}<b>1 aviso</b></button><div id="healthPopover" class="health-popover hidden"></div></div><aside id="arrivalPrompt" class="arrival-prompt hidden"><b id="arrivalTitle">Você chegou.</b><p>Ativar proteção?</p><div><button id="arrivalLater" class="secondary">Agora não</button><button id="arrivalActivate">Ativar</button></div></aside>
-      <div id="exploreMenu" class="explore-menu hidden"><b>Explorar locais</b><select id="poiScope" aria-label="Área da busca"><option value="nearby">Perto de mim</option><option value="route">Ao longo da rota</option></select>${[
-        ['fuel', 'Postos'],
-        ['food', 'Restaurantes'],
-        ['hotel', 'Hotéis'],
-        ['hospital', 'Hospitais'],
-        ['pharmacy', 'Farmácias'],
-        ['supermarket', 'Mercados'],
-        ['mechanic', 'Oficinas'],
-        ['charge', 'Carregadores'],
-        ['parking', 'Estacionamento'],
-        ['police', 'Polícia'],
-        ['camera', 'Radares']
-      ]
-        .map(x => `<label><input type="checkbox" value="${x[0]}"> ${x[1]}</label>`)
-        .join(
-          ''
-        )}<small>Use sua posição atual ou o corredor da rota calculada. Escolha uma categoria por vez.</small></div>
+      <div id="poiMetadata" class="hidden" aria-hidden="true"><div class="poi-auto-categories">${poiCategories
+        .map(x => `<span data-poi-category="${x[0]}">${x[1]}</span>`)
+        .join('')}</div></div>
       <section id="vehicleSheet" class="vehicle-sheet minimized" aria-label="Resumo do veículo"><button id="sheetHandle" class="sheet-handle" aria-expanded="false"><span><strong id="sheetVehicleName">Meu veículo</strong><small id="sheetOnline">● Aguardando</small><small id="sheetCurrentAddress"></small></span><span><strong><span id="sheetSpeed">0</span> km/h</strong><small id="sheetUpdated">sem dados</small></span>${icon('chevron-up')}</button><div class="sheet-details"><div><span>Destino</span><strong id="sheetDestination">Não definido</strong></div><div><span>Chegada</span><strong id="sheetEta">—</strong></div><div><span>Distância</span><strong id="sheetDistance">—</strong></div><div><span>Saúde</span><strong id="sheetHealth">Normal</strong></div><button id="openTechnical" class="secondary wide">Ver detalhes da viagem</button></div></section>`;
   }
 
@@ -151,15 +174,6 @@
     if (mapCard) {
       mapCard.insertAdjacentHTML('beforeend', trackingMarkup());
       const actions = mapCard.querySelector('.map-toolbar .actions');
-      if (!byId('exploreBtn')) {
-        const explore = document.createElement('button');
-        explore.id = 'exploreBtn';
-        explore.className = 'secondary';
-        explore.type = 'button';
-        explore.textContent = 'Locais';
-        explore.setAttribute('aria-expanded', 'false');
-        actions?.insertBefore(explore, byId('locateMeBtn'));
-      }
       if (!byId('trafficBtn')) {
         const traffic = document.createElement('button');
         traffic.id = 'trafficBtn';
@@ -645,27 +659,90 @@
   function poiIconId(category) {
     const value = String(category || '').toLowerCase();
     if (value === 'fuel' || value.includes('posto')) return 'fuel';
-    if (value === 'food' || value.includes('restaurante') || value.includes('lanche'))
+    if (
+      ['restaurant', 'cafe', 'bakery', 'bar'].includes(value) ||
+      value.includes('restaurante') ||
+      value.includes('lanche')
+    )
       return 'food';
-    if (value === 'supermarket' || value.includes('shopping') || value.includes('mercado'))
+    if (
+      ['supermarket', 'school', 'university', 'library', 'culture'].includes(value) ||
+      value.includes('shopping') ||
+      value.includes('mercado')
+    )
       return 'shopping';
     if (value === 'mechanic' || value.includes('oficina')) return 'mechanic';
-    if (value === 'parking' || value.includes('estacion')) return 'parking';
     if (
-      ['hospital', 'pharmacy'].includes(value) ||
+      ['parking', 'airport', 'hotel', 'leisure', 'tourism', 'camping'].includes(value) ||
+      value.includes('estacion')
+    )
+      return 'parking';
+    if (
+      ['hospital', 'pharmacy', 'dentist', 'veterinary', 'worship'].includes(value) ||
       value.includes('hospital') ||
       value.includes('farm')
     )
       return 'hospital';
-    if (value === 'police' || value.includes('pol')) return 'police';
+    if (['police', 'fire_station'].includes(value) || value.includes('pol')) return 'police';
     if (value === 'camera' || value.includes('radar')) return 'camera';
     return 'hazard';
+  }
+  function enabledPoiCategories() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(poiPreferenceKey) || 'null');
+      const selected = Array.isArray(saved) ? saved : defaultPoiCategories;
+      return [...new Set([...essentialPoiCategories, ...selected])].filter(category =>
+        poiCategories.some(item => item[0] === category)
+      );
+    } catch (_) {
+      return defaultPoiCategories;
+    }
+  }
+  function setupPoiPreferences() {
+    const settings = document.querySelectorAll('#profilePoiSettings input');
+    if (!settings.length) return;
+    const enabled = enabledPoiCategories();
+    settings.forEach(input => {
+      input.checked = enabled.includes(input.value);
+      input.disabled = essentialPoiCategories.has(input.value);
+      input.onchange = () => {
+        const categories = [
+          ...essentialPoiCategories,
+          ...Array.from(settings)
+            .filter(item => item.checked)
+            .map(item => item.value)
+        ];
+        localStorage.setItem(poiPreferenceKey, JSON.stringify([...new Set(categories)]));
+        clearTimeout(poiRefreshTimer);
+        poiRefreshTimer = setTimeout(loadPois, 100);
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Preferências de locais atualizadas no mapa.'
+          })
+        );
+      };
+    });
+    const restore = byId('restorePoiDefaults');
+    if (restore)
+      restore.onclick = () => {
+        localStorage.setItem(poiPreferenceKey, JSON.stringify(defaultPoiCategories));
+        settings.forEach(input => (input.checked = essentialPoiCategories.has(input.value)));
+        clearTimeout(poiRefreshTimer);
+        poiRefreshTimer = setTimeout(loadPois, 100);
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Mapa restaurado: somente postos e hospitais permanecem visíveis.'
+          })
+        );
+      };
   }
   function renderPois(places, category) {
     const api = window.rastreonMap;
     if (!api) return;
     if (!api.layers.pois) api.layers.pois = api.L.layerGroup().addTo(api.map);
     api.layers.pois.clearLayers();
+    document.body.dataset.poiCount = String(places.length);
+    api.map.setNativePoiVisibility?.(places.length === 0);
     const zoom = api.map.getZoom(),
       cell = zoom >= 15 ? 0.002 : zoom >= 13 ? 0.008 : 0.025;
     const groups = new Map();
@@ -692,16 +769,23 @@
       });
       const popupName = group.length > 1 ? `${group.length} locais próximos` : group[0].name,
         place = group[0],
+        details =
+          group.length === 1
+            ? [place.address, place.openingHours, place.phone]
+                .filter(Boolean)
+                .map(value => `<br><small>${escapeHtml(value)}</small>`)
+                .join('')
+            : '',
         stopButton =
           group.length === 1
-            ? `<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Adicionar como parada</button>`
+            ? `<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Traçar rota</button>`
             : '',
         reviewButton =
           group.length === 1
             ? ` <button type="button" data-poi-review="true" data-place-key="${encodeURIComponent(`osm:${place.id}`)}" data-name="${encodeURIComponent(place.name)}" data-address="${encodeURIComponent(place.address || '')}" data-latitude="${place.latitude}" data-longitude="${place.longitude}">Comentários e avaliações</button>`
             : '';
       marker.bindPopup(
-        `<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel || category)} · OpenStreetMap</small>${stopButton}${reviewButton}`
+        `<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel || category)} · OpenStreetMap</small>${details}${stopButton}${reviewButton}`
       );
       if (group.length > 1)
         marker.on('click', () => api.map.setView([lat, lng], Math.min(18, zoom + 2)));
@@ -711,17 +795,20 @@
   async function loadPois() {
     const api = window.rastreonMap;
     if (!api) return;
-    const selected = [...document.querySelectorAll('#exploreMenu input:checked')];
-    if (!selected.length) {
-      api.layers.pois?.clearLayers();
-      return;
-    }
-    poiRequest?.abort();
-    poiRequest = new AbortController();
     const current = window.rastreonLocation?.current(),
-      center = current ? { lat: current.latitude, lng: current.longitude } : api.map.getCenter();
+      viewportCenter = api.map.getCenter?.(),
+      center =
+        viewportCenter || (current ? { lat: current.latitude, lng: current.longitude } : null);
+    if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
+    let requestController = null;
     try {
-      const scope = byId('poiScope')?.value || 'nearby';
+      const scope = activeRoute.length >= 2 ? 'route' : 'nearby',
+        zoom = Number(api.map.getZoom?.() || 13),
+        selectedCategories = enabledPoiCategories(),
+        requestedCategories =
+          scope === 'route' || zoom >= 12
+            ? selectedCategories
+            : selectedCategories.filter(category => essentialPoiCategories.has(category));
       if (scope === 'route' && activeRoute.length < 2)
         throw new Error('Calcule uma rota antes de buscar no corredor.');
       const sample =
@@ -734,27 +821,56 @@
         route =
           scope === 'route'
             ? `&route=${encodeURIComponent(sample.map(point => `${point[1]},${point[0]}`).join(';'))}`
-            : '';
-      const payloads = await Promise.all(
-        selected.map(async input => {
-          const response = await fetch(
-              `/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(input.value)}${route}`,
-              { signal: poiRequest.signal }
-            ),
-            data = await response.json();
-          if (!response.ok) throw new Error(data.error);
-          const categoryLabel = input.parentElement.textContent.trim();
-          return (data.places || []).map(place => ({ ...place, categoryLabel }));
-        })
-      );
-      renderPois(payloads.flat(), 'Locais próximos');
+            : '',
+        zoomScope = zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
+        requestKey = [
+          center.lat.toFixed(2),
+          center.lng.toFixed(2),
+          zoomScope,
+          requestedCategories.join(','),
+          route
+        ].join('|');
+      if (poiActiveKey === requestKey) return;
+      if (poiLastSuccessKey === requestKey && Date.now() - poiLastSuccessAt < 30000) return;
+      poiRequest?.abort();
+      requestController = new AbortController();
+      poiRequest = requestController;
+      poiActiveKey = requestKey;
+      const response = await fetch(
+          `/api/pois?lat=${center.lat}&lng=${center.lng}&zoom=${zoom}&categories=${encodeURIComponent(requestedCategories.join(','))}${route}`,
+          { signal: requestController.signal }
+        ),
+        data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      const places = (data.places || []).map(place => ({
+        ...place,
+        categoryLabel: document.querySelector(`[data-poi-category="${place.category}"]`)
+          ?.textContent
+      }));
+      renderPois(places, 'Locais próximos');
+      poiLastSuccessKey = requestKey;
+      poiLastSuccessAt = Date.now();
+      if (poiRequest === requestController) poiActiveKey = null;
+      clearTimeout(poiRetryTimer);
     } catch (error) {
+      if (poiRequest === requestController) poiActiveKey = null;
       if (error.name !== 'AbortError' && byId('toast')) {
-        byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.';
-        byId('toast').classList.add('show');
-        setTimeout(() => byId('toast').classList.remove('show'), 2600);
+        api.map.setNativePoiVisibility?.(true);
+        if (!document.body.dataset.poiFallbackNotice) {
+          document.body.dataset.poiFallbackNotice = 'shown';
+          byId('toast').textContent = 'Exibindo os locais disponíveis no Mapbox.';
+          byId('toast').classList.add('show');
+          setTimeout(() => byId('toast').classList.remove('show'), 2200);
+        }
+        clearTimeout(poiRetryTimer);
+        poiRetryTimer = setTimeout(loadPois, 30000);
       }
     }
+  }
+
+  function schedulePoiLoad(delay = 450) {
+    clearTimeout(poiRefreshTimer);
+    poiRefreshTimer = setTimeout(loadPois, delay);
   }
 
   async function loadPreferencesAndHealth() {
@@ -905,27 +1021,6 @@
             : 'Ver detalhes';
         }
       }
-      if (event.target.closest('#exploreBtn')) {
-        const exploreMenu = byId('exploreMenu');
-        const exploreBtn = byId('exploreBtn');
-        if (exploreMenu && exploreBtn) {
-          exploreMenu.classList.toggle('hidden');
-          exploreBtn.setAttribute(
-            'aria-expanded',
-            String(!exploreMenu.classList.contains('hidden'))
-          );
-          if (
-            !exploreMenu.classList.contains('hidden') &&
-            !exploreMenu.querySelector('input:checked')
-          ) {
-            for (const value of ['fuel', 'food']) {
-              const input = exploreMenu.querySelector(`input[value="${value}"]`);
-              if (input) input.checked = true;
-            }
-            loadPois();
-          }
-        }
-      }
       if (event.target.closest('#healthBadgeBtn')) {
         const popover = byId('healthPopover');
         if (popover) popover.classList.toggle('hidden');
@@ -1045,11 +1140,19 @@
         renderHealth();
       };
     }
-    document.querySelectorAll('#exploreMenu input').forEach(input => (input.onchange = loadPois));
-    byId('poiScope').onchange = loadPois;
+    window.rastreonMap?.map.on('moveend', () => {
+      schedulePoiLoad();
+    });
     window.addEventListener('rastreon:route-selected', event => {
       activeRoute = Array.isArray(event.detail?.geometry) ? event.detail.geometry : [];
+      schedulePoiLoad();
     });
+    window.addEventListener('rastreon:user-location', () => schedulePoiLoad(150));
+    window.addEventListener('rastreon:map-ready', () => schedulePoiLoad(0));
+    window.addEventListener('rastreon:map-style-restored', () => schedulePoiLoad(100));
+    window.rastreonMap?.map.ready?.then(() => schedulePoiLoad(0));
+    schedulePoiLoad(0);
+    setupPoiPreferences();
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,
       childList: true,

@@ -424,6 +424,7 @@
         this.wrapper = target instanceof LayerGroup ? target.target : target;
         this.wrapper = this.wrapper || mapInstance;
         this.map = this.wrapper?._map || this.wrapper;
+        this.wrapper?._shapes?.add(this);
         this.wrapper?.ready.then(() => this._create()).catch(() => {});
         return this;
       }
@@ -472,33 +473,38 @@
           return;
         }
         const feature = this._feature();
-        this.map.addSource(this.id, { type: 'geojson', data: feature });
+        if (!this.map.getSource(this.id))
+          this.map.addSource(this.id, { type: 'geojson', data: feature });
         const polygon = this.kind === 'polygon' || this.kind === 'circle';
-        this.map.addLayer({
-          id: this.id,
-          type: polygon ? 'fill' : 'line',
-          source: this.id,
-          paint: polygon
-            ? {
-                'fill-color': this.options.fillColor || this.options.color || '#ff5a0a',
-                'fill-opacity': this.options.fillOpacity ?? 0.12,
-                'fill-outline-color': this.options.color || '#ff5a0a'
-              }
-            : {
-                'line-color': this.options.color || '#ff5a0a',
-                'line-width': this.options.weight || 4,
-                'line-opacity': this.options.opacity ?? 1,
-                'line-dasharray': this.options.dashArray ? [2, 2] : [1, 0]
-              }
-        });
-        this.listeners.forEach(([name, handler]) =>
-          this.map.on(name, this.id, event =>
-            handler({
-              latlng: event.lngLat ? { lat: event.lngLat.lat, lng: event.lngLat.lng } : null,
-              originalEvent: event.originalEvent
-            })
-          )
-        );
+        if (!this.map.getLayer(this.id))
+          this.map.addLayer({
+            id: this.id,
+            type: polygon ? 'fill' : 'line',
+            source: this.id,
+            paint: polygon
+              ? {
+                  'fill-color': this.options.fillColor || this.options.color || '#ff5a0a',
+                  'fill-opacity': this.options.fillOpacity ?? 0.12,
+                  'fill-outline-color': this.options.color || '#ff5a0a'
+                }
+              : {
+                  'line-color': this.options.color || '#ff5a0a',
+                  'line-width': this.options.weight || 4,
+                  'line-opacity': this.options.opacity ?? 1,
+                  'line-dasharray': this.options.dashArray ? [2, 2] : [1, 0]
+                }
+          });
+        if (!this.listenersBound) {
+          this.listeners.forEach(([name, handler]) =>
+            this.map.on(name, this.id, event =>
+              handler({
+                latlng: event.lngLat ? { lat: event.lngLat.lat, lng: event.lngLat.lng } : null,
+                originalEvent: event.originalEvent
+              })
+            )
+          );
+          this.listenersBound = true;
+        }
       }
       on(name, handler) {
         this.listeners.push([name, handler]);
@@ -569,9 +575,13 @@
     class MapWrapper {
       constructor(id) {
         this.container = document.getElementById(id);
+        this._shapes = new Set();
+        this._trafficEnabled = false;
+        this._nativePoiVisible = true;
+        this._styleUrl = config.mapStyleUrl || 'https://tiles.openfreemap.org/styles/liberty';
         this._map = new maplibregl.Map({
           container: id,
-          style: config.mapStyleUrl || 'https://tiles.openfreemap.org/styles/liberty',
+          style: this._styleUrl,
           center: [-42.54, -19.47],
           zoom: 10,
           pitch: 0,
@@ -580,6 +590,16 @@
           pixelRatio: Math.min(1.75, window.devicePixelRatio || 1),
           fadeDuration: 180,
           attributionControl: true
+        });
+        this._map.on('style.load', () => {
+          this._applyNativePoiVisibility();
+          this._shapes.forEach(shape => {
+            if (shape.kind === 'marker' || shape.kind === 'circleMarker') return;
+            shape.object = null;
+            shape._create();
+          });
+          if (this._trafficEnabled) this.setTraffic(true);
+          window.dispatchEvent(new CustomEvent('rastreon:map-style-restored'));
         });
         this.ready = new Promise((resolve, reject) => {
           let timeout;
@@ -614,6 +634,27 @@
         });
         mapInstance = this;
       }
+      _applyNativePoiVisibility() {
+        const layers = this._map.getStyle?.().layers || [];
+        layers.forEach(layer => {
+          const sourceLayer = String(layer['source-layer'] || ''),
+            isNativePoi =
+              /(^|[-_])poi([-_]|$)/i.test(layer.id) || /(^|[-_])poi([-_]|$)/i.test(sourceLayer);
+          if (!isNativePoi || layer.type !== 'symbol') return;
+          try {
+            this._map.setLayoutProperty(
+              layer.id,
+              'visibility',
+              this._nativePoiVisible ? 'visible' : 'none'
+            );
+          } catch {}
+        });
+      }
+      setNativePoiVisibility(visible) {
+        this._nativePoiVisible = Boolean(visible);
+        this.ready.then(() => this._applyNativePoiVisibility()).catch(() => {});
+        return this;
+      }
       setView(center, zoom) {
         this._map.jumpTo({
           center: lngLat(center),
@@ -645,6 +686,7 @@
       }
       setTraffic(enabled) {
         if (config.provider !== 'mapbox') return this;
+        this._trafficEnabled = Boolean(enabled);
         const sourceId = 'rastreon-mapbox-traffic',
           layerId = 'rastreon-mapbox-traffic-flow';
         this.ready.then(() => {
@@ -686,6 +728,12 @@
             }
           });
         });
+        return this;
+      }
+      setStyle(styleUrl) {
+        if (!styleUrl || styleUrl === this._styleUrl) return this;
+        this._styleUrl = styleUrl;
+        this._map.setStyle(styleUrl, { diff: true });
         return this;
       }
       setTilt(value) {

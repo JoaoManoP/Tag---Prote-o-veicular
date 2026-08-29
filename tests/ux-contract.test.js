@@ -13,6 +13,15 @@ const refreshCss = fs.readFileSync(
   path.join(root, 'public', 'css', 'dashboard-refresh.css'),
   'utf8'
 );
+const navigationCss = fs.readFileSync(
+  path.join(root, 'public', 'css', 'navigation-redesign.css'),
+  'utf8'
+);
+const designSystem = fs.readFileSync(path.join(root, 'public', 'css', 'design-system.css'), 'utf8');
+const navigationRedesign = fs.readFileSync(
+  path.join(root, 'public', 'js', 'navigation-redesign.js'),
+  'utf8'
+);
 const diagnostics = fs.readFileSync(path.join(root, 'server', 'vehicle-diagnostics.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public', 'js', 'dashboard.js'), 'utf8');
 const mapService = fs.readFileSync(path.join(root, 'public', 'js', 'map-service.js'), 'utf8');
@@ -21,12 +30,18 @@ const navigationState = fs.readFileSync(
   'utf8'
 );
 const home = fs.readFileSync(path.join(root, 'public', 'home.html'), 'utf8');
+const homeHeroCss = fs.readFileSync(
+  path.join(root, 'public', 'css', 'home-clean-hero.css'),
+  'utf8'
+);
 const register = fs.readFileSync(path.join(root, 'public', 'register.html'), 'utf8');
 const authClient = fs.readFileSync(path.join(root, 'public', 'js', 'auth.js'), 'utf8');
+const convoyClient = fs.readFileSync(path.join(root, 'public', 'js', 'convoy.js'), 'utf8');
 // Contratos de conteúdo não devem depender da indentação escolhida pelo formatador.
 const compact = source => source.replace(/\s+/g, '').replace(/;}/g, '}');
 const compactCss = compact(css);
 const compactRefreshCss = compact(refreshCss);
+const compactNavigationCss = compact(navigationCss);
 const compactDashboard = compact(dashboard);
 const compactMapService = compact(mapService);
 const compactUx = compact(ux);
@@ -55,6 +70,15 @@ test('home carrega novamente o vídeo limpo do carro como fundo', () => {
   assert.match(home, /autoplay/);
   assert.match(home, /muted/);
   assert.doesNotMatch(home, /rastreon-hero-motion\.(?:webm|mp4)/);
+  assert.doesNotMatch(home, /poster=/);
+  assert.doesNotMatch(homeHeroCss, /home-hero-night\.png/);
+});
+
+test('cabeçalho da home usa a logo clara completa em tamanho legível', () => {
+  assert.match(home, /rastreon-logo\.png\?v=20260829-header/);
+  assert.doesNotMatch(home, /rastreon-mark-dark\.png/);
+  assert.match(homeHeroCss, /\.site-header \.brand img/);
+  assert.match(homeHeroCss, /width: 150px !important/);
 });
 
 test('atalhos de planos usam a rota pública da home', () => {
@@ -103,18 +127,29 @@ test('autocomplete limita resultados e detalhes da rota ficam recolhidos', () =>
   assert.match(compactCss, /route-summary>small\{display:none\}/);
 });
 
-test('busca inferior inicia a viagem e celular permanece opcional', () => {
-  assert.match(dashboard, /Para onde você quer ir\?/);
+test('planejador mantém o mapa visível e a busca rápida não ocupa o mapa', () => {
+  assert.doesNotMatch(dashboard, /ensureQuickRouteSearch\(\);/);
   assert.match(dashboard, /openQuickTripPanel/);
   assert.match(dashboard, /Iniciar navegação neste dispositivo/);
   assert.match(dashboard, /O site continua funcionando sem conexão com o telefone/);
+  assert.match(navigationRedesign, /rastreon:navigation-started/);
   assert.match(
+    compactNavigationCss,
+    /body\.trip-planning\.map-panel-backdrop\{opacity:0!important;pointer-events:none!important/
+  );
+  assert.match(compactNavigationCss, /@keyframesroute-drawer-in/);
+  assert.doesNotMatch(
     compactRefreshCss,
     /wizard>:not\(\.quick-trip-panel\):not\(#routeSummary\)\{display:none/
   );
+  assert.match(compactNavigationCss, /wizard>\.field\{display:block!important/);
+  assert.match(
+    compactNavigationCss,
+    /wizard>#routeSummary:not\(\.hidden\)\{display:grid!important/
+  );
 });
 
-test('busca inferior funciona sem GPS e oferece locais salvos e recentes', () => {
+test('autocomplete preserva locais salvos e recentes sem criar busca sobre o mapa', () => {
   assert.match(dashboard, /rastreon-address-history/);
   assert.match(dashboard, /fetch\('\/api\/saved-places'\)/);
   assert.match(compactDashboard, /userPosition\?`&lat=/);
@@ -134,10 +169,15 @@ test('acabamentos do cerco e viagem permanecem progressivos', () => {
 });
 
 test('navegação usa ícones, separa Perfil e mantém cinco ações no celular', () => {
-  assert.match(html, /ui-icons\.svg#history/);
-  assert.match(html, /ui-icons\.svg#vehicle/);
-  assert.match(html, /ui-icons\.svg#profile/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#history/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#vehicle/);
+  assert.match(html, /ui-icons\.svg\?v=20260827-3#profile/);
   assert.match(html, /class="nav-pill nav-profile" data-view="profile"/);
+  assert.match(html, /data-view="community"/);
+  assert.doesNotMatch(
+    navigationCss,
+    /\.nav-pill\[data-view='community'\][^{]*\{[^}]*display:\s*none\s*!important/
+  );
   assert.match(compactCss, /grid-template-columns:minmax\(0,1fr\)68px/);
   assert.match(
     compactCss,
@@ -153,6 +193,17 @@ test('layouts críticos reduzem para uma coluna em telas pequenas', () => {
   );
   assert.match(compactCss, /\.form-grid\{grid-template-columns:1fr\}/);
   assert.match(compactCss, /@media\(max-width:390px\)/);
+});
+
+test('painéis secundários permanecem centralizados na área útil da janela', () => {
+  assert.match(
+    compactNavigationCss,
+    /\.view\.active:not\(#trackingView\)\{[^}]*inset:calc\(72px\+env\(safe-area-inset-top\)\)00!important;width:min\(1040px,calc\(100vw-48px\)\)!important;[^}]*margin:auto!important;padding:0!important/s
+  );
+  assert.match(compactNavigationCss, /@keyframescentered-panel-in/);
+  assert.match(navigationRedesign, /panelView\.scrollTop = 0/);
+  assert.match(html, /navigation-redesign\.css\?v=20260827-community-nav-3/);
+  assert.match(html, /navigation-redesign\.js\?v=20260827-map-controls-1/);
 });
 
 test('mapa usa provider configurável, fallback e moldura compacta no desktop', () => {
@@ -172,10 +223,21 @@ test('navegação possui manobra, ETA, interpolação, follow e camadas essencia
   assert.match(navigationState, /navManeuver/);
   assert.match(navigationState, /navEta/);
   assert.match(navigationState, /dragstart/);
-  assert.match(navigationState, /navPerspective/);
-  assert.doesNotMatch(navigationState, /navTraffic/);
-  assert.match(navigationState, /navRoadEvents/);
+  assert.match(navigationState, /resumeFollow/);
+  assert.doesNotMatch(navigationState, /navPerspective|navVoice|navRoadEvents|nav2d|navRecenter/);
+  assert.match(dashboard, /let roadEventsEnabled = true/);
+  assert.doesNotMatch(ux, /\['camera', 'Radares'\]/);
+  assert.doesNotMatch(html, /id="centerBtn"/);
   assert.match(css, /\.navigation-hud/);
+});
+
+test('controles do mapa não repetem trânsito e locais dentro de um menu de camadas', () => {
+  assert.doesNotMatch(navigationRedesign, /layersPanel|data\.mapAction = 'layers'|Camadas/);
+  assert.doesNotMatch(navigationCss, /\.layers-popover/);
+  assert.match(navigationRedesign, /traffic\.dataset\.mapAction = 'traffic'/);
+  assert.doesNotMatch(navigationRedesign, /dataset\.mapAction = 'places'/);
+  assert.match(navigationRedesign, /mapMode\.dataset\.mapAction = '3d'/);
+  assert.match(navigationRedesign, /pairing\.dataset\.mapAction = 'qr'/);
 });
 
 test('cadastro do veículo oferece consulta por placa e não expõe dados pessoais', () => {
@@ -218,13 +280,14 @@ test('GPS diário usa localização consentida sem exigir sessão de rastreament
   assert.match(dashboard, /navigator\.geolocation\.watchPosition/);
   assert.match(dashboard, /Sua posição não é enviada ao rastreamento/);
   assert.match(navigationState, /rastreon:route-deviation/);
-  assert.match(navigationState, /navVoice/);
-  assert.match(navigationState, /speechSynthesis/);
+  assert.doesNotMatch(navigationState, /navVoice|speechSynthesis/);
   assert.match(dashboard, /rerouteFrom/);
 });
 
-test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
+test('POIs acompanham a área visível, preservam essenciais e oferecem categorias úteis', () => {
   assert.match(ux, /rastreonLocation\?\.current/);
+  assert.match(ux, /viewportCenter = api\.map\.getCenter/);
+  assert.match(ux, /essentialPoiCategories/);
   for (const category of [
     'Postos',
     'Restaurantes',
@@ -235,8 +298,38 @@ test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
     'Oficinas'
   ])
     assert.match(ux, new RegExp(category));
-  assert.match(ux, /Adicionar como parada/);
+  assert.match(ux, /Traçar rota/);
   assert.match(ux, /escapeHtml\(popupName\)/);
+});
+
+test('design system centraliza tokens, overlays e foco responsivo', () => {
+  assert.match(html, /design-system\.css/);
+  assert.match(designSystem, /--rs-color-navy-950:/);
+  assert.match(designSystem, /--rs-space-4:/);
+  assert.match(designSystem, /--rs-modal-md:/);
+  assert.match(designSystem, /dialog\s*\{[^}]*max-height:\s*min\(90dvh, 900px\)/s);
+  assert.match(designSystem, /:focus-visible/);
+  assert.match(designSystem, /@media \(max-width: 640px\)/);
+  assert.match(designSystem, /--home-orange: var\(--rs-color-blue-600\)/);
+  assert.match(designSystem, /--rc-orange: var\(--rs-color-blue-600\)/);
+  assert.match(html, /aria-label="Selecionar origem no mapa"/);
+  assert.match(dashboard, /data-close-upgrade aria-label="Fechar"/);
+});
+
+test('locais são automáticos e garagem é separada da visão operacional', () => {
+  assert.match(html, /<span>Garagem<\/span>/);
+  assert.match(html, /<h2>Minha garagem<\/h2>/);
+  assert.match(ux, /poi-auto-categories/);
+  assert.doesNotMatch(ux, /#exploreMenu input:checked/);
+  assert.match(ux, /scope === 'route' \|\| zoom >= 12/);
+  assert.match(ux, /function schedulePoiLoad\(delay = 450\)/);
+  assert.match(ux, /rastreon:user-location/);
+  assert.match(ux, /rastreon:map-style-restored/);
+  assert.match(ux, /map\.ready\?\.then\(\(\) => schedulePoiLoad\(0\)\)/);
+  assert.match(ux, /poiActiveKey === requestKey/);
+  assert.match(ux, /poiLastSuccessKey === requestKey/);
+  assert.match(ux, /setNativePoiVisibility\?\.\(true\)/);
+  assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
 });
 
 test('planejamento aceita paradas reordenáveis e preferência de pedágio', () => {
@@ -253,6 +346,16 @@ test('perfil oferece troca de senha, exportação e exclusão protegida', () => 
   assert.match(html, /id="deleteAccountBtn"/);
   assert.match(dashboard, /\/api\/auth\/csrf/);
   assert.match(dashboard, /X-CSRF-Token/);
+});
+
+test('perfil e comboio oferecem ID por QR Code e leitura pela câmera', () => {
+  assert.match(html, /profileContactQr/);
+  assert.match(html, /zxing-browser\.min\.js/);
+  assert.match(convoyClient, /RASTREON:CONTACT:/);
+  assert.match(convoyClient, /BarcodeDetector/);
+  assert.match(convoyClient, /ZXingBrowser\.BrowserQRCodeReader/);
+  assert.match(convoyClient, /getUserMedia/);
+  assert.match(convoyClient, /dataset\.scanId/);
 });
 
 test('preço de combustível é separado do cadastro do veículo e mostra fonte', () => {

@@ -139,8 +139,13 @@
   background: #f8fafb;
 }
 .map-symbol-host {
+  display: block !important;
+  width: 42px !important;
+  height: 42px !important;
   background: transparent !important;
   border: 0 !important;
+  overflow: visible !important;
+  z-index: 8 !important;
 }
 .map-symbol {
   position: relative;
@@ -227,5 +232,121 @@
   }
   .platform-tabs button {
     min-width: 104px;
+  }
+}
+.convoy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.convoy-card {
+  min-width: 0;
+}
+
+.convoy-id,
+.convoy-inline,
+.convoy-card article,
+.convoy-members {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.convoy-id code {
+  font-size: clamp(18px, 3vw, 28px);
+  overflow-wrap: anywhere;
+}
+
+.convoy-contact-qr {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+  margin: 14px auto;
+  border: 10px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px #1024381f;
+}
+
+.convoy-scanner {
+  width: min(440px, calc(100vw - 28px));
+  padding: 18px;
+  border: 1px solid #bfd0de;
+  border-radius: 20px;
+  background: #fff;
+  color: #102438;
+}
+.convoy-scanner::backdrop {
+  background: #04101ccc;
+  backdrop-filter: blur(3px);
+}
+.convoy-scanner header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.convoy-scanner-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: #071726;
+}
+.convoy-scanner-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.convoy-scanner-frame span {
+  position: absolute;
+  inset: 14%;
+  border: 3px solid #24d792;
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px #04101c66;
+  pointer-events: none;
+}
+.convoy-scanner > p {
+  margin: 14px 0 0;
+  text-align: center;
+}
+
+.convoy-inline label {
+  flex: 1 1 190px;
+}
+
+.convoy-list,
+.convoy-members {
+  margin-top: 14px;
+}
+
+.convoy-list article,
+.convoy-card article {
+  padding: 10px 0;
+  border-top: 1px solid #dce5ec;
+}
+
+.convoy-list small,
+.convoy-list strong {
+  display: block;
+}
+
+.convoy-members span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #e6f2fb;
+  color: #135b91;
+  font-weight: 700;
+}
+
+@media (max-width: 780px) {
+  .convoy-grid {
+    grid-template-columns: 1fr;
+  }
+  .convoy-inline > button {
+    flex: 1 1 140px;
   }
 }

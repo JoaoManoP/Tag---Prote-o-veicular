@@ -2,12 +2,19 @@
 .hero {
   isolation: isolate;
 }
+.site-header .brand img {
+  width: 150px !important;
+  height: auto !important;
+  max-height: 52px;
+  object-fit: contain;
+  object-position: left center;
+}
 .hero-motion {
   position: absolute;
   z-index: 0;
   inset: 0;
   overflow: hidden;
-  background: #05070a url('/images/home-hero-night.png') center / cover no-repeat;
+  background: #05070a;
   pointer-events: none;
 }
 .hero-motion__video {
@@ -73,6 +80,10 @@
 }
 
 @media (max-width: 600px) {
+  .site-header .brand img {
+    width: 112px !important;
+    max-height: 40px;
+  }
   .hero-motion__video {
     object-position: 72% center;
   }

@@ -261,40 +261,9 @@ function join() {
   );
 }
 
-async function pair(event) {
-  event.preventDefault();
-  const code = $('pairingCode')
-    .value.toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-  if (code.length !== 8) return toast('Digite o código de 8 caracteres.');
-  const button = $('pairingForm').querySelector('button');
-  button.disabled = true;
-  try {
-    const response = await fetch('/api/mobile/pair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      }),
-      data = await response.json();
-    if (!response.ok) throw new Error(data.error);
-    sessionId = data.sessionId;
-    mobileToken = data.token;
-    sessionStorage.setItem('rastreon-mobile-session', sessionId);
-    sessionStorage.setItem('rastreon-mobile-token', mobileToken);
-    queue = new OfflinePositionQueue(sessionId);
-    $('pairingForm').classList.add('hidden');
-    join();
-    await updateQueueCount();
-  } catch (error) {
-    toast(error.message);
-    button.disabled = false;
-  }
-}
-
 $('startBtn').onclick = start;
 $('stopBtn').onclick = () => stop();
-$('pairingForm').onsubmit = pair;
-if (!sessionId || !mobileToken) location.replace('/pair.html');
+if (!sessionId || !mobileToken) location.replace('/tracker');
 socket.on('connect', join);
 socket.on('disconnect', () => {
   if (sharing && !lostAt) lostAt = Date.now();

@@ -10,42 +10,38 @@
     <link rel="modulepreload" href="/vendor/maplibre/maplibre-gl.mjs" />
     <link rel="stylesheet" href="/vendor/maplibre/maplibre-gl.css" />
     <link rel="stylesheet" href="/vendor/mapbox/mapbox-gl.css" />
-    <link rel="stylesheet" href="/css/style.css?v=20260820" />
-    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260822-9" />
+    <link rel="stylesheet" href="/css/style.css?v=20260827-profile-id-1" />
+    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260826-trip-fix-1" />
     <link rel="stylesheet" href="/css/community-places.css?v=20260825-1" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand-area">
         <span class="brand-mark">R</span>
-        <div>
-          <h1>Rastre<span>on</span></h1>
-          <p>Central inteligente de rastreamento</p>
-        </div>
       </div>
       <nav class="top-nav" aria-label="Navegação principal">
         <div class="nav-primary">
           <button class="nav-pill active" data-view="tracking">
             <svg class="nav-icon" aria-hidden="true">
-              <use href="/images/ui-icons.svg#tracking"></use></svg
+              <use href="/images/ui-icons.svg?v=20260827-3#tracking"></use></svg
             ><span>Rastreio</span></button
           ><button class="nav-pill" data-view="timeline">
             <svg class="nav-icon" aria-hidden="true">
-              <use href="/images/ui-icons.svg#history"></use></svg
+              <use href="/images/ui-icons.svg?v=20260827-3#history"></use></svg
             ><span>Histórico</span></button
           ><button class="nav-pill" data-view="vehicles">
             <svg class="nav-icon" aria-hidden="true">
-              <use href="/images/ui-icons.svg#vehicle"></use></svg
-            ><span>Veículos</span></button
+              <use href="/images/ui-icons.svg?v=20260827-3#vehicle"></use></svg
+            ><span>Garagem</span></button
           ><button class="nav-pill" data-view="community">
             <svg class="nav-icon" aria-hidden="true">
-              <use href="/images/ui-icons.svg#community"></use></svg
+              <use href="/images/ui-icons.svg?v=20260827-3#community"></use></svg
             ><span>Comunidade</span>
           </button>
         </div>
         <button class="nav-pill nav-profile" data-view="profile">
           <svg class="nav-icon" aria-hidden="true">
-            <use href="/images/ui-icons.svg#profile"></use></svg
+            <use href="/images/ui-icons.svg?v=20260827-3#profile"></use></svg
           ><span>Perfil</span>
         </button>
       </nav>
@@ -54,8 +50,10 @@
         ><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button>
       </div>
     </header>
-    <link rel="stylesheet" href="/css/dashboard-refresh.css?v=20260826-vehicle-3d-3" />
-    <link rel="stylesheet" href="/css/platform-features.css?v=20260825-1" />
+    <link rel="stylesheet" href="/css/platform-features.css?v=20260829-pois-1" />
+    <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
+    <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-pois-1" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -78,7 +76,13 @@
                     id="originInput"
                     autocomplete="off"
                     placeholder="Ex.: Santa Maria, Timóteo"
-                  /><button id="originMapBtn" title="Selecionar no mapa">⌖</button>
+                  /><button
+                    id="originMapBtn"
+                    title="Selecionar no mapa"
+                    aria-label="Selecionar origem no mapa"
+                  >
+                    ⌖
+                  </button>
                 </div>
                 <button id="useMyLocationBtn" type="button" class="text-btn location-origin-btn">
                   Usar minha localização atual
@@ -92,7 +96,13 @@
                     id="destinationInput"
                     autocomplete="off"
                     placeholder="Ex.: Canaã, Ipatinga"
-                  /><button id="destinationMapBtn" title="Selecionar no mapa">⌖</button>
+                  /><button
+                    id="destinationMapBtn"
+                    title="Selecionar no mapa"
+                    aria-label="Selecionar destino no mapa"
+                  >
+                    ⌖
+                  </button>
                 </div>
                 <div id="destinationResults" class="search-results hidden"></div
               ></label>
@@ -105,8 +115,9 @@
               <div id="mapPickHint" class="pick-hint hidden">
                 Clique no mapa para marcar o ponto.
               </div>
-              <button id="calculateBtn" class="wide">Calcular rota rodoviária</button
-              ><button id="startNavigationBtn" class="wide secondary" disabled>Iniciar GPS</button
+              <button id="calculateBtn" class="wide">Buscar rota</button
+              ><button id="startNavigationBtn" class="wide secondary" disabled>
+                Iniciar navegação</button
               ><small class="daily-gps-note"
                 >Navegação diária no aparelho, separada do rastreamento do veículo.</small
               >
@@ -156,7 +167,6 @@
                   >
                     Trânsito</button
                   ><button id="locateMeBtn" class="secondary">Minha localização</button
-                  ><button id="centerBtn" class="secondary">Centralizar</button
                   ><button id="tripPlannerBtn" class="secondary">Viagem</button
                   ><button id="simulateBtn" class="dev-only hidden">Simular percurso</button>
                 </div>
@@ -273,6 +283,7 @@
             </div>
             <div class="filters">
               <select id="dateFilter">
+                <option value="recent" selected>Últimas viagens</option>
                 <option value="today">Hoje</option>
                 <option value="yesterday">Ontem</option>
                 <option value="specific">Data específica</option>
@@ -430,8 +441,8 @@
         <div class="page-content">
           <div class="page-heading">
             <div>
-              <span class="eyebrow">MINHA GARAGEM</span>
-              <h2>Meus veículos</h2>
+              <span class="eyebrow">ADMINISTRAÇÃO</span>
+              <h2>Minha garagem</h2>
               <p>Somente você pode visualizar e administrar estes veículos.</p>
             </div>
             <button id="newVehicleBtn">Adicionar veículo</button>
@@ -474,6 +485,16 @@
               PX</button
             ><button type="button" role="tab" aria-selected="false" data-platform-tab="chat">
               Conversas
+            </button>
+            <button
+              id="convoyTab"
+              class="hidden"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-platform-tab="convoy"
+            >
+              Comboio
             </button>
           </div>
           <section id="platformDiscover" class="platform-pane">
@@ -610,24 +631,53 @@
               </section>
             </div>
           </section>
+          <section id="platformConvoy" class="platform-pane hidden" aria-labelledby="convoyTab">
+            <div id="convoyRoot" class="convoy-grid" aria-live="polite"></div>
+          </section>
           <div id="platformNotice" class="toast" role="status" aria-live="polite"></div>
         </div>
       </section>
       <section id="profileView" class="view">
-        <div class="page-content">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">CENTRAL DA CONTA</span>
-              <h2>Perfil</h2>
-              <p>Dados, atividade e recursos vinculados à sua conta.</p>
-            </div>
-          </div>
-          <div class="profile-layout">
-            <section class="card profile-card">
+        <div class="profile-reference-shell">
+          <aside class="profile-left-tools" aria-label="Atalhos do mapa">
+            <section class="profile-live-card">
+              <span class="profile-live-label">Status ao vivo</span>
+              <b id="profileLiveState"><i></i> Aguardando rastreador</b>
+              <strong><span id="profileLiveSpeed">0</span> <small>km/h</small></strong>
+              <span id="profileLiveAddress">Localização ainda não recebida</span>
+            </section>
+            <section class="profile-weather-card">
+              <strong
+                ><svg class="profile-weather-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg?v=20260828-3#sun"></use></svg
+                ><span id="profileWeatherTemperature">--°C</span></strong
+              ><small id="profileWeatherCondition">Consultando clima…</small
+              ><b id="profileWeatherLocation">Localização do mapa</b>
+            </section>
+          </aside>
+
+          <main class="profile-reference-grid">
+            <section class="profile-ref-card profile-identity-card">
               <div class="profile-avatar" id="profileInitial">U</div>
               <h2 id="profileName">Carregando…</h2>
               <p id="profileEmail">—</p>
-              <dl class="stat-list">
+              <div class="profile-contact-id">
+                <span>Meu ID RASTREON</span>
+                <img
+                  id="profileContactQr"
+                  class="profile-contact-qr"
+                  alt="QR Code do meu ID RASTREON"
+                />
+                <div>
+                  <code id="profileContactId">—</code
+                  ><button id="copyProfileContactId" type="button" title="Copiar ID">
+                    <svg aria-hidden="true">
+                      <use href="/images/ui-icons.svg?v=20260828-3#copy"></use>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <dl class="profile-account-facts">
                 <div>
                   <dt>Cadastro</dt>
                   <dd id="profileCreated">—</dd>
@@ -641,24 +691,270 @@
                   <dd id="profileVehicleCount">0</dd>
                 </div>
                 <div>
-                  <dt>Alertas recentes</dt>
+                  <dt>Alertas ativos</dt>
                   <dd id="profileAlertCount">0</dd>
+                </div>
+                <div>
+                  <dt>Último acesso</dt>
+                  <dd>Agora</dd>
                 </div>
               </dl>
             </section>
-            <section class="card">
-              <span class="eyebrow">VIAGENS RECENTES</span>
-              <h2>Últimas atividades</h2>
+
+            <section class="profile-ref-card profile-summary-card">
+              <header>
+                <h2>Resumo da sua conta</h2>
+                <small
+                  >Atualizado agora
+                  <svg aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#refresh"></use></svg
+                ></small>
+              </header>
+              <div class="profile-summary-grid">
+                <article>
+                  <svg class="profile-card-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#vehicle"></use></svg
+                  ><strong id="profileSummaryVehicles">0</strong><small>Veículo ativo</small
+                  ><b>Online</b>
+                </article>
+                <article>
+                  <svg class="profile-card-icon profile-icon-alert" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#bell"></use></svg
+                  ><strong id="profileSummaryAlerts">0</strong><small>Alertas ativos</small
+                  ><b>Ver todos</b>
+                </article>
+                <article>
+                  <svg class="profile-card-icon profile-icon-route" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#route"></use></svg
+                  ><strong id="profileSummaryTrips">0</strong><small>Viagens hoje</small
+                  ><b>Ver todas</b>
+                </article>
+                <article>
+                  <svg class="profile-card-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
+                  ><strong>0</strong><small>Multas</small><b>Nenhuma</b>
+                </article>
+              </div>
+            </section>
+
+            <section class="profile-ref-card profile-vehicle-card">
+              <header>
+                <h2>Veículo principal</h2>
+                <div class="profile-vehicle-actions">
+                  <button id="profileAddVehicleBtn" type="button" title="Adicionar veículo">
+                    +</button
+                  ><button id="profileRemoveVehicleBtn" type="button" title="Remover veículo">
+                    ⋮
+                  </button>
+                </div>
+              </header>
+              <div class="profile-vehicle-main">
+                <canvas id="profileVehicle3d" aria-label="Modelo 3D do veículo principal"></canvas>
+                <div>
+                  <strong id="profileVehicleName">Nenhum veículo selecionado</strong
+                  ><span id="profileVehicleDetails">—</span><span id="profileVehiclePlate">—</span
+                  ><b id="profileVehicleStatus" class="profile-online-pill">Sem rastreador</b>
+                </div>
+              </div>
+              <div class="profile-vehicle-telemetry">
+                <div>
+                  <small>Velocidade</small
+                  ><strong><span id="profileVehicleSpeed">0</span> km/h</strong>
+                </div>
+                <div><small>Status</small><strong id="profileVehicleMovement">Parado</strong></div>
+              </div>
+              <button type="button" id="profileVehicleDetailsBtn">
+                Ver detalhes do veículo <span>›</span>
+              </button>
+            </section>
+
+            <section class="profile-ref-card profile-activity-card">
+              <header>
+                <h2>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
+                  >Atividades recentes
+                </h2>
+                <button type="button" data-view-shortcut="timeline">Ver todas</button>
+              </header>
               <div id="profileTrips" class="profile-trips">
                 <div class="empty-state">Nenhuma viagem registrada.</div>
               </div>
             </section>
+
+            <div class="profile-right-stack">
+              <section class="profile-ref-card profile-action-card">
+                <svg class="profile-action-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg?v=20260828-3#shield"></use>
+                </svg>
+                <div>
+                  <h3>Segurança da conta</h3>
+                  <p>Gerencie sua senha e autenticação.</p>
+                  <b>Protegida</b>
+                </div>
+                <button type="button" data-profile-settings="security">Gerenciar segurança</button>
+              </section>
+              <section class="profile-ref-card profile-action-card">
+                <svg class="profile-action-icon" aria-hidden="true">
+                  <use href="/images/ui-icons.svg?v=20260828-3#bell"></use>
+                </svg>
+                <div>
+                  <h3>Preferências de alertas</h3>
+                  <p>Escolha quais eventos receber.</p>
+                  <b id="profileAlertPreferenceStatus">Ativos</b>
+                </div>
+                <button type="button" data-profile-settings="alerts">Gerenciar alertas</button>
+              </section>
+            </div>
+
+            <section class="profile-bottom-grid">
+              <article class="profile-ref-card profile-bottom-card" id="profileFinesSummaryCard">
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#document"></use></svg
+                  >Multas e documentos
+                </h3>
+                <div class="profile-ok-symbol">✓</div>
+                <strong>Nenhuma multa encontrada</strong>
+                <p>Você está em dia com este veículo.</p>
+                <button type="button" data-profile-settings="fines">Ver documentos</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#palette"></use></svg
+                  >Aparência e tema do mapa
+                </h3>
+                <p>Personalize o tema e os locais exibidos.</p>
+                <b>Automático</b
+                ><button type="button" data-profile-settings="map">Personalizar</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#id-card"></use></svg
+                  >CNH do condutor
+                </h3>
+                <p>Envie sua CNH para validação.</p>
+                <b>Pendente</b><button type="button" data-profile-settings="cnh">Enviar CNH</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card">
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#device"></use></svg
+                  >Dispositivos conectados
+                </h3>
+                <p>Gerencie os dispositivos vinculados.</p>
+                <b>Conta ativa</b
+                ><button type="button" data-profile-action="devices">Gerenciar dispositivos</button>
+              </article>
+              <article class="profile-ref-card profile-bottom-card profile-logout-card">
+                <h3>
+                  <svg class="profile-title-icon" aria-hidden="true">
+                    <use href="/images/ui-icons.svg?v=20260828-3#logout"></use></svg
+                  >Sair da conta
+                </h3>
+                <p>Encerre sua sessão com segurança.</p>
+                <button type="button" id="profileLogoutBtn">Sair da conta</button>
+              </article>
+            </section>
+          </main>
+        </div>
+
+        <dialog id="profileSettingsDialog" class="profile-settings-dialog">
+          <header>
+            <div>
+              <small>CONFIGURAÇÕES DA CONTA</small>
+              <h2 id="profileSettingsTitle">Gerenciar perfil</h2>
+            </div>
+            <button type="button" id="closeProfileSettings" aria-label="Fechar">×</button>
+          </header>
+          <div id="profileSettingsContent" class="profile-settings-content">
+            <section class="card profile-poi-card">
+              <h2>Locais e serviços no mapa</h2>
+              <p>
+                Os locais são buscados perto da sua posição ou do trecho que estiver visível no
+                mapa. Postos e hospitais são essenciais; os demais são opcionais.
+              </p>
+              <div id="profilePoiSettings" class="profile-poi-settings">
+                <p class="poi-group-title">Essenciais</p>
+                <label class="poi-essential"
+                  ><input type="checkbox" value="fuel" checked disabled /><span
+                    >⛽ Postos <small>Sempre visível</small></span
+                  ></label
+                ><label class="poi-essential"
+                  ><input type="checkbox" value="hospital" checked disabled /><span
+                    >🏥 Hospitais <small>Sempre visível</small></span
+                  ></label
+                >
+                <p class="poi-group-title">Transporte</p>
+                <label><input type="checkbox" value="charge" /><span>Postos elétricos</span></label
+                ><label><input type="checkbox" value="parking" /><span>Estacionamentos</span></label
+                ><label><input type="checkbox" value="airport" /><span>Aeroportos</span></label>
+                <p class="poi-group-title">Alimentação</p>
+                <label
+                  ><input type="checkbox" value="restaurant" /><span
+                    >Restaurantes e fast food</span
+                  ></label
+                ><label
+                  ><input type="checkbox" value="cafe" /><span
+                    >Cafeterias e sorveterias</span
+                  ></label
+                ><label><input type="checkbox" value="bakery" /><span>Padarias</span></label
+                ><label><input type="checkbox" value="bar" /><span>Bares</span></label>
+                <p class="poi-group-title">Saúde</p>
+                <label><input type="checkbox" value="pharmacy" /><span>Farmácias</span></label
+                ><label><input type="checkbox" value="dentist" /><span>Dentistas</span></label
+                ><label
+                  ><input type="checkbox" value="veterinary" /><span>Veterinários</span></label
+                >
+                <p class="poi-group-title">Serviços e comércio</p>
+                <label
+                  ><input type="checkbox" value="supermarket" /><span
+                    >Mercados e atacados</span
+                  ></label
+                ><label
+                  ><input type="checkbox" value="mechanic" /><span
+                    >Mecânicas e oficinas</span
+                  ></label
+                >
+                <p class="poi-group-title">Educação e cultura</p>
+                <label><input type="checkbox" value="school" /><span>Escolas</span></label
+                ><label
+                  ><input type="checkbox" value="university" /><span>Universidades</span></label
+                ><label><input type="checkbox" value="library" /><span>Bibliotecas</span></label
+                ><label
+                  ><input type="checkbox" value="culture" /><span>Museus e galerias</span></label
+                >
+                <p class="poi-group-title">Lazer, turismo e hospedagem</p>
+                <label
+                  ><input type="checkbox" value="leisure" /><span
+                    >Parques e áreas verdes</span
+                  ></label
+                ><label
+                  ><input type="checkbox" value="tourism" /><span>Turismo e mirantes</span></label
+                ><label><input type="checkbox" value="camping" /><span>Campings</span></label
+                ><label
+                  ><input type="checkbox" value="hotel" /><span>Hotéis e hospedagem</span></label
+                >
+                <p class="poi-group-title">Comunidade e segurança</p>
+                <label
+                  ><input type="checkbox" value="worship" /><span>Templos e igrejas</span></label
+                ><label><input type="checkbox" value="police" /><span>Polícia</span></label
+                ><label
+                  ><input type="checkbox" value="fire_station" /><span
+                    >Corpo de Bombeiros</span
+                  ></label
+                >
+              </div>
+              <button type="button" id="restorePoiDefaults" class="poi-restore-defaults">
+                Restaurar padrão
+              </button>
+            </section>
             <section class="card privacy-card">
-              <span class="eyebrow">SEGURANÇA E LGPD</span>
               <h2>Controle da conta</h2>
               <div class="password-change">
                 <h3>Alterar senha</h3>
-                <p>A troca encerra as outras sessões abertas da sua conta.</p>
                 <label class="field"
                   >Senha atual<input
                     id="changeCurrentPassword"
@@ -671,26 +967,14 @@
                     minlength="8"
                     maxlength="72"
                     autocomplete="new-password" /></label
-                ><button type="button" id="changePasswordBtn" class="secondary wide">
-                  Atualizar senha
-                </button>
+                ><button type="button" id="changePasswordBtn">Atualizar senha</button>
               </div>
               <div class="privacy-export">
                 <h3>Baixar meus dados</h3>
-                <p>
-                  O arquivo inclui os dados vinculados à sua conta. Senhas, tokens e sessões de
-                  autenticação nunca entram na exportação.
-                </p>
-                <button type="button" id="exportDataBtn" class="secondary wide">
-                  Gerar arquivo de dados
-                </button>
+                <button type="button" id="exportDataBtn">Gerar arquivo de dados</button>
               </div>
               <div class="privacy-danger">
                 <h3>Excluir conta</h3>
-                <p>
-                  A exclusão é permanente e remove veículos, viagens, posições, cercos, alertas e
-                  consentimentos associados.
-                </p>
                 <label class="field"
                   >Senha atual<input
                     id="privacyPassword"
@@ -699,13 +983,13 @@
                 ><label class="field"
                   >Digite <b>EXCLUIR MINHA CONTA</b
                   ><input id="deleteConfirmation" autocomplete="off" /></label
-                ><button type="button" id="deleteAccountBtn" class="danger wide">
+                ><button type="button" id="deleteAccountBtn" class="danger">
                   Excluir minha conta
                 </button>
               </div>
             </section>
           </div>
-        </div>
+        </dialog>
       </section>
       <section id="gamificationView" class="view">
         <div class="page-content">
@@ -792,7 +1076,7 @@
             <span class="eyebrow">PERFIL DO VEÍCULO</span>
             <h2>Configure o veículo da viagem</h2>
           </div>
-          <button type="button" id="closeVehicle" class="icon-btn">×</button>
+          <button type="button" id="closeVehicle" class="icon-btn" aria-label="Fechar">×</button>
         </div>
         <label class="field">Modelo de referência<select id="referenceModel"></select></label>
         <div class="form-grid">
@@ -835,13 +1119,16 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/map-config.js"></script>
     <script src="/js/maplibre-loader.js?v=4"></script>
-    <script src="/js/map-service.js?v=7"></script>
-    <script src="/js/navigation-state.js"></script>
+    <script src="/js/map-service.js?v=20260829-pois-fallback-2"></script>
+    <script src="/js/navigation-state.js?v=20260826-navigation-clean-1"></script>
     <script src="/js/vehicle-images.js?v=3"></script>
-    <script src="/js/vehicle-3d-config.js?v=20260826-vectra-1"></script>
+    <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
     <script src="/js/platform-features.js?v=20260825-1"></script>
-    <script src="/js/dashboard.js?v=20260826-floating-panels-1"></script>
-    <script src="/js/ux.js?v=4"></script>
+    <script src="/vendor/zxing/zxing-browser.min.js"></script>
+    <script src="/js/convoy.js?v=20260827-contact-qr-1"></script>
+    <script src="/js/dashboard.js?v=20260828-profile-reference-2"></script>
+    <script src="/js/ux.js?v=20260829-pois-fallback-2"></script>
+    <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>
   </body>
 </html>

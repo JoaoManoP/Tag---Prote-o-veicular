@@ -4,7 +4,8 @@ let stream = null,
   controls = null,
   scanTimer = null,
   busy = false,
-  pairing = null;
+  pairing = null,
+  pairingSecret = null;
 const pendingKey = 'rastreon-pending-pair-token';
 function show(id) {
   ['pairStart', 'scanner', 'confirmation', 'pairResult'].forEach(key =>
@@ -33,28 +34,23 @@ function tokenFrom(value) {
     return null;
   }
 }
-async function ensureAuth() {
-  const response = await fetch('/api/auth/me');
-  if (response.ok) return true;
-  location.replace('/login.html?next=pair');
-  return false;
-}
 async function resolvePair({ token = '', code = '' } = {}) {
   if (busy) return;
   busy = true;
   stopCamera();
   try {
-    if (!(await ensureAuth())) return;
-    const query = token
+    const normalizedCode = code.replace(/[^A-Z0-9]/gi, '').toUpperCase(),
+      query = token
         ? `token=${encodeURIComponent(token)}`
-        : `code=${encodeURIComponent(code.replace(/[^A-Z0-9]/gi, '').toUpperCase())}`,
-      response = await fetch(`/api/pairings/resolve?${query}`),
+        : `code=${encodeURIComponent(normalizedCode)}`,
+      response = await fetch(`/api/tracker/pairings/resolve?${query}`),
       data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Não foi possível validar o QR Code.');
     pairing = data.pairing;
+    pairingSecret = token ? { token } : { code: normalizedCode };
     sessionStorage.removeItem(pendingKey);
     $('pairVehicle').innerHTML =
-      `<b>${pairing.vehicle.nickname}</b><span>${pairing.vehicle.brand} ${pairing.vehicle.model}</span><small>${pairing.vehicle.plate || 'Placa não informada'}</small>`;
+      `<b>${pairing.vehicle.nickname}</b><span>${pairing.vehicle.brand} ${pairing.vehicle.model}</span><small>Convite temporário de uso único</small>`;
     show('confirmation');
   } catch (error) {
     $('resultTitle').textContent = 'Não foi possível conectar';
@@ -123,20 +119,23 @@ async function startScanner() {
   }
 }
 async function confirmPair() {
-  if (!pairing || busy) return;
+  if (!pairing || !pairingSecret || busy) return;
   busy = true;
   try {
-    const response = await fetch(`/api/pairings/${pairing.id}/confirm`, {
+    const response = await fetch(`/api/tracker/pairings/${pairing.id}/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `${navigator.platform || 'Celular'} · navegador web` })
+        body: JSON.stringify({
+          ...pairingSecret,
+          name: `${navigator.platform || 'Celular'} · navegador web`
+        })
       }),
       data = await response.json();
     if (!response.ok) throw new Error(data.error);
     sessionStorage.setItem('rastreon-mobile-session', data.sessionId);
     sessionStorage.setItem('rastreon-mobile-token', data.credential);
     sessionStorage.setItem('rastreon-mobile-device', data.device.id);
-    location.replace('/mobile.html');
+    location.replace('/mobile');
   } catch (error) {
     toast(error.message || 'Não foi possível conectar.');
     busy = false;
@@ -154,6 +153,7 @@ $('manualForm').onsubmit = e => {
 $('confirmPair').onclick = confirmPair;
 $('cancelPair').onclick = () => {
   pairing = null;
+  pairingSecret = null;
   show('pairStart');
 };
 $('retryPair').onclick = () => show('pairStart');
@@ -163,6 +163,6 @@ const invite = new URLSearchParams(location.hash.slice(1)),
   initial = invite.get('token') || sessionStorage.getItem(pendingKey);
 if (initial) {
   sessionStorage.setItem(pendingKey, initial);
-  history.replaceState(null, '', '/pair.html');
+  history.replaceState(null, '', '/tracker');
   resolvePair({ token: initial });
 }

@@ -1,0 +1,92 @@
+.forgot-password-link {
+  display: block;
+  margin: 10px 0 16px;
+  color: #135fa7;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.account-recovery-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(145deg, #061321, #0d2d49);
+  overflow-x: hidden;
+}
+
+.account-recovery-shell {
+  width: min(480px, 100%);
+  min-width: 0;
+}
+
+.recovery-back {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: #dceafa;
+}
+
+.account-recovery-card {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  padding: 30px;
+  border-radius: 22px;
+  background: #fff;
+  color: #172536;
+  box-shadow: 0 28px 80px rgb(0 0 0 / 32%);
+}
+
+.account-recovery-card h1,
+.account-recovery-card h2 {
+  margin: 8px 0 10px;
+}
+
+.account-recovery-card p {
+  color: #667789;
+  line-height: 1.55;
+}
+
+.account-recovery-card label {
+  display: block;
+  margin: 16px 0 6px;
+  font-weight: 700;
+}
+
+.account-recovery-card input,
+.account-recovery-card button {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 46px;
+}
+
+.account-recovery-card input {
+  border: 1px solid #b8c7d6 !important;
+  background: #fff !important;
+  color: #172536 !important;
+}
+
+.account-recovery-card button {
+  margin-top: 18px;
+  border-color: #1478c9 !important;
+  background: #1478c9 !important;
+  color: #fff !important;
+}
+
+.account-recovery-card + .account-recovery-card {
+  margin-top: 16px;
+}
+
+@media (max-width: 520px) {
+  .account-recovery-page {
+    place-items: start center;
+    padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+  }
+
+  .account-recovery-card {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+}

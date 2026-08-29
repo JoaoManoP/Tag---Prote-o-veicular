@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import {
@@ -21,6 +22,7 @@ type Station = {
   confidence: string;
   prices: { fuelType: string; price: number; status: string }[];
   partnerBenefit?: { description: string };
+  favorite?: boolean;
 };
 type Report = {
   id: string;
@@ -117,6 +119,24 @@ export default function Community() {
           <Button title="PX" secondary={tab !== 'px'} onPress={() => setTab('px')} />
         </View>
       </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            secondary
+            icon="message-text-outline"
+            title="Conversas"
+            onPress={() => router.push('/conversations')}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            secondary
+            icon="car-multiple"
+            title="Comboio"
+            onPress={() => router.push('/convoy')}
+          />
+        </View>
+      </View>
       {!!message && <Text style={{ color: theme.colors.muted }}>{message}</Text>}
       {tab === 'stations' &&
         (stations.length ? (
@@ -141,6 +161,18 @@ export default function Community() {
                   Parceiro: {station.partnerBenefit.description}
                 </Text>
               )}
+              <Button
+                compact
+                secondary
+                icon={station.favorite ? 'heart' : 'heart-outline'}
+                title={station.favorite ? 'Remover favorito' : 'Favoritar posto'}
+                onPress={async () => {
+                  if (station.favorite)
+                    await api.secureDelete(`/api/platform/stations/${station.id}/favorite`);
+                  else await api.securePost(`/api/platform/stations/${station.id}/favorite`);
+                  await load();
+                }}
+              />
             </Card>
           ))
         ) : (
@@ -175,6 +207,34 @@ export default function Community() {
                 <Text style={[styles.caption, { color: theme.colors.muted }]}>
                   {item.sourceLabel} · {item.confirmations} confirmação(ões)
                 </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      compact
+                      secondary
+                      title="Confirmar"
+                      onPress={async () => {
+                        await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
+                          vote: 'CONFIRM'
+                        });
+                        await load();
+                      }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      compact
+                      secondary
+                      title="Não está mais lá"
+                      onPress={async () => {
+                        await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
+                          vote: 'RESOLVED'
+                        });
+                        await load();
+                      }}
+                    />
+                  </View>
+                </View>
               </Card>
             ))
           ) : (

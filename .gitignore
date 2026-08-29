@@ -1,7 +1,11 @@
 node_modules/
 mobile/.expo/
 mobile/.expo-*/
+mobile/.expo-export-check/
+mobile/.gradle-build/
+mobile/.gradle-user/
 .env
+data/
 data/*.sqlite-shm
 data/*.sqlite-wal
 data/*.sqlite
@@ -14,3 +18,11 @@ npm-debug.log*
 *.log
 cookies.txt
 out.txt
+releases/*.apk
+
+# Local Android build toolchains and generated artifacts
+mobile/android/.gradle-user-home/
+mobile/android/.jdk17/
+mobile/android/temurin17-jdk.zip
+mobile/android/app/debug.keystore
+mobile/dist/

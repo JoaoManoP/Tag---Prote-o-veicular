@@ -1,7 +1,6 @@
 'use strict';
 
 window.VEHICLE_3D_CONFIG = Object.freeze({
-  // Modelo sedan gratuito (Khronos glTF Sample Assets), usado como base visual do Vectra.
   modelPath: '/models/vehicles/rastreon-sedan-clean.glb?v=2',
   bodyColor: '#F5F5F5',
   accentColor: '#FF6A00',

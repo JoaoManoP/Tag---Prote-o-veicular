@@ -3,7 +3,7 @@
     "name": "RASTREON",
     "slug": "rastreon",
     "scheme": "rastreon",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/rastreon-app-icon.png",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "O RASTREON usa sua localização somente após sua autorização para rastrear o veículo.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Permite manter o compartilhamento autorizado durante a viagem.",
-        "NSCameraUsageDescription": "A câmera é usada apenas para ler o QR Code de pareamento."
+        "NSCameraUsageDescription": "A câmera é usada para ler o QR Code de pareamento e fotografar a CNH com autorização."
       }
     },
     "android": {
@@ -38,7 +38,9 @@
       ],
       [
         "expo-camera",
-        { "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento." }
+        {
+          "cameraPermission": "Permita que o RASTREON leia o QR Code de pareamento e fotografe sua CNH."
+        }
       ],
       "expo-notifications",
       "expo-secure-store",

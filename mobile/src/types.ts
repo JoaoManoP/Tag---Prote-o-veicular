@@ -1,4 +1,12 @@
-export type User = { id: number; name: string; email: string; phone?: string; createdAt?: number };
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  publicContactId?: string;
+  createdAt?: number;
+};
 export type VehicleImage = {
   url: string;
   source?: string;
@@ -70,6 +78,7 @@ export type Geofence = {
   centerLng: number;
   radiusMeters: number;
   enabled: boolean;
+  points?: { latitude: number; longitude: number }[];
 };
 export type Alert = {
   id: string;

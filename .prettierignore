@@ -1,7 +1,9 @@
 node_modules/
 mobile/node_modules/
+mobile/android/
 mobile/.expo-android-check/
 mobile/.expo-web-check/
+mobile/.expo-export-check/
 mobile/package-lock-*-backup.json
 client/dist/
 public/js/*.bundle.js

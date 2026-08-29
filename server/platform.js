@@ -8,6 +8,7 @@ const { rateLimit } = require('express-rate-limit');
 const { requireAuth } = require('./auth');
 const { ROLES, requireRole } = require('./authorization');
 const { TraccarProvider } = require('./providers/traccar-provider');
+const { createPublicContactId, normalizePublicContactId } = require('./contact-id');
 
 const ENTITY_TYPES = new Set([
   'PLACE',
@@ -977,7 +978,7 @@ function createPlatformRouter({
       )
       .get(req.session.userId);
     if (!user.contactId) {
-      const contactId = crypto.randomBytes(16).toString('hex');
+      const contactId = createPublicContactId();
       database
         .prepare('UPDATE users SET public_contact_id=? WHERE id=?')
         .run(contactId, req.session.userId);
@@ -990,7 +991,7 @@ function createPlatformRouter({
     const contactId =
       database
         .prepare('SELECT public_contact_id AS value FROM users WHERE id=?')
-        .get(req.session.userId)?.value || crypto.randomBytes(16).toString('hex');
+        .get(req.session.userId)?.value || createPublicContactId();
     database
       .prepare('UPDATE users SET chat_enabled=?,public_contact_id=? WHERE id=?')
       .run(enabled ? 1 : 0, contactId, req.session.userId);
@@ -1005,7 +1006,7 @@ function createPlatformRouter({
     res.json({ chat: { enabled, contactId } });
   });
   router.post('/conversation-requests', requireAuth, messages, csrf, (req, res) => {
-    const contactId = validId(req.body?.recipientContactId),
+    const contactId = normalizePublicContactId(req.body?.recipientContactId),
       contextType = cleanText(req.body?.contextType, 30).toUpperCase(),
       contextId = validId(req.body?.contextId),
       recipient = database
@@ -1422,7 +1423,15 @@ function createPlatformRouter({
     'COMMUNITY_PLACES_ENABLED',
     'COMMUNITY_PHOTO_AUTO_PUBLISH',
     'TRACCAR_ENABLED',
-    'FEATURE_REMOTE_BLOCK_HARDWARE'
+    'FEATURE_REMOTE_BLOCK_HARDWARE',
+    'FEATURE_CNH_REQUIRED',
+    'FEATURE_CNH_PROVIDER',
+    'FEATURE_FUEL_ANP_SYNC',
+    'FEATURE_SENATRAN',
+    'FEATURE_CONVOY',
+    'FEATURE_PAYMENTS',
+    'FEATURE_GOOGLE_LOGIN',
+    'FEATURE_APPLE_LOGIN'
   ]);
   router.get('/developer/feature-flags', developer, (_req, res) => {
     const stored = new Map(

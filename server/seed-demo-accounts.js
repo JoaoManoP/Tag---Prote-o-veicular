@@ -3,6 +3,7 @@
 require('dotenv').config();
 const { createDatabase } = require('./database');
 const { hashPassword } = require('./auth');
+const { createPublicContactId } = require('./contact-id');
 
 const accounts = [
   { name: 'Joao', email: 'joao@rastreon.demo', password: 'Joao#2026', role: 'ADMIN' },
@@ -43,9 +44,16 @@ async function seed() {
       else
         database
           .prepare(
-            'INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO users (name, email, password_hash, role, public_contact_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
           )
-          .run(account.name, account.email, passwordHash, account.role, Date.now());
+          .run(
+            account.name,
+            account.email,
+            passwordHash,
+            account.role,
+            createPublicContactId(),
+            Date.now()
+          );
     }
   } finally {
     database.close();

@@ -31,14 +31,21 @@ window.RastroMap.ready
 
     if (!L) {
       if (mapHost) {
-        mapHost.innerHTML =
-          '<div class="map-error"><strong>Google Maps não configurado neste ambiente.</strong><span>Configure GOOGLE_MAPS_API_KEY no .env para ativar o mapa principal.</span></div>';
+        const providerLabel =
+          mapProvider === 'mapbox'
+            ? 'Mapbox'
+            : mapProvider === 'maplibre'
+              ? 'MapLibre'
+              : mapProvider === 'google'
+                ? 'Google Maps'
+                : 'Mapa';
+        mapHost.innerHTML = `<div class="map-error"><strong>${providerLabel} indisponível neste ambiente.</strong><span>${error || 'Verifique a configuração e os arquivos do provider de mapa.'}</span></div>`;
         const mapCard = mapHost.closest('.map-card');
         if (mapCard) {
           const vehicleHud = document.createElement('div');
           vehicleHud.className = 'vehicle-hud';
           vehicleHud.innerHTML =
-            '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><i class="vehicle-hud__smoke vehicle-hud__smoke--a"></i><i class="vehicle-hud__smoke vehicle-hud__smoke--b"></i><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>GPS sem sinal · aguardando atualização</span></div><div class="vehicle-hud__details"></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
+            '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>Localização indisponível</span></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
           mapCard.appendChild(vehicleHud);
         }
       }
@@ -52,7 +59,7 @@ window.RastroMap.ready
         const vehicleHud = document.createElement('div');
         vehicleHud.className = 'vehicle-hud';
         vehicleHud.innerHTML =
-          '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><i class="vehicle-hud__smoke vehicle-hud__smoke--a"></i><i class="vehicle-hud__smoke vehicle-hud__smoke--b"></i><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>GPS sem sinal · aguardando atualização</span></div><div class="vehicle-hud__details"></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
+          '<div class="vehicle-hud__status">SEM LOCALIZAÇÃO</div><div class="vehicle-hud__title">Meu veículo</div><div class="vehicle-hud__identity"><div><b class="vehicle-hud__model">Nenhum veículo cadastrado</b><small class="vehicle-hud__year"></small></div><div class="vehicle-hud__media"><canvas class="vehicle-hud-3d" aria-label="Modelo 3D do veículo"></canvas><img hidden></div></div><div class="vehicle-hud__meta"><strong>—</strong><span>Localização indisponível</span></div><div class="vehicle-hud__plate"></div><button type="button">Cadastrar veículo</button>';
         mapCard.appendChild(vehicleHud);
       }
     }
@@ -126,7 +133,7 @@ window.RastroMap.ready
       replayTimer = null,
       replayMarker = null,
       replayIndex = 0;
-    let roadEventsEnabled = false,
+    let roadEventsEnabled = true,
       lastRoadEventLoad = null,
       roadEventRequest = null,
       userPosition = null,
@@ -144,6 +151,7 @@ window.RastroMap.ready
     let vehicleMarker,
       vehicle3DLayer,
       hudVehicle3DPreview,
+      profileVehicle3DPreview,
       accuracyCircle,
       originMarker,
       destinationMarker;
@@ -680,18 +688,9 @@ window.RastroMap.ready
         hide();
         saveHistory(place);
         setPoint('destination', place, place.label);
-        if (!userPosition) {
-          try {
-            await currentLocation({ setAsOrigin: true, center: false });
-          } catch {
-            toast(
-              'Destino selecionado. Ative a localização para calcular a rota a partir de onde você está.'
-            );
-            return;
-          }
-        } else setPoint('origin', userPosition, 'Minha localização atual');
-        await calculateRoute();
-        if (plannedRoutes.length) openQuickTripPanel(place);
+        window.dispatchEvent(
+          new CustomEvent('rastreon:open-navigation', { detail: { destination: place } })
+        );
       };
       const renderPlaces = (places, { recent = false } = {}) => {
         show();
@@ -820,9 +819,21 @@ window.RastroMap.ready
         card.querySelector('small').textContent = [data.location.name, data.location.region]
           .filter(Boolean)
           .join(' · ');
+        if ($('profileWeatherTemperature'))
+          $('profileWeatherTemperature').textContent = `${Math.round(data.current.temperatureC)}°C`;
+        if ($('profileWeatherCondition'))
+          $('profileWeatherCondition').textContent = data.current.condition || 'Condição atual';
+        if ($('profileWeatherLocation'))
+          $('profileWeatherLocation').textContent = [data.location.name, data.location.region]
+            .filter(Boolean)
+            .join(' · ');
       } catch (error) {
         card.querySelector('span:not(.weather-icon)').textContent = 'Clima indisponível';
         card.querySelector('small').textContent = error.message;
+        if ($('profileWeatherCondition'))
+          $('profileWeatherCondition').textContent = 'Clima indisponível';
+        if ($('profileWeatherLocation'))
+          $('profileWeatherLocation').textContent = error.message || 'Verifique a localização';
       }
     }
     const accuracyPresentation = accuracy => {
@@ -1076,6 +1087,15 @@ window.RastroMap.ready
         center = map.getCenter();
       loadRoadEvents(current || { latitude: center.lat, longitude: center.lng }, true);
     });
+    map.on('moveend', () => {
+      const center = map.getCenter();
+      loadRoadEvents({ latitude: center.lat, longitude: center.lng });
+    });
+    const initialRoadEventCenter = map.getCenter();
+    loadRoadEvents(
+      { latitude: initialRoadEventCenter.lat, longitude: initialRoadEventCenter.lng },
+      true
+    );
     window.addEventListener('rastreon:route-deviation', event =>
       rerouteFrom(event.detail.position)
     );
@@ -1377,7 +1397,7 @@ window.RastroMap.ready
         toast(e.message);
       } finally {
         $('calculateBtn').disabled = false;
-        $('calculateBtn').textContent = 'Calcular rota rodoviária';
+        $('calculateBtn').textContent = 'Buscar rota';
       }
     }
     async function rerouteFrom(position) {
@@ -1759,11 +1779,7 @@ window.RastroMap.ready
       const button = hud.querySelector('button'),
         canvas = hud.querySelector('.vehicle-hud-3d'),
         image = hud.querySelector('.vehicle-hud__media img');
-      button.onclick = () => {
-        if (!vehicle) return document.querySelector('[data-view="vehicles"]')?.click();
-        const expanded = hud.classList.toggle('vehicle-hud--expanded');
-        button.textContent = expanded ? 'Ocultar detalhes' : 'Ver detalhes';
-      };
+      button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
       if (!vehicle) {
         hud.querySelector('.vehicle-hud__model').textContent = 'Nenhum veículo cadastrado';
         hud.querySelector('.vehicle-hud__year').textContent = '';
@@ -1776,12 +1792,8 @@ window.RastroMap.ready
       hud.querySelector('.vehicle-hud__title').textContent = vehicle.nickname || 'Meu veículo';
       hud.querySelector('.vehicle-hud__model').textContent =
         `${vehicle.brand || ''} ${vehicle.model || ''}`.trim();
-      hud.querySelector('.vehicle-hud__year').textContent = '';
-      const plate = vehicle.plate || 'SEM PLACA';
-      if (canvas) canvas.setAttribute('aria-label', `Modelo 3D do ${vehicle.model || 'veículo'}`);
-      hud.querySelector('.vehicle-hud__plate').textContent = plate;
-      hud.querySelector('.vehicle-hud__details').innerHTML =
-        `<span>Marca</span><b>${vehicle.brand || '—'}</b><span>Modelo</span><b>${vehicle.model || '—'}</b><span>Placa</span><b>${plate}</b>`;
+      hud.querySelector('.vehicle-hud__year').textContent = vehicle.year || '';
+      hud.querySelector('.vehicle-hud__plate').textContent = vehicle.plate || 'SEM PLACA';
       button.textContent = 'Ver detalhes';
       if (canvas) {
         canvas.hidden = false;
@@ -1790,6 +1802,44 @@ window.RastroMap.ready
         });
       } else applyVehicleImageFallback(image, vehicle);
       hud.classList.toggle('vehicle-identified', Boolean(vehicle.plate));
+    }
+    function renderProfileVehicle() {
+      const canvas = $('profileVehicle3d');
+      if (!canvas) return;
+      profileVehicle3DPreview?.destroy?.();
+      profileVehicle3DPreview = null;
+      const name = $('profileVehicleName'),
+        details = $('profileVehicleDetails'),
+        plate = $('profileVehiclePlate'),
+        status = $('profileVehicleStatus'),
+        button = $('profileVehicleDetailsBtn');
+      if (!vehicle) {
+        canvas.hidden = true;
+        name.textContent = 'Nenhum veículo selecionado';
+        details.textContent = 'Cadastre um veículo na garagem';
+        plate.textContent = '—';
+        status.textContent = 'Sem veículo';
+      } else {
+        canvas.hidden = false;
+        name.textContent =
+          `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() || vehicle.nickname;
+        details.textContent = [vehicle.version, vehicle.year, vehicle.color]
+          .filter(Boolean)
+          .join(' · ');
+        plate.textContent = vehicle.plate || 'Sem placa';
+        status.textContent = positions.length ? 'Online' : 'Sem rastreador';
+        installVehiclePreview(canvas, vehicle).then(preview => {
+          if (preview) profileVehicle3DPreview = preview;
+        });
+      }
+      if (button) button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+      const addVehicle = () => openVehicleForm();
+      if ($('profileAddVehicleBtn')) $('profileAddVehicleBtn').onclick = addVehicle;
+      if ($('profileAddVehicleRail')) $('profileAddVehicleRail').onclick = addVehicle;
+      if ($('profileRemoveVehicleBtn')) {
+        $('profileRemoveVehicleBtn').disabled = !vehicle;
+        $('profileRemoveVehicleBtn').onclick = () => vehicle && deleteVehicle(vehicle.id);
+      }
     }
     function renderFuelPrice() {
       const input = $('fuelPriceInput'),
@@ -1926,7 +1976,7 @@ window.RastroMap.ready
         dialog.id = 'additionalVehicleDialog';
         dialog.className = 'upgrade-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade>×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
+          '<div class="modal-head"><div><span class="eyebrow">VEÍCULO ADICIONAL</span><h2>Proteja mais um veículo</h2></div><button type="button" class="icon-btn" data-close-upgrade aria-label="Fechar">×</button></div><p class="upgrade-message">Para cadastrar outro veículo é necessário contratar um plano multi veículos. A solicitação e o envio de mais um aparelho rastreador já estão inclusos.</p><ul class="upgrade-benefits"><li>Novo rastreador incluso no plano</li><li>Acompanhamento de todos os veículos na mesma conta</li><li>Histórico e alertas individuais</li></ul><div class="dialog-actions"><button type="button" class="secondary" data-close-upgrade>Agora não</button><button type="button" data-view-plans>Ver planos disponíveis</button></div>';
         document.body.appendChild(dialog);
         dialog
           .querySelectorAll('[data-close-upgrade]')
@@ -1938,7 +1988,7 @@ window.RastroMap.ready
       dialog.showModal();
     }
     function ensureFinesCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileFinesCard')) return;
       const card = document.createElement('section');
       card.id = 'profileFinesCard';
@@ -2151,19 +2201,40 @@ window.RastroMap.ready
       if (!res.ok) return;
       $('profileName').textContent = data.user.name;
       $('profileEmail').textContent = data.user.email;
+      if ($('profileContactId')) $('profileContactId').textContent = data.user.contactId || '—';
+      fetch('/api/profile/contact-card')
+        .then(response => response.json())
+        .then(contact => {
+          if (contact.qrCode && $('profileContactQr')) $('profileContactQr').src = contact.qrCode;
+        })
+        .catch(() => {});
+      if ($('copyProfileContactId'))
+        $('copyProfileContactId').onclick = async () => {
+          if (!data.user.contactId) return;
+          await navigator.clipboard.writeText(data.user.contactId);
+          toast('ID RASTREON copiado.');
+        };
       renderProfileAvatar(data.user.avatarData, data.user.name);
       $('profileCreated').textContent = new Date(data.user.createdAt).toLocaleDateString('pt-BR');
       $('profilePlan').textContent = data.plan;
       $('profileVehicleCount').textContent = data.vehicleCount;
       $('profileAlertCount').textContent = data.recentAlertCount;
+      if ($('profileSummaryVehicles')) $('profileSummaryVehicles').textContent = data.vehicleCount;
+      if ($('profileSummaryAlerts')) $('profileSummaryAlerts').textContent = data.recentAlertCount;
+      if ($('profileSummaryTrips')) $('profileSummaryTrips').textContent = data.recentTrips.length;
       $('profileTrips').innerHTML = data.recentTrips.length
         ? data.recentTrips
             .map(
               t =>
-                `<div class="profile-trip"><b>${escapeHtml(t.vehicle?.nickname || 'Veículo')}</b><span>${new Date(t.createdAt).toLocaleString('pt-BR')}</span><small>${t.closedAt ? 'Finalizada' : 'Em aberto'}</small></div>`
+                `<div class="profile-trip"><span class="profile-trip-icon"><svg aria-hidden="true"><use href="/images/ui-icons.svg?v=20260828-3#location"></use></svg></span><b>${escapeHtml(t.vehicle?.nickname || 'Veículo')}</b><span>${new Date(t.createdAt).toLocaleString('pt-BR')}</span><small>${t.closedAt ? 'Finalizada' : 'Em aberto'}</small></div>`
             )
             .join('')
         : '<div class="empty-state">Nenhuma viagem registrada.</div>';
+      renderProfileVehicle();
+      document.querySelectorAll('[data-view-shortcut]').forEach(button => {
+        button.onclick = () =>
+          document.querySelector(`[data-view="${button.dataset.viewShortcut}"]`)?.click();
+      });
     }
     async function exportPrivacyData() {
       const button = $('exportDataBtn');
@@ -2339,7 +2410,7 @@ window.RastroMap.ready
             minutes = Math.floor(remaining / 60000),
             seconds = Math.floor((remaining % 60000) / 1000);
           instructions.textContent = remaining
-            ? `No celular, abra ${new URL(d.pairUrl).origin}/pair e leia o QR ou digite o código. Expira em ${minutes}:${String(seconds).padStart(2, '0')}.`
+            ? `No celular, abra ${new URL(d.pairUrl).origin}/tracker e leia o QR ou digite o código. Não exige login e expira em ${minutes}:${String(seconds).padStart(2, '0')}.`
             : 'QR Code expirado. Gere uma nova sessão.';
           if (!remaining) {
             clearInterval(pairingTimer);
@@ -2379,7 +2450,7 @@ window.RastroMap.ready
         dialog.id = 'trackerPairDialog';
         dialog.className = 'tracker-pair-dialog';
         dialog.innerHTML =
-          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker>×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
+          '<div class="modal-head"><div><span class="eyebrow">OPÇÃO PARA CELULAR</span><h2>Levar a viagem no celular</h2></div><button type="button" class="icon-btn" data-close-tracker aria-label="Fechar">×</button></div><p class="tracker-intro">Esta etapa é opcional. Leia o QR Code para acompanhar o teste da viagem no celular; a navegação deste site funciona de forma independente.</p><div class="tracker-qr-state"><img alt="QR Code para abrir a viagem no celular"><strong>Preparando QR Code…</strong><small></small></div><button type="button" class="secondary wide" data-new-tracker>Gerar novo QR Code</button>';
         document.body.appendChild(dialog);
         dialog.querySelector('[data-close-tracker]').onclick = () => dialog.close();
         dialog.querySelector('[data-new-tracker]').onclick = () => openTrackerPairing(true);
@@ -2662,6 +2733,7 @@ window.RastroMap.ready
     function filterTripsByPeriod(trips) {
       const mode = $('dateFilter').value,
         now = new Date();
+      if (mode === 'recent') return trips;
       let fromDate, toDate;
       if (mode === 'today' || mode === 'yesterday') {
         const shift = mode === 'yesterday' ? -1 : 0,
@@ -2880,6 +2952,14 @@ window.RastroMap.ready
         hud.querySelector('.vehicle-hud__meta span').textContent =
           kmh > 3 ? 'Em movimento' : 'Parado';
       }
+      if ($('profileLiveSpeed')) $('profileLiveSpeed').textContent = br(kmh, 0);
+      if ($('profileVehicleSpeed')) $('profileVehicleSpeed').textContent = br(kmh, 0);
+      if ($('profileVehicleMovement'))
+        $('profileVehicleMovement').textContent = kmh > 3 ? 'Em movimento' : 'Parado';
+      if ($('profileLiveState'))
+        $('profileLiveState').innerHTML =
+          Date.now() - p.timestamp < 120000 ? '<i></i> Online' : '<i></i> Última posição';
+      if ($('profileVehicleStatus')) $('profileVehicleStatus').textContent = 'Online';
       speeds.push(kmh);
       lastTimestamp = p.timestamp;
       updateStats();
@@ -3173,8 +3253,123 @@ window.RastroMap.ready
       $('clearBtn').disabled = $('closeBtn').disabled = true;
       toast('Sessão encerrada.');
     }
+    async function accountCsrf() {
+      const response = await fetch('/api/auth/csrf'),
+        data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Não foi possível iniciar a ação segura.');
+      return data.token;
+    }
+    async function ensureAccountVerificationCard() {
+      const layout = document.querySelector('#profileSettingsContent');
+      if (!layout || $('profileVerificationCard')) return;
+      const card = document.createElement('section');
+      card.id = 'profileVerificationCard';
+      card.className = 'card account-verification-card';
+      card.innerHTML =
+        '<span class="eyebrow">CONTATOS VERIFICADOS</span><h2>Identidade da conta</h2><p>Confirme seus contatos para recuperação e alertas. Nenhum SMS ou e-mail é apresentado como enviado sem provider configurado.</p><div class="verification-row"><span><b>E-mail</b><small id="emailVerificationStatus">Consultando…</small></span><button id="verifyEmailBtn" type="button" class="secondary">Verificar</button></div><div class="verification-row"><span><b>Telefone</b><small id="phoneVerificationStatus">Consultando…</small></span><button id="verifyPhoneBtn" type="button" class="secondary">Verificar</button></div>';
+      layout.insertBefore(card, layout.querySelector('.privacy-card'));
+      const meResponse = await fetch('/api/auth/me'),
+        me = await meResponse.json();
+      if (!meResponse.ok) throw new Error(me.error);
+      const configure = (kind, verified) => {
+        const label = kind === 'email' ? 'E-mail' : 'Telefone',
+          idSuffix = kind === 'email' ? 'Email' : 'Phone';
+        const status = $(`${kind}VerificationStatus`);
+        const button = $(`verify${idSuffix}Btn`);
+        status.textContent = verified ? 'Verificado' : 'Não verificado';
+        button.disabled = Boolean(verified);
+        button.onclick = async () => {
+          try {
+            const csrf = await accountCsrf();
+            const requestResponse = await fetch(`/api/account-security/${kind}/request`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+              body: '{}'
+            });
+            const requestData = await requestResponse.json();
+            if (!requestResponse.ok) throw new Error(requestData.error);
+            const code = prompt(
+              requestData.provider === 'mock'
+                ? `Provider MOCK — código: ${requestData.developmentCode}. Confirme abaixo:`
+                : `Digite o código enviado por ${kind === 'email' ? 'e-mail' : 'telefone'}:`
+            );
+            if (!code) return;
+            const confirmResponse = await fetch(`/api/account-security/${kind}/confirm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+              body: JSON.stringify({ challengeId: requestData.challengeId, code })
+            });
+            if (!confirmResponse.ok) {
+              const confirmData = await confirmResponse.json();
+              throw new Error(confirmData.error);
+            }
+            status.textContent = 'Verificado';
+            button.disabled = true;
+            toast(`${label} verificado.`);
+          } catch (error) {
+            toast(error.message);
+          }
+        };
+      };
+      configure('email', me.user.emailVerifiedAt);
+      configure('phone', me.user.phoneVerifiedAt);
+    }
+    async function ensureDriverDocumentCard() {
+      const layout = document.querySelector('#profileSettingsContent');
+      if (!layout || $('profileDriverDocumentCard')) return;
+      const card = document.createElement('section');
+      card.id = 'profileDriverDocumentCard';
+      card.className = 'card driver-document-card';
+      card.innerHTML =
+        '<span class="eyebrow">DOCUMENTO DO CONDUTOR</span><h2>CNH</h2><p id="driverDocumentStatus">Consultando situação…</p><label class="field">Validade da CNH<input id="cnhExpiry" type="date"></label><label class="field">Arquivo privado (PDF, PNG ou JPEG; até 5 MB)<input id="cnhFile" type="file" accept="application/pdf,image/png,image/jpeg"></label><button id="uploadCnhBtn" type="button" class="secondary wide">Enviar para análise</button><small>O arquivo não possui URL pública e somente a equipe autorizada pode revisá-lo.</small>';
+      layout.insertBefore(card, layout.querySelector('.privacy-card'));
+      const refresh = async () => {
+        const response = await fetch('/api/documents/cnh'),
+          data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        const labels = {
+          PENDING: 'Documento em análise.',
+          APPROVED: 'Documento aprovado.',
+          REJECTED: `Documento rejeitado${data.document?.rejectionReason ? `: ${data.document.rejectionReason}` : '.'}`,
+          EXPIRED: 'CNH vencida. Envie um documento atualizado.'
+        };
+        $('driverDocumentStatus').textContent = data.document
+          ? labels[data.document.status]
+          : 'Plano indisponível — envie sua CNH para continuar.';
+        if (data.document?.expiryDate) $('cnhExpiry').value = data.document.expiryDate;
+      };
+      await refresh();
+      $('uploadCnhBtn').onclick = async () => {
+        const file = $('cnhFile').files[0],
+          expiry = $('cnhExpiry').value,
+          button = $('uploadCnhBtn');
+        if (!file || !expiry) return toast('Escolha o arquivo e informe a validade da CNH.');
+        button.disabled = true;
+        try {
+          const csrf = await accountCsrf();
+          const response = await fetch('/api/documents/cnh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-CSRF-Token': csrf,
+              'X-Document-Type': file.type,
+              'X-CNH-Expiry': expiry
+            },
+            body: await file.arrayBuffer()
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error);
+          await refresh();
+          toast('CNH enviada para análise.');
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          button.disabled = false;
+        }
+      };
+    }
     async function ensureTwoFactorCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileTwoFactorCard')) return;
       const card = document.createElement('section');
       card.id = 'profileTwoFactorCard';
@@ -3208,7 +3403,7 @@ window.RastroMap.ready
           ? '2FA ativo nesta conta.'
           : status.twoFactor.required
             ? '2FA obrigatório para seu perfil administrativo.'
-            : '2FA ainda não configurado.';
+            : '2FA opcional — não configurado.';
         $('setupTwoFactor').textContent = status.twoFactor.enabled ? '2FA ativo' : 'Configurar 2FA';
         $('setupTwoFactor').disabled = status.twoFactor.enabled;
       } catch (error) {
@@ -3240,7 +3435,7 @@ window.RastroMap.ready
       };
     }
     async function ensureNotificationPreferencesCard() {
-      const layout = document.querySelector('#profileView .profile-layout');
+      const layout = document.querySelector('#profileSettingsContent');
       if (!layout || $('profileNotificationCard')) return;
       const labels = {
           VEHICLE_OFFLINE: 'Veículo offline',
@@ -3359,6 +3554,8 @@ window.RastroMap.ready
           if (isTracking) setTimeout(() => map.invalidateSize(), 50);
           if (b.dataset.view === 'profile') {
             ensureFinesCard();
+            ensureAccountVerificationCard();
+            ensureDriverDocumentCard();
             ensureTwoFactorCard();
             ensureNotificationPreferencesCard();
             loadProfile();
@@ -3426,8 +3623,18 @@ window.RastroMap.ready
     });
     bindAddressAutocomplete('originInput', 'originResults', 'origin');
     bindAddressAutocomplete('destinationInput', 'destinationResults', 'destination');
+    window.addEventListener('rastreon:swap-route-points', () => {
+      [origin, destination] = [destination, origin];
+      const originValue = $('originInput').value;
+      $('originInput').value = $('destinationInput').value;
+      $('destinationInput').value = originValue;
+      toast('Origem e destino invertidos.');
+    });
     $('useMyLocationBtn').onclick = () => currentLocation({ setAsOrigin: true, center: true });
-    $('locateMeBtn').onclick = () => currentLocation({ center: true });
+    $('locateMeBtn').onclick = () => {
+      navigation.resumeFollow();
+      currentLocation({ center: true });
+    };
     $('startNavigationBtn').onclick = toggleDailyNavigation;
     $('addStopBtn').onclick = addStop;
     $('originMapBtn').onclick = () => {
@@ -3473,19 +3680,6 @@ window.RastroMap.ready
     $('simulateBtn').onclick = startSimulation;
     $('clearBtn').onclick = clearHistory;
     $('closeBtn').onclick = closeSession;
-    $('centerBtn').onclick = () =>
-      vehicleMarker
-        ? map.setView(
-            vehicleMarker.getLatLng(),
-            accuracyPresentation(positions.at(-1)?.accuracy).zoom
-          )
-        : userPosition
-          ? map.setView(
-              [userPosition.latitude, userPosition.longitude],
-              accuracyPresentation(userPosition.accuracy).zoom
-            )
-          : plannedRoutes.length &&
-            map.fitBounds(L.latLngBounds(plannedRoutes[selectedRoute].geometry));
     $('copyBtn').onclick = async () => {
       await navigator.clipboard.writeText(mobileUrl);
       toast('Link copiado.');
@@ -3521,6 +3715,53 @@ window.RastroMap.ready
     $('changePasswordBtn').onclick = changePassword;
     $('exportDataBtn').onclick = exportPrivacyData;
     $('deleteAccountBtn').onclick = deletePrivacyAccount;
+    const openProfileSettings = section => {
+      const dialog = $('profileSettingsDialog');
+      if (!dialog) return;
+      const content = $('profileSettingsContent');
+      const titles = {
+        security: 'Segurança da conta',
+        alerts: 'Preferências de alertas',
+        fines: 'Multas e documentos',
+        map: 'Aparência e locais do mapa',
+        cnh: 'CNH do condutor'
+      };
+      $('profileSettingsTitle').textContent = titles[section] || 'Gerenciar perfil';
+      dialog.dataset.section = section || '';
+      const visibility = {
+        map: card => card.matches('.profile-poi-card'),
+        cnh: card => card.matches('#profileDriverDocumentCard'),
+        alerts: card => card.matches('#profileNotificationCard'),
+        fines: card => card.matches('#profileFinesCard'),
+        security: card =>
+          card.matches('#profileTwoFactorCard, .account-verification-card, .privacy-card')
+      };
+      const isVisible = visibility[section] || (() => true);
+      content?.querySelectorAll(':scope > .card').forEach(card => {
+        card.hidden = !isVisible(card);
+      });
+      dialog.showModal();
+      if (content) content.scrollTop = 0;
+    };
+    document
+      .querySelectorAll('[data-profile-settings]')
+      .forEach(
+        button => (button.onclick = () => openProfileSettings(button.dataset.profileSettings))
+      );
+    document.querySelectorAll('[data-profile-map-action]').forEach(button => {
+      button.onclick = () =>
+        document.querySelector(`[data-view="${button.dataset.profileMapAction}"]`)?.click();
+    });
+    if ($('closeProfileSettings'))
+      $('closeProfileSettings').onclick = () => $('profileSettingsDialog').close();
+    if ($('profileSettingsDialog'))
+      $('profileSettingsDialog').onclick = event => {
+        if (event.target === $('profileSettingsDialog')) $('profileSettingsDialog').close();
+      };
+    if ($('profileLogoutBtn')) $('profileLogoutBtn').onclick = () => $('logoutBtn').click();
+    document.querySelectorAll('[data-profile-action="devices"]').forEach(button => {
+      button.onclick = () => document.querySelector('[data-view="vehicles"]')?.click();
+    });
     $('logoutBtn').onclick = async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       location.replace('/login.html');
@@ -3596,7 +3837,6 @@ window.RastroMap.ready
     ensureMapControls();
     initializeMapMode();
     initializeTraffic();
-    ensureQuickRouteSearch();
     configureHistoryFilters();
     window.RastreonCommunity?.init();
     loadAccount();

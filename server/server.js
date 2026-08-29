@@ -56,6 +56,10 @@ const { calculateTrackMetrics } = require('./trip-metrics');
 const { createCommunityRouter, parseFeatureFlag } = require('./community');
 const { createPlatformRouter } = require('./platform');
 const { createTwoFactorRouter, createTwoFactorGuard } = require('./two-factor');
+const { createAccountSecurityRouter } = require('./account-security');
+const { createConvoyRouter, installConvoySocket } = require('./convoy');
+const { createDriverDocumentsRouter, requireApprovedCnh } = require('./driver-documents');
+const { createPublicContactId, createPublicContactPayload } = require('./contact-id');
 require('dotenv').config();
 
 const sessions = new Map();
@@ -63,6 +67,70 @@ const ttlMs = Math.max(1, Number(process.env.SESSION_TTL_MINUTES) || 120) * 6000
 const defaultEfficiencyProvider = new VehicleEfficiencyProvider();
 const PBE_MODELS = defaultEfficiencyProvider.list();
 const poiCache = new Map();
+const POI_DEFINITIONS = Object.freeze({
+  fuel: { filter: 'amenity=fuel', match: tags => tags.amenity === 'fuel' },
+  hospital: {
+    filter: 'amenity~"hospital|clinic"',
+    match: tags => ['hospital', 'clinic'].includes(tags.amenity)
+  },
+  pharmacy: { filter: 'amenity=pharmacy', match: tags => tags.amenity === 'pharmacy' },
+  restaurant: {
+    filter: 'amenity~"restaurant|fast_food"',
+    match: tags => ['restaurant', 'fast_food'].includes(tags.amenity)
+  },
+  cafe: {
+    filter: 'amenity~"cafe|ice_cream"',
+    match: tags => ['cafe', 'ice_cream'].includes(tags.amenity)
+  },
+  bakery: { filter: 'shop=bakery', match: tags => tags.shop === 'bakery' },
+  bar: { filter: 'amenity~"bar|pub"', match: tags => ['bar', 'pub'].includes(tags.amenity) },
+  supermarket: {
+    filter: 'shop~"supermarket|convenience|wholesale"',
+    match: tags => ['supermarket', 'convenience', 'wholesale'].includes(tags.shop)
+  },
+  mechanic: { filter: 'shop=car_repair', match: tags => tags.shop === 'car_repair' },
+  charge: {
+    filter: 'amenity=charging_station',
+    match: tags => tags.amenity === 'charging_station'
+  },
+  parking: { filter: 'amenity=parking', match: tags => tags.amenity === 'parking' },
+  hotel: {
+    filter: 'tourism~"hotel|motel|guest_house|hostel|chalet|resort"',
+    match: tags =>
+      ['hotel', 'motel', 'guest_house', 'hostel', 'chalet', 'resort'].includes(tags.tourism)
+  },
+  school: { filter: 'amenity=school', match: tags => tags.amenity === 'school' },
+  university: { filter: 'amenity=university', match: tags => tags.amenity === 'university' },
+  library: { filter: 'amenity=library', match: tags => tags.amenity === 'library' },
+  culture: {
+    filter: 'tourism~"museum|gallery"',
+    match: tags => ['museum', 'gallery'].includes(tags.tourism)
+  },
+  leisure: {
+    filter: 'leisure~"park|nature_reserve|playground"',
+    match: tags => ['park', 'nature_reserve', 'playground'].includes(tags.leisure)
+  },
+  tourism: {
+    filter: 'tourism~"attraction|viewpoint|theme_park"',
+    match: tags => ['attraction', 'viewpoint', 'theme_park'].includes(tags.tourism)
+  },
+  camping: {
+    filter: 'tourism~"camp_site|caravan_site"',
+    match: tags => ['camp_site', 'caravan_site'].includes(tags.tourism)
+  },
+  worship: {
+    filter: 'amenity=place_of_worship',
+    match: tags => tags.amenity === 'place_of_worship'
+  },
+  police: { filter: 'amenity=police', match: tags => tags.amenity === 'police' },
+  fire_station: { filter: 'amenity=fire_station', match: tags => tags.amenity === 'fire_station' },
+  airport: {
+    filter: 'aeroway~"aerodrome|terminal"',
+    match: tags => ['aerodrome', 'terminal'].includes(tags.aeroway)
+  },
+  dentist: { filter: 'amenity=dentist', match: tags => tags.amenity === 'dentist' },
+  veterinary: { filter: 'amenity=veterinary', match: tags => tags.amenity === 'veterinary' }
+});
 const serviceCache = new Map();
 const serviceInflight = new Map();
 async function cachedServiceCall(key, producer, ttl = 120000) {
@@ -680,12 +748,7 @@ function createApplication(options = {}) {
             'https://*.ggpht.com'
           ],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-          scriptSrc: [
-            "'self'",
-            'https://maps.googleapis.com',
-            'https://maps.gstatic.com',
-            'https://cdn.jsdelivr.net'
-          ],
+          scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
           workerSrc: ["'self'", 'blob:'],
           connectSrc: [
             "'self'",
@@ -699,8 +762,7 @@ function createApplication(options = {}) {
             'https://*.tiles.mapbox.com',
             'https://events.mapbox.com',
             'https://maps.googleapis.com',
-            'https://maps.gstatic.com',
-            'https://cdn.jsdelivr.net'
+            'https://maps.gstatic.com'
           ],
           upgradeInsecureRequests: enforceHttpsResources ? [] : null
         }
@@ -722,6 +784,12 @@ function createApplication(options = {}) {
   });
   const twoFactorGuard = createTwoFactorGuard(database);
   const twoFactorRouter = createTwoFactorRouter({ database });
+  const { router: accountSecurityRouter } = createAccountSecurityRouter({
+    database,
+    secret: sessionSecret,
+    requireCsrf,
+    deliveryProvider: options.deliveryProvider
+  });
   const communityRouter = createCommunityRouter({
     database,
     enabled: process.env.COMMUNITY_PLACES_ENABLED
@@ -733,9 +801,23 @@ function createApplication(options = {}) {
     io,
     geocodingProvider
   });
+  const convoyRouter = createConvoyRouter({ database, requireCsrf, twoFactorGuard });
+  const { router: driverDocumentsRouter, privateDirectory } = createDriverDocumentsRouter({
+    database,
+    requireCsrf,
+    twoFactorGuard,
+    storageDirectory: options.privateDocumentsPath
+  });
+  const cnhGuard = requireApprovedCnh(
+    database,
+    options.cnhRequired ?? process.env.FEATURE_CNH_REQUIRED === 'true'
+  );
+  app.use('/api/account-security', accountSecurityRouter);
   app.use('/api/security/2fa', twoFactorRouter);
   app.use('/api/community', communityRouter);
   app.use('/api/platform', platformRouter);
+  app.use('/api/convoy', convoyRouter);
+  app.use('/api/documents', driverDocumentsRouter);
   app.use('/api/v1/community', communityRouter);
   app.use('/api/v1/platform', platformRouter);
   app.use(
@@ -813,6 +895,24 @@ function createApplication(options = {}) {
         })};`
       );
   });
+  app.get('/api/map/config', requireAuth, (_req, res) => {
+    const provider = process.env.MAP_PROVIDER || 'maplibre';
+    const mapboxAccessToken =
+      provider === 'mapbox'
+        ? process.env.MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_WEB_PUBLIC_TOKEN || ''
+        : '';
+    res.json({
+      provider,
+      styleUrl:
+        provider === 'mapbox'
+          ? process.env.MAP_STYLE_URL || 'mapbox://styles/mapbox/navigation-day-v1'
+          : process.env.MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty',
+      mapboxAccessToken,
+      routeProvider: process.env.ROUTE_PROVIDER || 'osrm',
+      geocodingProvider:
+        process.env.GEOCODING_PROVIDER || (provider === 'mapbox' ? 'mapbox' : 'photon')
+    });
+  });
   app.get('/login.html', (req, res) =>
     req.session.userId
       ? res.redirect('/dashboard')
@@ -823,8 +923,12 @@ function createApplication(options = {}) {
       ? res.redirect('/dashboard')
       : res.sendFile(path.join(publicDir, 'register.html'))
   );
-  app.get('/mobile.html', (_req, res) => res.sendFile(path.join(publicDir, 'mobile.html')));
-  app.get(['/pair', '/pair.html'], (_req, res) => res.sendFile(path.join(publicDir, 'pair.html')));
+  app.get(['/mobile', '/mobile.html'], (_req, res) =>
+    res.sendFile(path.join(publicDir, 'mobile.html'))
+  );
+  app.get(['/pair', '/pair.html', '/tracker', '/tracker.html'], (_req, res) =>
+    res.sendFile(path.join(publicDir, 'pair.html'))
+  );
   app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
   app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/login.html');
@@ -890,90 +994,124 @@ function createApplication(options = {}) {
     const result = validateTelemetryPoint({ ...req.body, source: 'simulation' }, { offline: true });
     res.status(result.ok ? 200 : 400).json(result);
   });
-  app.get('/api/pois', requireAuth, serviceLimiter, async (req, res, next) => {
+  app.get('/api/pois', requireAuth, serviceLimiter, async (req, res) => {
     try {
       const latitude = Number(req.query.lat),
         longitude = Number(req.query.lng),
-        category = String(req.query.category || ''),
-        route = parsePoiRoute(req.query.route);
-      const tags = {
-        fuel: 'amenity=fuel',
-        food: 'amenity~"restaurant|fast_food|cafe"',
-        hotel: 'tourism~"hotel|motel|guest_house"',
-        hospital: 'amenity~"hospital|clinic"',
-        pharmacy: 'amenity=pharmacy',
-        supermarket: 'shop~"supermarket|convenience"',
-        mechanic: 'shop=car_repair',
-        charge: 'amenity=charging_station',
-        parking: 'amenity=parking',
-        police: 'amenity=police',
-        camera: 'highway=speed_camera'
-      };
-      const validCenter =
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        Math.abs(latitude) <= 90 &&
-        Math.abs(longitude) <= 180;
-      if (!validCenter || route === null || !tags[category])
+        categories = [
+          ...new Set(
+            String(req.query.categories || req.query.category || '')
+              .split(',')
+              .map(value => value.trim())
+              .filter(value => POI_DEFINITIONS[value])
+          )
+        ].slice(0, 25),
+        route = parsePoiRoute(req.query.route),
+        validCenter =
+          Number.isFinite(latitude) &&
+          Number.isFinite(longitude) &&
+          Math.abs(latitude) <= 90 &&
+          Math.abs(longitude) <= 180;
+      if (!validCenter || route === null || !categories.length)
         return res.status(400).json({ error: 'Consulta de locais inválida.' });
+
       const routeKey = route.length
           ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
           : '',
-        key = `${category}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${routeKey}`,
+        categoryKey = [...categories].sort().join(','),
+        zoomScope =
+          Number(req.query.zoom) >= 15 ? 'near' : Number(req.query.zoom) >= 13 ? 'city' : 'wide',
+        key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${routeKey}`,
         cached = poiCache.get(key);
       if (cached && cached.expiresAt > Date.now())
         return res.json({ places: cached.places, cached: true });
-      const denseRadius = { food: 2500, pharmacy: 3500, supermarket: 3500, parking: 3500 },
-        radius = denseRadius[category] || 5000,
+
+      const zoom = Number(req.query.zoom),
+        radius = zoom >= 15 ? 2500 : zoom >= 13 ? 4000 : 6000,
         area = route.length
           ? `(around:1200,${route.map(([lng, lat]) => `${lat},${lng}`).join(',')})`
           : `(around:${radius},${latitude},${longitude})`,
-        query = `[out:json][timeout:12];nwr[${tags[category]}]${area};out center 60;`;
-      const overpassUrls = String(
-        process.env.OVERPASS_API_URLS ||
-          process.env.OVERPASS_API_URL ||
-          'https://overpass-api.de/api/interpreter'
-      )
-        .split(',')
-        .map(value => value.trim().replace(/\/$/, ''))
-        .filter(value => /^https:\/\//.test(value))
-        .slice(0, 3);
-      let data,
-        lastStatus = null;
-      for (const overpassUrl of overpassUrls) {
-        try {
-          const response = await fetch(`${overpassUrl}?data=${encodeURIComponent(query)}`, {
-            signal: AbortSignal.timeout(16000),
-            headers: { 'User-Agent': 'Rastreon/1.0' }
-          });
-          lastStatus = response.status;
-          if (response.ok) {
-            data = await response.json();
-            break;
-          }
-        } catch {}
-      }
-      if (!data)
-        throw new Error(`Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`);
+        clauses = categories
+          .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
+          .join(''),
+        query = `[out:json][timeout:14];(${clauses});out center 240;`,
+        configuredOverpassUrls = String(
+          process.env.OVERPASS_API_URLS || process.env.OVERPASS_API_URL || ''
+        ).split(','),
+        overpassUrls = [
+          ...new Set(
+            [
+              ...configuredOverpassUrls,
+              'https://overpass-api.de/api/interpreter',
+              'https://lz4.overpass-api.de/api/interpreter',
+              'https://z.overpass-api.de/api/interpreter'
+            ]
+              .map(value => value.trim().replace(/\/$/, ''))
+              .filter(value => /^https:\/\//.test(value))
+          )
+        ].slice(0, 5),
+        requestBody = `data=${encodeURIComponent(query)}`;
+      let data;
+      try {
+        data = await cachedServiceCall(
+          `overpass:${key}`,
+          async () => {
+            let lastStatus = null;
+            for (const overpassUrl of overpassUrls) {
+              try {
+                const response = await fetch(overpassUrl, {
+                  method: 'POST',
+                  body: requestBody,
+                  signal: AbortSignal.timeout(12000),
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'User-Agent': 'Rastreon/1.0'
+                  }
+                });
+                lastStatus = response.status;
+                if (response.ok) return response.json();
+              } catch {}
+            }
+            throw new Error(
+              `Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`
+            );
+          },
+          60000
+        );
+      } catch {}
+      if (!data && cached?.staleUntil > Date.now())
+        return res.json({ places: cached.places, cached: true, stale: true });
+      if (!data) throw new Error('Serviço de locais indisponível.');
+
       const places = (Array.isArray(data.elements) ? data.elements : [])
-        .slice(0, 60)
-        .map(item => ({
-          id: `${item.type}-${item.id}`,
-          name: String(item.tags?.name || item.tags?.brand || 'Local próximo').slice(0, 100),
-          address: [
-            item.tags?.['addr:street'],
-            item.tags?.['addr:housenumber'],
-            item.tags?.['addr:city']
-          ]
-            .filter(Boolean)
-            .join(', ')
-            .slice(0, 180),
-          category,
-          latitude: Number(item.lat ?? item.center?.lat),
-          longitude: Number(item.lon ?? item.center?.lon)
-        }))
-        .filter(item => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
-      poiCache.set(key, { places, expiresAt: Date.now() + 300000 });
+        .slice(0, 240)
+        .map(item => {
+          const tags = item.tags || {},
+            category = categories.find(value => POI_DEFINITIONS[value].match(tags));
+          return {
+            id: `${item.type}-${item.id}`,
+            name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
+            address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
+              .filter(Boolean)
+              .join(', ')
+              .slice(0, 180),
+            category,
+            latitude: Number(item.lat ?? item.center?.lat),
+            longitude: Number(item.lon ?? item.center?.lon),
+            openingHours: tags.opening_hours || null,
+            phone: tags.phone || tags['contact:phone'] || null,
+            website: tags.website || tags['contact:website'] || null
+          };
+        })
+        .filter(
+          item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+        );
+      poiCache.set(key, {
+        places,
+        expiresAt: Date.now() + 300000,
+        staleUntil: Date.now() + 86400000
+      });
       res.json({ places, cached: false, scope: route.length ? 'route-corridor' : 'nearby' });
     } catch {
       res.status(502).json({ error: 'Locais próximos indisponíveis no momento.' });
@@ -1136,13 +1274,14 @@ function createApplication(options = {}) {
       const passwordHash = await hashPassword(validation.data.password);
       const result = database
         .prepare(
-          'INSERT INTO users (name, email, phone, password_hash, subscription_plan, subscription_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO users (name, email, phone, password_hash, public_contact_id, subscription_plan, subscription_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           validation.data.name,
           validation.data.email,
           validation.data.phone || null,
           passwordHash,
+          createPublicContactId(),
           validation.data.plan,
           'demo_active',
           Date.now()
@@ -1198,7 +1337,9 @@ function createApplication(options = {}) {
   });
   app.get('/api/auth/me', requireAuth, (req, res) => {
     const user = database
-      .prepare('SELECT id, name, email, phone, created_at AS createdAt FROM users WHERE id = ?')
+      .prepare(
+        'SELECT id, name, email, phone, role, public_contact_id AS publicContactId, created_at AS createdAt FROM users WHERE id = ?'
+      )
       .get(req.session.userId);
     if (!user)
       return req.session.destroy(() => res.status(401).json({ error: 'Sessão inválida.' }));
@@ -1273,7 +1414,7 @@ function createApplication(options = {}) {
   app.get('/api/profile', requireAuth, (req, res) => {
     const user = database
       .prepare(
-        'SELECT id, name, email, phone, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
+        'SELECT id, name, email, phone, public_contact_id AS contactId, avatar_data AS avatarData, subscription_plan AS subscriptionPlan, subscription_status AS subscriptionStatus, created_at AS createdAt FROM users WHERE id = ?'
       )
       .get(req.session.userId);
     if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
@@ -1307,6 +1448,19 @@ function createApplication(options = {}) {
       recentTrips,
       recentAlertCount
     });
+  });
+  app.get('/api/profile/contact-card', requireAuth, async (req, res, next) => {
+    try {
+      const contactId = database
+        .prepare('SELECT public_contact_id AS contactId FROM users WHERE id=?')
+        .get(req.session.userId)?.contactId;
+      const payload = createPublicContactPayload(contactId);
+      if (!payload) return res.status(409).json({ error: 'ID RASTREON indisponível.' });
+      const qrCode = await QRCode.toDataURL(payload, { width: 320, margin: 4 });
+      res.set('Cache-Control', 'no-store').json({ contactId, qrCode });
+    } catch (error) {
+      next(error);
+    }
   });
   app.get('/api/weather/current', requireAuth, async (req, res) => {
     const latitude = Number(req.query.lat),
@@ -1456,7 +1610,12 @@ function createApplication(options = {}) {
         return res.status(401).json({ error: 'Senha incorreta.' });
       if (confirmation !== 'EXCLUIR MINHA CONTA')
         return res.status(400).json({ error: 'Confirmação de exclusão inválida.' });
-      const ownedIds = database
+      const privateDocument = database
+          .prepare(
+            'SELECT document_storage_key AS storageKey FROM driver_documents WHERE user_id=?'
+          )
+          .get(user.id),
+        ownedIds = database
           .prepare('SELECT id FROM tracking_sessions WHERE user_id=?')
           .all(user.id)
           .map(row => row.id),
@@ -1474,6 +1633,12 @@ function createApplication(options = {}) {
             database.prepare('DELETE FROM auth_sessions WHERE sid=?').run(row.sid);
         }
       })();
+      if (privateDocument?.storageKey) {
+        const documentPath = path.join(privateDirectory, path.basename(privateDocument.storageKey));
+        try {
+          fs.unlinkSync(documentPath);
+        } catch {}
+      }
       for (const id of ownedIds) sessions.delete(id);
       req.session.destroy(error => {
         if (error) return next(error);
@@ -2098,6 +2263,107 @@ function createApplication(options = {}) {
       }))
     });
   });
+  const gamificationProgress = userId => {
+    const completedTrips = Number(
+        database
+          .prepare('SELECT COUNT(*) AS count FROM trips WHERE user_id=? AND ended_at IS NOT NULL')
+          .get(userId)?.count || 0
+      ),
+      positionStats = database
+        .prepare(
+          'SELECT COUNT(*) AS total, SUM(CASE WHEN suspicious=1 THEN 1 ELSE 0 END) AS suspicious FROM positions WHERE tracking_session_id IN (SELECT id FROM tracking_sessions WHERE user_id=?)'
+        )
+        .get(userId),
+      activeFences = Number(
+        database
+          .prepare('SELECT COUNT(*) AS count FROM geofences WHERE user_id=? AND enabled=1')
+          .get(userId)?.count || 0
+      ),
+      scheduleAlerts = Number(
+        database
+          .prepare(
+            "SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='OUTSIDE_ALLOWED_TIME'"
+          )
+          .get(userId)?.count || 0
+      ),
+      fenceAlerts = Number(
+        database
+          .prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id=? AND type='GEOFENCE_EXIT'")
+          .get(userId)?.count || 0
+      ),
+      totalPositions = Number(positionStats?.total || 0),
+      suspiciousPositions = Number(positionStats?.suspicious || 0),
+      breakdown = {
+        completedTrips: Math.min(40, completedTrips * 5),
+        continuity: Math.min(20, Math.floor(totalPositions / 50)),
+        scheduleCompliance: completedTrips ? Math.max(0, 15 - scheduleAlerts * 3) : 0,
+        geofenceCompliance: activeFences ? Math.max(0, 10 - fenceAlerts * 2) : 0,
+        dataQuality: totalPositions
+          ? Math.round(15 * Math.max(0, 1 - suspiciousPositions / totalPositions))
+          : 0
+      },
+      achievements = [];
+    if (completedTrips >= 1) achievements.push('PRIMEIRA_VIAGEM');
+    if (completedTrips >= 5) achievements.push('EXPLORADOR_RESPONSAVEL');
+    if (totalPositions >= 100 && suspiciousPositions / totalPositions < 0.05)
+      achievements.push('CONEXAO_CONSISTENTE');
+    if (completedTrips >= 1 && scheduleAlerts === 0) achievements.push('ROTINA_PROTEGIDA');
+    if (activeFences > 0 && fenceAlerts === 0) achievements.push('GUARDIAO_DA_AREA');
+    return {
+      score: Object.values(breakdown).reduce((total, value) => total + value, 0),
+      breakdown,
+      achievements
+    };
+  };
+  app.get('/api/gamification/me', requireAuth, (req, res) => {
+    const row = database
+      .prepare(
+        'SELECT enabled,display_name AS displayName,updated_at AS updatedAt FROM gamification_profiles WHERE user_id=?'
+      )
+      .get(req.session.userId);
+    res.json({
+      profile: row
+        ? { ...row, enabled: Boolean(row.enabled) }
+        : { enabled: false, displayName: '' },
+      progress: gamificationProgress(req.session.userId)
+    });
+  });
+  app.put('/api/gamification/me', requireAuth, (req, res) => {
+    const enabled = req.body?.enabled === true,
+      displayName = String(req.body?.displayName || '')
+        .trim()
+        .slice(0, 40);
+    if (enabled && displayName.length < 2)
+      return res
+        .status(400)
+        .json({ error: 'Informe um nome público com pelo menos 2 caracteres.' });
+    const now = Date.now();
+    database
+      .prepare(
+        'INSERT INTO gamification_profiles (user_id,enabled,display_name,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled,display_name=excluded.display_name,updated_at=excluded.updated_at'
+      )
+      .run(req.session.userId, enabled ? 1 : 0, displayName || null, now);
+    res.json({ profile: { enabled, displayName, updatedAt: now } });
+  });
+  app.get('/api/gamification/ranking', requireAuth, (_req, res) => {
+    const ranking = database
+      .prepare(
+        "SELECT g.user_id AS userId,g.display_name AS displayName FROM gamification_profiles g JOIN users u ON u.id=g.user_id WHERE g.enabled=1 AND length(trim(COALESCE(g.display_name,'')))>=2 ORDER BY g.updated_at ASC LIMIT 100"
+      )
+      .all()
+      .map(item => ({ ...item, score: gamificationProgress(item.userId).score }))
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.displayName.localeCompare(right.displayName, 'pt-BR')
+      )
+      .slice(0, 50)
+      .map((item, index) => ({
+        position: index + 1,
+        displayName: item.displayName,
+        score: item.score
+      }));
+    res.json({ ranking });
+  });
   app.patch('/api/alerts/:id/read', requireAuth, (req, res) => {
     const result = database
       .prepare('UPDATE alerts SET read_at = ? WHERE id = ? AND user_id = ?')
@@ -2532,6 +2798,137 @@ function createApplication(options = {}) {
     io.to(device.sessionId).emit('device:revoked', { deviceId: device.id });
     res.status(204).end();
   });
+  const pairingSecret = value => {
+    const token = String(value?.token || ''),
+      code = String(value?.code || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+    if (token.length >= 32 && token.length <= 128)
+      return { hash: hashMobileToken(token), type: 'token' };
+    if (code.length === 8) return { hash: hashMobileToken(code), type: 'code' };
+    return null;
+  };
+  const pairingBySecret = secret =>
+    secret
+      ? database
+          .prepare('SELECT * FROM pairing_sessions WHERE token_hash=? OR manual_code_hash=?')
+          .get(secret.hash, secret.hash)
+      : null;
+  const pairingError = (row, now = Date.now()) => {
+    if (!row) return { status: 404, error: 'QR Code ou código inválido.', code: 'PAIRING_INVALID' };
+    if (row.expires_at <= now && row.status !== 'CONFIRMED') {
+      database.prepare("UPDATE pairing_sessions SET status='EXPIRED' WHERE id=?").run(row.id);
+      return { status: 410, error: 'Este QR Code expirou.', code: 'PAIRING_EXPIRED' };
+    }
+    if (row.status === 'CONFIRMED')
+      return { status: 409, error: 'Este QR Code já foi utilizado.', code: 'PAIRING_USED' };
+    if (row.status === 'CANCELLED' || row.status === 'EXPIRED')
+      return {
+        status: 410,
+        error: 'Este pareamento não está mais disponível.',
+        code: 'PAIRING_UNAVAILABLE'
+      };
+    return null;
+  };
+  const confirmPairing = (row, requestedName) => {
+    const vehicle = database
+        .prepare('SELECT id FROM vehicles WHERE id=? AND user_id=?')
+        .get(row.vehicle_id, row.user_id),
+      tracking = ownedSession(row.tracking_session_id, row.user_id);
+    if (!vehicle || !tracking) return null;
+    const deviceId = crypto.randomBytes(16).toString('hex'),
+      credential = crypto.randomBytes(32).toString('base64url'),
+      credentialHash = hashMobileToken(credential),
+      now = Date.now(),
+      name =
+        String(requestedName || 'Celular rastreador')
+          .trim()
+          .slice(0, 60) || 'Celular rastreador';
+    const confirmed = database.transaction(() => {
+      const claimed = database
+        .prepare(
+          "UPDATE pairing_sessions SET status='CONFIRMED',confirmed_at=? WHERE id=? AND status IN ('PENDING','SCANNED') AND expires_at>?"
+        )
+        .run(now, row.id, now);
+      if (!claimed.changes) return false;
+      database
+        .prepare(
+          'INSERT INTO devices (id,user_id,vehicle_id,tracking_session_id,type,name,credential_hash,status,created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+        )
+        .run(
+          deviceId,
+          row.user_id,
+          vehicle.id,
+          tracking.id,
+          'PHONE',
+          name,
+          credentialHash,
+          'ACTIVE',
+          now
+        );
+      database.prepare('UPDATE pairing_sessions SET device_id=? WHERE id=?').run(deviceId, row.id);
+      database
+        .prepare('UPDATE tracking_sessions SET mobile_token_hash=? WHERE id=? AND user_id=?')
+        .run(credentialHash, tracking.id, row.user_id);
+      database
+        .prepare(
+          "INSERT INTO audit_events (actor_user_id,action,target_type,target_id,reason,created_at) VALUES (?,'DEVICE_PAIRED','DEVICE',?,'Rastreador independente confirmado por convite temporário',?)"
+        )
+        .run(row.user_id, deviceId, now);
+      return true;
+    })();
+    if (!confirmed) return false;
+    tracking.mobileTokenHash = credentialHash;
+    io.to(tracking.id).emit('device:paired', {
+      device: { id: deviceId, type: 'PHONE', name, status: 'ACTIVE', createdAt: now }
+    });
+    return {
+      device: { id: deviceId, type: 'PHONE', name, status: 'ACTIVE' },
+      sessionId: tracking.id,
+      credential
+    };
+  };
+  app.get('/api/tracker/pairings/resolve', pairingLimiter, (req, res) => {
+    const secret = pairingSecret(req.query),
+      row = pairingBySecret(secret),
+      failure = pairingError(row);
+    res.set('Cache-Control', 'no-store');
+    if (failure)
+      return res.status(failure.status).json({ error: failure.error, code: failure.code });
+    const vehicle = database
+      .prepare('SELECT nickname,brand,model FROM vehicles WHERE id=? AND user_id=?')
+      .get(row.vehicle_id, row.user_id);
+    if (!vehicle) return res.status(404).json({ error: 'Veículo não encontrado.' });
+    const now = Date.now();
+    database
+      .prepare(
+        "UPDATE pairing_sessions SET status='SCANNED',claimed_at=?,claimed_user_agent=? WHERE id=? AND status='PENDING'"
+      )
+      .run(now, String(req.get('user-agent') || 'Navegador').slice(0, 160), row.id);
+    io.to(row.tracking_session_id).emit('pairing:scanned', { pairingId: row.id });
+    res.json({
+      pairing: {
+        id: row.id,
+        expiresAt: row.expires_at,
+        vehicle: { nickname: vehicle.nickname, brand: vehicle.brand, model: vehicle.model }
+      }
+    });
+  });
+  app.post('/api/tracker/pairings/:id/confirm', pairingLimiter, (req, res) => {
+    const secret = pairingSecret(req.body),
+      row = pairingBySecret(secret),
+      failure = pairingError(row);
+    res.set('Cache-Control', 'no-store');
+    if (failure)
+      return res.status(failure.status).json({ error: failure.error, code: failure.code });
+    if (row.id !== req.params.id)
+      return res.status(403).json({ error: 'Convite não corresponde ao pareamento.' });
+    const result = confirmPairing(row, req.body?.name);
+    if (result === null) return res.status(404).json({ error: 'Veículo ou sessão indisponível.' });
+    if (result === false)
+      return res.status(409).json({ error: 'Este convite já foi utilizado ou expirou.' });
+    res.status(201).json(result);
+  });
   app.get('/api/pairings/resolve', requireAuth, pairingLimiter, (req, res) => {
     const rawToken = String(req.query.token || ''),
       code = String(req.query.code || '')
@@ -2680,7 +3077,7 @@ function createApplication(options = {}) {
       .run(req.session.userId, req.params.id, Date.now());
     res.status(204).end();
   });
-  app.post('/api/sessions', requireAuth, pairingLimiter, async (req, res, next) => {
+  app.post('/api/sessions', requireAuth, cnhGuard, pairingLimiter, async (req, res, next) => {
     try {
       let vehicle;
       if (req.body?.vehicleId != null) {
@@ -2777,7 +3174,7 @@ function createApplication(options = {}) {
           /\/$/,
           ''
         ),
-        pairUrl = `${baseUrl}/pair.html#token=${encodeURIComponent(pairToken)}`,
+        pairUrl = `${baseUrl}/tracker#token=${encodeURIComponent(pairToken)}`,
         qrCode = await QRCode.toDataURL(pairUrl, {
           width: 320,
           margin: 4,
@@ -2804,6 +3201,7 @@ function createApplication(options = {}) {
   });
 
   io.engine.use(sessionMiddleware);
+  installConvoySocket({ io, database });
   io.on('connection', socket => {
     if (socket.request.session?.userId) socket.join(`user:${socket.request.session.userId}`);
     socket.on(
@@ -3408,7 +3806,8 @@ function createApplication(options = {}) {
     for (const [id, tracking] of sessions)
       if (tracking.closed || now - tracking.createdAt > ttlMs) sessions.delete(id);
     for (const [key, value] of serviceCache) if (value.expiresAt <= now) serviceCache.delete(key);
-    for (const [key, value] of poiCache) if (value.expiresAt <= now) poiCache.delete(key);
+    for (const [key, value] of poiCache)
+      if ((value.staleUntil || value.expiresAt) <= now) poiCache.delete(key);
   }, 60000);
   cleanup.unref();
   const close = () => {

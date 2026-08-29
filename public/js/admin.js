@@ -25,9 +25,6 @@ async function api(path, { method = 'GET', body, protectedWrite = false } = {}) 
   if (body) headers['Content-Type'] = 'application/json';
   if (protectedWrite) {
     headers['X-CSRF-Token'] = await csrf();
-    const code = prompt('Código 2FA ou código de recuperação:');
-    if (!code) throw new Error('A ação administrativa exige verificação em duas etapas.');
-    headers['X-Two-Factor-Code'] = code;
   }
   const response = await fetch(path, {
       method,
