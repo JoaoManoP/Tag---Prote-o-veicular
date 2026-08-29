@@ -139,8 +139,13 @@
   background: #f8fafb;
 }
 .map-symbol-host {
+  display: block !important;
+  width: 42px !important;
+  height: 42px !important;
   background: transparent !important;
   border: 0 !important;
+  overflow: visible !important;
+  z-index: 8 !important;
 }
 .map-symbol {
   position: relative;

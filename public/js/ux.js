@@ -103,6 +103,7 @@
   let healthSaveTimer = null;
   let poiRequest = null;
   let poiRefreshTimer = null;
+  let poiRetryTimer = null;
   let activeRoute = [];
   let fencePoint = null;
   let fencePreview = null;
@@ -737,6 +738,7 @@
     if (!api) return;
     if (!api.layers.pois) api.layers.pois = api.L.layerGroup().addTo(api.map);
     api.layers.pois.clearLayers();
+    document.body.dataset.poiCount = String(places.length);
     const zoom = api.map.getZoom(),
       cell = zoom >= 15 ? 0.002 : zoom >= 13 ? 0.008 : 0.025;
     const groups = new Map();
@@ -829,13 +831,21 @@
           ?.textContent
       }));
       renderPois(places, 'Locais próximos');
+      clearTimeout(poiRetryTimer);
     } catch (error) {
       if (error.name !== 'AbortError' && byId('toast')) {
         byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.';
         byId('toast').classList.add('show');
         setTimeout(() => byId('toast').classList.remove('show'), 2600);
+        clearTimeout(poiRetryTimer);
+        poiRetryTimer = setTimeout(loadPois, 12000);
       }
     }
+  }
+
+  function schedulePoiLoad(delay = 450) {
+    clearTimeout(poiRefreshTimer);
+    poiRefreshTimer = setTimeout(loadPois, delay);
   }
 
   async function loadPreferencesAndHealth() {
@@ -1106,15 +1116,17 @@
       };
     }
     window.rastreonMap?.map.on('moveend', () => {
-      clearTimeout(poiRefreshTimer);
-      poiRefreshTimer = setTimeout(loadPois, 450);
+      schedulePoiLoad();
     });
     window.addEventListener('rastreon:route-selected', event => {
       activeRoute = Array.isArray(event.detail?.geometry) ? event.detail.geometry : [];
-      clearTimeout(poiRefreshTimer);
-      poiRefreshTimer = setTimeout(loadPois, 450);
+      schedulePoiLoad();
     });
-    window.rastreonMap?.map.ready?.then(loadPois);
+    window.addEventListener('rastreon:user-location', () => schedulePoiLoad(150));
+    window.addEventListener('rastreon:map-ready', () => schedulePoiLoad(0));
+    window.addEventListener('rastreon:map-style-restored', () => schedulePoiLoad(100));
+    window.rastreonMap?.map.ready?.then(() => schedulePoiLoad(0));
+    schedulePoiLoad(0);
     setupPoiPreferences();
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,

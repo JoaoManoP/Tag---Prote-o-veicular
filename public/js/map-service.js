@@ -591,6 +591,7 @@
           attributionControl: true
         });
         this._map.on('style.load', () => {
+          this._hideNativePoiLabels();
           this._shapes.forEach(shape => {
             if (shape.kind === 'marker' || shape.kind === 'circleMarker') return;
             shape.object = null;
@@ -631,6 +632,18 @@
           );
         });
         mapInstance = this;
+      }
+      _hideNativePoiLabels() {
+        const layers = this._map.getStyle?.().layers || [];
+        layers.forEach(layer => {
+          const sourceLayer = String(layer['source-layer'] || ''),
+            isNativePoi =
+              /(^|[-_])poi([-_]|$)/i.test(layer.id) || /(^|[-_])poi([-_]|$)/i.test(sourceLayer);
+          if (!isNativePoi || layer.type !== 'symbol') return;
+          try {
+            this._map.setLayoutProperty(layer.id, 'visibility', 'none');
+          } catch {}
+        });
       }
       setView(center, zoom) {
         this._map.jumpTo({

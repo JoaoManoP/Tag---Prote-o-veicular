@@ -302,8 +302,10 @@ test('locais são automáticos e garagem é separada da visão operacional', () 
   assert.match(ux, /poi-auto-categories/);
   assert.doesNotMatch(ux, /#exploreMenu input:checked/);
   assert.match(ux, /scope === 'route' \|\| zoom >= 12/);
-  assert.match(ux, /setTimeout\(loadPois, 450\)/);
-  assert.match(ux, /map\.ready\?\.then\(loadPois\)/);
+  assert.match(ux, /function schedulePoiLoad\(delay = 450\)/);
+  assert.match(ux, /rastreon:user-location/);
+  assert.match(ux, /rastreon:map-style-restored/);
+  assert.match(ux, /map\.ready\?\.then\(\(\) => schedulePoiLoad\(0\)\)/);
   assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
 });
 
