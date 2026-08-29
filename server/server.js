@@ -67,6 +67,70 @@ const ttlMs = Math.max(1, Number(process.env.SESSION_TTL_MINUTES) || 120) * 6000
 const defaultEfficiencyProvider = new VehicleEfficiencyProvider();
 const PBE_MODELS = defaultEfficiencyProvider.list();
 const poiCache = new Map();
+const POI_DEFINITIONS = Object.freeze({
+  fuel: { filter: 'amenity=fuel', match: tags => tags.amenity === 'fuel' },
+  hospital: {
+    filter: 'amenity~"hospital|clinic"',
+    match: tags => ['hospital', 'clinic'].includes(tags.amenity)
+  },
+  pharmacy: { filter: 'amenity=pharmacy', match: tags => tags.amenity === 'pharmacy' },
+  restaurant: {
+    filter: 'amenity~"restaurant|fast_food"',
+    match: tags => ['restaurant', 'fast_food'].includes(tags.amenity)
+  },
+  cafe: {
+    filter: 'amenity~"cafe|ice_cream"',
+    match: tags => ['cafe', 'ice_cream'].includes(tags.amenity)
+  },
+  bakery: { filter: 'shop=bakery', match: tags => tags.shop === 'bakery' },
+  bar: { filter: 'amenity~"bar|pub"', match: tags => ['bar', 'pub'].includes(tags.amenity) },
+  supermarket: {
+    filter: 'shop~"supermarket|convenience|wholesale"',
+    match: tags => ['supermarket', 'convenience', 'wholesale'].includes(tags.shop)
+  },
+  mechanic: { filter: 'shop=car_repair', match: tags => tags.shop === 'car_repair' },
+  charge: {
+    filter: 'amenity=charging_station',
+    match: tags => tags.amenity === 'charging_station'
+  },
+  parking: { filter: 'amenity=parking', match: tags => tags.amenity === 'parking' },
+  hotel: {
+    filter: 'tourism~"hotel|motel|guest_house|hostel|chalet|resort"',
+    match: tags =>
+      ['hotel', 'motel', 'guest_house', 'hostel', 'chalet', 'resort'].includes(tags.tourism)
+  },
+  school: { filter: 'amenity=school', match: tags => tags.amenity === 'school' },
+  university: { filter: 'amenity=university', match: tags => tags.amenity === 'university' },
+  library: { filter: 'amenity=library', match: tags => tags.amenity === 'library' },
+  culture: {
+    filter: 'tourism~"museum|gallery"',
+    match: tags => ['museum', 'gallery'].includes(tags.tourism)
+  },
+  leisure: {
+    filter: 'leisure~"park|nature_reserve|playground"',
+    match: tags => ['park', 'nature_reserve', 'playground'].includes(tags.leisure)
+  },
+  tourism: {
+    filter: 'tourism~"attraction|viewpoint|theme_park"',
+    match: tags => ['attraction', 'viewpoint', 'theme_park'].includes(tags.tourism)
+  },
+  camping: {
+    filter: 'tourism~"camp_site|caravan_site"',
+    match: tags => ['camp_site', 'caravan_site'].includes(tags.tourism)
+  },
+  worship: {
+    filter: 'amenity=place_of_worship',
+    match: tags => tags.amenity === 'place_of_worship'
+  },
+  police: { filter: 'amenity=police', match: tags => tags.amenity === 'police' },
+  fire_station: { filter: 'amenity=fire_station', match: tags => tags.amenity === 'fire_station' },
+  airport: {
+    filter: 'aeroway~"aerodrome|terminal"',
+    match: tags => ['aerodrome', 'terminal'].includes(tags.aeroway)
+  },
+  dentist: { filter: 'amenity=dentist', match: tags => tags.amenity === 'dentist' },
+  veterinary: { filter: 'amenity=veterinary', match: tags => tags.amenity === 'veterinary' }
+});
 const serviceCache = new Map();
 const serviceInflight = new Map();
 async function cachedServiceCall(key, producer, ttl = 120000) {
@@ -929,54 +993,56 @@ function createApplication(options = {}) {
     const result = validateTelemetryPoint({ ...req.body, source: 'simulation' }, { offline: true });
     res.status(result.ok ? 200 : 400).json(result);
   });
-  app.get('/api/pois', requireAuth, serviceLimiter, async (req, res, next) => {
+  app.get('/api/pois', requireAuth, serviceLimiter, async (req, res) => {
     try {
       const latitude = Number(req.query.lat),
         longitude = Number(req.query.lng),
-        category = String(req.query.category || ''),
-        route = parsePoiRoute(req.query.route);
-      const tags = {
-        fuel: 'amenity=fuel',
-        food: 'amenity~"restaurant|fast_food|cafe"',
-        hotel: 'tourism~"hotel|motel|guest_house"',
-        hospital: 'amenity~"hospital|clinic"',
-        pharmacy: 'amenity=pharmacy',
-        supermarket: 'shop~"supermarket|convenience"',
-        mechanic: 'shop=car_repair',
-        charge: 'amenity=charging_station',
-        parking: 'amenity=parking',
-        police: 'amenity=police',
-        camera: 'highway=speed_camera'
-      };
-      const validCenter =
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        Math.abs(latitude) <= 90 &&
-        Math.abs(longitude) <= 180;
-      if (!validCenter || route === null || !tags[category])
+        categories = [
+          ...new Set(
+            String(req.query.categories || req.query.category || '')
+              .split(',')
+              .map(value => value.trim())
+              .filter(value => POI_DEFINITIONS[value])
+          )
+        ].slice(0, 25),
+        route = parsePoiRoute(req.query.route),
+        validCenter =
+          Number.isFinite(latitude) &&
+          Number.isFinite(longitude) &&
+          Math.abs(latitude) <= 90 &&
+          Math.abs(longitude) <= 180;
+      if (!validCenter || route === null || !categories.length)
         return res.status(400).json({ error: 'Consulta de locais inválida.' });
+
       const routeKey = route.length
           ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
           : '',
-        key = `${category}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${routeKey}`,
+        categoryKey = [...categories].sort().join(','),
+        zoomScope =
+          Number(req.query.zoom) >= 15 ? 'near' : Number(req.query.zoom) >= 13 ? 'city' : 'wide',
+        key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${routeKey}`,
         cached = poiCache.get(key);
       if (cached && cached.expiresAt > Date.now())
         return res.json({ places: cached.places, cached: true });
-      const denseRadius = { food: 2500, pharmacy: 3500, supermarket: 3500, parking: 3500 },
-        radius = denseRadius[category] || 5000,
+
+      const zoom = Number(req.query.zoom),
+        radius = zoom >= 15 ? 2500 : zoom >= 13 ? 4000 : 6000,
         area = route.length
           ? `(around:1200,${route.map(([lng, lat]) => `${lat},${lng}`).join(',')})`
           : `(around:${radius},${latitude},${longitude})`,
-        query = `[out:json][timeout:12];nwr[${tags[category]}]${area};out center 60;`;
-      const overpassUrls = String(
-        process.env.OVERPASS_API_URLS ||
-          process.env.OVERPASS_API_URL ||
-          'https://overpass-api.de/api/interpreter'
-      )
-        .split(',')
-        .map(value => value.trim().replace(/\/$/, ''))
-        .filter(value => /^https:\/\//.test(value))
-        .slice(0, 3);
+        clauses = categories
+          .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
+          .join(''),
+        query = `[out:json][timeout:14];(${clauses});out center 240;`,
+        overpassUrls = String(
+          process.env.OVERPASS_API_URLS ||
+            process.env.OVERPASS_API_URL ||
+            'https://overpass-api.de/api/interpreter'
+        )
+          .split(',')
+          .map(value => value.trim().replace(/\/$/, ''))
+          .filter(value => /^https:\/\//.test(value))
+          .slice(0, 3);
       let data,
         lastStatus = null;
       for (const overpassUrl of overpassUrls) {
@@ -994,24 +1060,30 @@ function createApplication(options = {}) {
       }
       if (!data)
         throw new Error(`Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`);
+
       const places = (Array.isArray(data.elements) ? data.elements : [])
-        .slice(0, 60)
-        .map(item => ({
-          id: `${item.type}-${item.id}`,
-          name: String(item.tags?.name || item.tags?.brand || 'Local próximo').slice(0, 100),
-          address: [
-            item.tags?.['addr:street'],
-            item.tags?.['addr:housenumber'],
-            item.tags?.['addr:city']
-          ]
-            .filter(Boolean)
-            .join(', ')
-            .slice(0, 180),
-          category,
-          latitude: Number(item.lat ?? item.center?.lat),
-          longitude: Number(item.lon ?? item.center?.lon)
-        }))
-        .filter(item => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+        .slice(0, 240)
+        .map(item => {
+          const tags = item.tags || {},
+            category = categories.find(value => POI_DEFINITIONS[value].match(tags));
+          return {
+            id: `${item.type}-${item.id}`,
+            name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
+            address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
+              .filter(Boolean)
+              .join(', ')
+              .slice(0, 180),
+            category,
+            latitude: Number(item.lat ?? item.center?.lat),
+            longitude: Number(item.lon ?? item.center?.lon),
+            openingHours: tags.opening_hours || null,
+            phone: tags.phone || tags['contact:phone'] || null,
+            website: tags.website || tags['contact:website'] || null
+          };
+        })
+        .filter(
+          item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+        );
       poiCache.set(key, { places, expiresAt: Date.now() + 300000 });
       res.json({ places, cached: false, scope: route.length ? 'route-corridor' : 'nearby' });
     } catch {

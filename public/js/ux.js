@@ -111,35 +111,43 @@
   let customPolygon = null;
   let polygonPreview = null;
   const poiPreferenceKey = 'rastreon-map-poi-categories';
-  const defaultPoiCategories = [
-    'fuel',
-    'food',
-    'hotel',
-    'hospital',
-    'pharmacy',
-    'supermarket',
-    'mechanic',
-    'charge',
-    'parking',
-    'police'
+  const poiCategories = [
+    ['fuel', 'Postos', 'fuel', true],
+    ['hospital', 'Hospitais', 'hospital', true],
+    ['charge', 'Postos elétricos', 'fuel'],
+    ['parking', 'Estacionamentos', 'parking'],
+    ['airport', 'Aeroportos', 'parking'],
+    ['restaurant', 'Restaurantes e fast food', 'food'],
+    ['cafe', 'Cafeterias e sorveterias', 'food'],
+    ['bakery', 'Padarias', 'food'],
+    ['bar', 'Bares', 'food'],
+    ['pharmacy', 'Farmácias', 'hospital'],
+    ['dentist', 'Dentistas', 'hospital'],
+    ['veterinary', 'Veterinários', 'hospital'],
+    ['supermarket', 'Mercados e atacados', 'shopping'],
+    ['mechanic', 'Oficinas e mecânicas', 'mechanic'],
+    ['school', 'Escolas', 'shopping'],
+    ['university', 'Universidades', 'shopping'],
+    ['library', 'Bibliotecas', 'shopping'],
+    ['culture', 'Museus e galerias', 'shopping'],
+    ['leisure', 'Parques e áreas verdes', 'parking'],
+    ['tourism', 'Turismo e mirantes', 'parking'],
+    ['camping', 'Campings', 'parking'],
+    ['hotel', 'Hotéis e hospedagem', 'parking'],
+    ['worship', 'Templos e igrejas', 'hospital'],
+    ['police', 'Polícia', 'police'],
+    ['fire_station', 'Corpo de Bombeiros', 'police']
   ];
+  const essentialPoiCategories = new Set(
+    poiCategories.filter(category => category[3]).map(category => category[0])
+  );
+  const defaultPoiCategories = [...essentialPoiCategories];
   const icon = name =>
     `<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="/images/ui-icons.svg?v=20260827-3#${name}"></use></svg>`;
 
   function trackingMarkup() {
     return `<div id="vehicleHealthBadge" class="health-badge hidden"><button id="healthBadgeBtn" aria-label="Abrir avisos de saúde" aria-expanded="false">${icon('warning')}<b>1 aviso</b></button><div id="healthPopover" class="health-popover hidden"></div></div><aside id="arrivalPrompt" class="arrival-prompt hidden"><b id="arrivalTitle">Você chegou.</b><p>Ativar proteção?</p><div><button id="arrivalLater" class="secondary">Agora não</button><button id="arrivalActivate">Ativar</button></div></aside>
-      <div id="poiMetadata" class="hidden" aria-hidden="true"><div class="poi-auto-categories">${[
-        ['fuel', 'Postos'],
-        ['food', 'Restaurantes'],
-        ['hotel', 'Hotéis'],
-        ['hospital', 'Hospitais'],
-        ['pharmacy', 'Farmácias'],
-        ['supermarket', 'Mercados'],
-        ['mechanic', 'Oficinas'],
-        ['charge', 'Carregadores'],
-        ['parking', 'Estacionamento'],
-        ['police', 'Polícia']
-      ]
+      <div id="poiMetadata" class="hidden" aria-hidden="true"><div class="poi-auto-categories">${poiCategories
         .map(x => `<span data-poi-category="${x[0]}">${x[1]}</span>`)
         .join('')}</div></div>
       <section id="vehicleSheet" class="vehicle-sheet minimized" aria-label="Resumo do veículo"><button id="sheetHandle" class="sheet-handle" aria-expanded="false"><span><strong id="sheetVehicleName">Meu veículo</strong><small id="sheetOnline">● Aguardando</small><small id="sheetCurrentAddress"></small></span><span><strong><span id="sheetSpeed">0</span> km/h</strong><small id="sheetUpdated">sem dados</small></span>${icon('chevron-up')}</button><div class="sheet-details"><div><span>Destino</span><strong id="sheetDestination">Não definido</strong></div><div><span>Chegada</span><strong id="sheetEta">—</strong></div><div><span>Distância</span><strong id="sheetDistance">—</strong></div><div><span>Saúde</span><strong id="sheetHealth">Normal</strong></div><button id="openTechnical" class="secondary wide">Ver detalhes da viagem</button></div></section>`;
@@ -647,26 +655,41 @@
   function poiIconId(category) {
     const value = String(category || '').toLowerCase();
     if (value === 'fuel' || value.includes('posto')) return 'fuel';
-    if (value === 'food' || value.includes('restaurante') || value.includes('lanche'))
+    if (
+      ['restaurant', 'cafe', 'bakery', 'bar'].includes(value) ||
+      value.includes('restaurante') ||
+      value.includes('lanche')
+    )
       return 'food';
-    if (value === 'supermarket' || value.includes('shopping') || value.includes('mercado'))
+    if (
+      ['supermarket', 'school', 'university', 'library', 'culture'].includes(value) ||
+      value.includes('shopping') ||
+      value.includes('mercado')
+    )
       return 'shopping';
     if (value === 'mechanic' || value.includes('oficina')) return 'mechanic';
-    if (value === 'parking' || value.includes('estacion')) return 'parking';
     if (
-      ['hospital', 'pharmacy'].includes(value) ||
+      ['parking', 'airport', 'hotel', 'leisure', 'tourism', 'camping'].includes(value) ||
+      value.includes('estacion')
+    )
+      return 'parking';
+    if (
+      ['hospital', 'pharmacy', 'dentist', 'veterinary', 'worship'].includes(value) ||
       value.includes('hospital') ||
       value.includes('farm')
     )
       return 'hospital';
-    if (value === 'police' || value.includes('pol')) return 'police';
+    if (['police', 'fire_station'].includes(value) || value.includes('pol')) return 'police';
     if (value === 'camera' || value.includes('radar')) return 'camera';
     return 'hazard';
   }
   function enabledPoiCategories() {
     try {
       const saved = JSON.parse(localStorage.getItem(poiPreferenceKey) || 'null');
-      return Array.isArray(saved) ? saved : defaultPoiCategories;
+      const selected = Array.isArray(saved) ? saved : defaultPoiCategories;
+      return [...new Set([...essentialPoiCategories, ...selected])].filter(category =>
+        poiCategories.some(item => item[0] === category)
+      );
     } catch (_) {
       return defaultPoiCategories;
     }
@@ -677,11 +700,15 @@
     const enabled = enabledPoiCategories();
     settings.forEach(input => {
       input.checked = enabled.includes(input.value);
+      input.disabled = essentialPoiCategories.has(input.value);
       input.onchange = () => {
-        const categories = Array.from(settings)
-          .filter(item => item.checked)
-          .map(item => item.value);
-        localStorage.setItem(poiPreferenceKey, JSON.stringify(categories));
+        const categories = [
+          ...essentialPoiCategories,
+          ...Array.from(settings)
+            .filter(item => item.checked)
+            .map(item => item.value)
+        ];
+        localStorage.setItem(poiPreferenceKey, JSON.stringify([...new Set(categories)]));
         clearTimeout(poiRefreshTimer);
         poiRefreshTimer = setTimeout(loadPois, 100);
         document.dispatchEvent(
@@ -691,6 +718,19 @@
         );
       };
     });
+    const restore = byId('restorePoiDefaults');
+    if (restore)
+      restore.onclick = () => {
+        localStorage.setItem(poiPreferenceKey, JSON.stringify(defaultPoiCategories));
+        settings.forEach(input => (input.checked = essentialPoiCategories.has(input.value)));
+        clearTimeout(poiRefreshTimer);
+        poiRefreshTimer = setTimeout(loadPois, 100);
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Mapa restaurado: somente postos e hospitais permanecem visíveis.'
+          })
+        );
+      };
   }
   function renderPois(places, category) {
     const api = window.rastreonMap;
@@ -723,16 +763,23 @@
       });
       const popupName = group.length > 1 ? `${group.length} locais próximos` : group[0].name,
         place = group[0],
+        details =
+          group.length === 1
+            ? [place.address, place.openingHours, place.phone]
+                .filter(Boolean)
+                .map(value => `<br><small>${escapeHtml(value)}</small>`)
+                .join('')
+            : '',
         stopButton =
           group.length === 1
-            ? `<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Adicionar como parada</button>`
+            ? `<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Traçar rota</button>`
             : '',
         reviewButton =
           group.length === 1
             ? ` <button type="button" data-poi-review="true" data-place-key="${encodeURIComponent(`osm:${place.id}`)}" data-name="${encodeURIComponent(place.name)}" data-address="${encodeURIComponent(place.address || '')}" data-latitude="${place.latitude}" data-longitude="${place.longitude}">Comentários e avaliações</button>`
             : '';
       marker.bindPopup(
-        `<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel || category)} · OpenStreetMap</small>${stopButton}${reviewButton}`
+        `<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel || category)} · OpenStreetMap</small>${details}${stopButton}${reviewButton}`
       );
       if (group.length > 1)
         marker.on('click', () => api.map.setView([lat, lng], Math.min(18, zoom + 2)));
@@ -745,30 +792,18 @@
     poiRequest?.abort();
     poiRequest = new AbortController();
     const current = window.rastreonLocation?.current(),
-      center = current ? { lat: current.latitude, lng: current.longitude } : api.map.getCenter();
+      viewportCenter = api.map.getCenter?.(),
+      center =
+        viewportCenter || (current ? { lat: current.latitude, lng: current.longitude } : null);
+    if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
     try {
       const scope = activeRoute.length >= 2 ? 'route' : 'nearby',
         zoom = Number(api.map.getZoom?.() || 13),
-        categories =
-          scope === 'route' || zoom >= 15
-            ? [
-                'fuel',
-                'food',
-                'hotel',
-                'hospital',
-                'pharmacy',
-                'supermarket',
-                'mechanic',
-                'charge',
-                'parking',
-                'police'
-              ]
-            : zoom >= 13
-              ? ['fuel', 'food', 'hospital', 'pharmacy', 'supermarket', 'mechanic']
-              : ['fuel', 'hospital', 'pharmacy'],
-        requestedCategories = categories.filter(category =>
-          enabledPoiCategories().includes(category)
-        );
+        selectedCategories = enabledPoiCategories(),
+        requestedCategories =
+          scope === 'route' || zoom >= 12
+            ? selectedCategories
+            : selectedCategories.filter(category => essentialPoiCategories.has(category));
       if (scope === 'route' && activeRoute.length < 2)
         throw new Error('Calcule uma rota antes de buscar no corredor.');
       const sample =
@@ -782,21 +817,18 @@
           scope === 'route'
             ? `&route=${encodeURIComponent(sample.map(point => `${point[1]},${point[0]}`).join(';'))}`
             : '';
-      const payloads = await Promise.all(
-        requestedCategories.map(async category => {
-          const response = await fetch(
-              `/api/pois?lat=${center.lat}&lng=${center.lng}&category=${encodeURIComponent(category)}${route}`,
-              { signal: poiRequest.signal }
-            ),
-            data = await response.json();
-          if (!response.ok) throw new Error(data.error);
-          const categoryLabel = document.querySelector(
-            `[data-poi-category="${category}"]`
-          )?.textContent;
-          return (data.places || []).map(place => ({ ...place, categoryLabel }));
-        })
-      );
-      renderPois(payloads.flat(), 'Locais próximos');
+      const response = await fetch(
+          `/api/pois?lat=${center.lat}&lng=${center.lng}&zoom=${zoom}&categories=${encodeURIComponent(requestedCategories.join(','))}${route}`,
+          { signal: poiRequest.signal }
+        ),
+        data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      const places = (data.places || []).map(place => ({
+        ...place,
+        categoryLabel: document.querySelector(`[data-poi-category="${place.category}"]`)
+          ?.textContent
+      }));
+      renderPois(places, 'Locais próximos');
     } catch (error) {
       if (error.name !== 'AbortError' && byId('toast')) {
         byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.';

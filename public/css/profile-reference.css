@@ -1861,6 +1861,41 @@ body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
   box-sizing: border-box;
 }
 
+#profileView .profile-settings-content .profile-poi-settings .poi-group-title {
+  grid-column: 1 / -1;
+  margin: 10px 0 -2px;
+  color: #087bf0 !important;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+#profileView .profile-settings-content .profile-poi-settings .poi-essential {
+  border-color: #b9d8cc;
+  background: #effaf5 !important;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label span {
+  display: grid;
+  gap: 2px;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label small {
+  color: #15865d !important;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+#profileView .profile-settings-content .profile-poi-settings input:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+#profileView .profile-settings-content .poi-restore-defaults {
+  margin-top: 18px;
+}
+
 #profileView .profile-settings-content input[type='checkbox'] {
   width: 18px !important;
   height: 18px !important;

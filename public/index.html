@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="/css/platform-features.css?v=20260827-contact-qr-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
-    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-15" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260828-pois-1" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -872,27 +872,84 @@
           <div id="profileSettingsContent" class="profile-settings-content">
             <section class="card profile-poi-card">
               <h2>Locais e serviços no mapa</h2>
-              <p>Escolha quais ícones aparecem automaticamente.</p>
+              <p>
+                Os locais são buscados perto da sua posição ou do trecho que estiver visível no
+                mapa. Postos e hospitais são essenciais; os demais são opcionais.
+              </p>
               <div id="profilePoiSettings" class="profile-poi-settings">
-                <label><input type="checkbox" value="fuel" checked /><span>Postos</span></label
-                ><label
-                  ><input type="checkbox" value="hospital" checked /><span
-                    >Centros de saúde</span
+                <p class="poi-group-title">Essenciais</p>
+                <label class="poi-essential"
+                  ><input type="checkbox" value="fuel" checked disabled /><span
+                    >⛽ Postos <small>Sempre visível</small></span
+                  ></label
+                ><label class="poi-essential"
+                  ><input type="checkbox" value="hospital" checked disabled /><span
+                    >🏥 Hospitais <small>Sempre visível</small></span
+                  ></label
+                >
+                <p class="poi-group-title">Transporte</p>
+                <label><input type="checkbox" value="charge" /><span>Postos elétricos</span></label
+                ><label><input type="checkbox" value="parking" /><span>Estacionamentos</span></label
+                ><label><input type="checkbox" value="airport" /><span>Aeroportos</span></label>
+                <p class="poi-group-title">Alimentação</p>
+                <label
+                  ><input type="checkbox" value="restaurant" /><span
+                    >Restaurantes e fast food</span
                   ></label
                 ><label
-                  ><input type="checkbox" value="pharmacy" checked /><span>Farmácias</span></label
-                ><label
-                  ><input type="checkbox" value="food" checked /><span>Restaurantes</span></label
-                ><label
-                  ><input type="checkbox" value="supermarket" checked /><span>Mercados</span></label
-                ><label
-                  ><input type="checkbox" value="mechanic" checked /><span>Oficinas</span></label
-                ><label
-                  ><input type="checkbox" value="parking" checked /><span
-                    >Estacionamentos</span
+                  ><input type="checkbox" value="cafe" /><span
+                    >Cafeterias e sorveterias</span
                   ></label
-                ><label><input type="checkbox" value="police" checked /><span>Polícia</span></label>
+                ><label><input type="checkbox" value="bakery" /><span>Padarias</span></label
+                ><label><input type="checkbox" value="bar" /><span>Bares</span></label>
+                <p class="poi-group-title">Saúde</p>
+                <label><input type="checkbox" value="pharmacy" /><span>Farmácias</span></label
+                ><label><input type="checkbox" value="dentist" /><span>Dentistas</span></label
+                ><label
+                  ><input type="checkbox" value="veterinary" /><span>Veterinários</span></label
+                >
+                <p class="poi-group-title">Serviços e comércio</p>
+                <label
+                  ><input type="checkbox" value="supermarket" /><span
+                    >Mercados e atacados</span
+                  ></label
+                ><label
+                  ><input type="checkbox" value="mechanic" /><span
+                    >Mecânicas e oficinas</span
+                  ></label
+                >
+                <p class="poi-group-title">Educação e cultura</p>
+                <label><input type="checkbox" value="school" /><span>Escolas</span></label
+                ><label
+                  ><input type="checkbox" value="university" /><span>Universidades</span></label
+                ><label><input type="checkbox" value="library" /><span>Bibliotecas</span></label
+                ><label
+                  ><input type="checkbox" value="culture" /><span>Museus e galerias</span></label
+                >
+                <p class="poi-group-title">Lazer, turismo e hospedagem</p>
+                <label
+                  ><input type="checkbox" value="leisure" /><span
+                    >Parques e áreas verdes</span
+                  ></label
+                ><label
+                  ><input type="checkbox" value="tourism" /><span>Turismo e mirantes</span></label
+                ><label><input type="checkbox" value="camping" /><span>Campings</span></label
+                ><label
+                  ><input type="checkbox" value="hotel" /><span>Hotéis e hospedagem</span></label
+                >
+                <p class="poi-group-title">Comunidade e segurança</p>
+                <label
+                  ><input type="checkbox" value="worship" /><span>Templos e igrejas</span></label
+                ><label><input type="checkbox" value="police" /><span>Polícia</span></label
+                ><label
+                  ><input type="checkbox" value="fire_station" /><span
+                    >Corpo de Bombeiros</span
+                  ></label
+                >
               </div>
+              <button type="button" id="restorePoiDefaults" class="poi-restore-defaults">
+                Restaurar padrão
+              </button>
             </section>
             <section class="card privacy-card">
               <h2>Controle da conta</h2>
@@ -1071,7 +1128,7 @@
     <script src="/vendor/zxing/zxing-browser.min.js"></script>
     <script src="/js/convoy.js?v=20260827-contact-qr-1"></script>
     <script src="/js/dashboard.js?v=20260828-profile-reference-2"></script>
-    <script src="/js/ux.js?v=20260827-auto-pois-1"></script>
+    <script src="/js/ux.js?v=20260828-area-pois-1"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>
   </body>
 </html>

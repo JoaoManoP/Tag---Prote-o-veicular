@@ -264,8 +264,10 @@ test('GPS diário usa localização consentida sem exigir sessão de rastreament
   assert.match(dashboard, /rerouteFrom/);
 });
 
-test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
+test('POIs acompanham a área visível, preservam essenciais e oferecem categorias úteis', () => {
   assert.match(ux, /rastreonLocation\?\.current/);
+  assert.match(ux, /viewportCenter = api\.map\.getCenter/);
+  assert.match(ux, /essentialPoiCategories/);
   for (const category of [
     'Postos',
     'Restaurantes',
@@ -276,7 +278,7 @@ test('POIs usam a posição atual e oferecem categorias úteis do mapa', () => {
     'Oficinas'
   ])
     assert.match(ux, new RegExp(category));
-  assert.match(ux, /Adicionar como parada/);
+  assert.match(ux, /Traçar rota/);
   assert.match(ux, /escapeHtml\(popupName\)/);
 });
 
@@ -299,7 +301,7 @@ test('locais são automáticos e garagem é separada da visão operacional', () 
   assert.match(html, /<h2>Minha garagem<\/h2>/);
   assert.match(ux, /poi-auto-categories/);
   assert.doesNotMatch(ux, /#exploreMenu input:checked/);
-  assert.match(ux, /scope === 'route' \|\| zoom >= 15/);
+  assert.match(ux, /scope === 'route' \|\| zoom >= 12/);
   assert.match(ux, /setTimeout\(loadPois, 450\)/);
   assert.match(ux, /map\.ready\?\.then\(loadPois\)/);
   assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
