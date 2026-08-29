@@ -78,3 +78,12 @@
 - Tipo: projeto existente integrado ao contexto.
 - Fontes: solicitação do usuário, código, package.json, testes e README.
 - Contexto técnico preenchido após plano e aprovação explícita do usuário.
+
+## 11. Colaboração e preservação de alterações
+
+- O projeto pode receber mudanças simultâneas de diferentes usuários e de diferentes sessões do mesmo usuário.
+- Antes de qualquer alteração, conferir commits locais e remotos recentes, autores, branches divergentes e arquivos sobrepostos.
+- Antes de qualquer deploy, identificar o commit efetivamente publicado, revisar os deploys anteriores e comparar a estrutura ativa na VPS com a release candidata.
+- A branch `main` não deve ser presumida como fonte de verdade quando a VPS, uma branch de integração ou outro ambiente possuir mudanças divergentes.
+- Mudanças preexistentes em Garagem, Histórico, Comunidade, mapa, localização e modelo 3D são superfícies sensíveis e devem ser explicitamente comparadas e preservadas.
+- Se a origem ou a intenção de uma divergência não estiver clara, nenhuma edição, merge, rebase, sincronização destrutiva ou publicação deve continuar sem decisão do responsável.

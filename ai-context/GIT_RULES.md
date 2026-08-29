@@ -71,6 +71,47 @@ A distinção relevante é:
 1. **projeto ainda não publicado em repositório remoto**;
 2. **repositório remoto existente ou já publicado**.
 
+### 3.1 Preflight obrigatório antes de qualquer alteração ou deploy
+
+Antes de editar arquivos, integrar commits, criar uma release ou iniciar um deploy, a IA deve conferir o trabalho realizado por outros usuários e pelo mesmo usuário em outras sessões. Essa verificação não pode ser omitida por urgência, por a branch se chamar `main` ou por o diretório local parecer limpo.
+
+O preflight deve, conforme aplicável:
+
+1. executar `git fetch --prune` para atualizar as referências remotas sem modificar o trabalho local;
+2. conferir `git status`, branch atual, remotes e relação entre a branch local e a remota;
+3. revisar commits recentes, autores, datas e arquivos alterados na branch atual e nas branches ativas relacionadas;
+4. identificar o commit da última publicação bem-sucedida e os deploys posteriores com falha, cancelamento ou execução pendente;
+5. comparar a versão publicada, a branch remota, a branch local e a alteração pretendida;
+6. verificar se o servidor ou ambiente publicado contém estrutura, arquivos ou alterações que não estejam representados no commit candidato;
+7. registrar quais mudanças preexistentes serão preservadas e quais arquivos possuem sobreposição com a nova tarefa.
+
+Comandos de leitura recomendados incluem:
+
+```bash
+git fetch --prune
+git status --short
+git branch --show-current
+git branch --all
+git remote -v
+git log --all --oneline --decorate -n 30
+git rev-list --left-right --count origin/main...HEAD
+git diff --name-status <ultimo-commit-publicado>...HEAD
+git log --format='%h %an %ad %s' --date=iso -n 30
+gh run list --branch main
+```
+
+Se a versão publicada não puder ser identificada, se houver branches divergentes, arquivos alterados diretamente no servidor, commits de origem incerta ou sobreposição funcional não explicada, a IA deve **parar antes de editar ou publicar** e solicitar decisão do responsável.
+
+São proibidos sem análise e autorização específica:
+
+- realizar rebase, merge ou escolha automática de um lado sobre trabalho concorrente;
+- tratar `main` como fonte de verdade apenas pelo nome da branch;
+- sobrescrever alterações feitas por outro usuário ou pelo mesmo usuário em outra sessão;
+- publicar uma árvore diferente da que está ativa sem documentar e aprovar a migração;
+- usar sincronização destrutiva, inclusive `rsync --delete`, sem comparar previamente a origem, o destino e a última release.
+
+Uma solicitação de deploy autoriza publicar a mudança aprovada, mas não autoriza remover, reverter ou substituir trabalho concorrente fora desse escopo.
+
 ---
 
 ## 4. Exceção de bootstrap para projeto novo
@@ -705,15 +746,17 @@ O processo pode ser acelerado, mas deve preservar revisão mínima e rastreabili
 
 ## 22. Regras resumidas e bloqueantes
 
-1. Não trabalhar diretamente em `main` em repositórios existentes.
-2. Cada branch deve possuir objetivo único e nome descritivo em inglês.
-3. Commits locais podem ser automatizados somente após resumo e aprovação específica.
-4. Antes do commit, revisar status, diff, arquivos incluídos e validações.
-5. Não versionar segredos ou arquivos locais sensíveis.
-6. `.gitignore` deve ser adequado à stack e revisado antes da publicação inicial.
-7. Em projeto ainda não publicado, o primeiro push pode ser executado pela IA somente após aprovação explícita.
-8. O primeiro push encerra automaticamente a exceção de bootstrap.
-9. Em repositório existente, a IA nunca executa push.
-10. Toda integração em repositório existente deve passar por Pull Request e revisão humana.
-11. Não executar operações destrutivas ou reescrever histórico silenciosamente.
-12. Não misturar alterações não relacionadas na mesma branch ou commit.
+1. Antes de qualquer alteração ou deploy, executar o preflight local, remoto e da última publicação.
+2. Não sobrescrever mudanças de outros usuários ou de outras sessões do mesmo usuário.
+3. Não trabalhar diretamente em `main` em repositórios existentes.
+4. Cada branch deve possuir objetivo único e nome descritivo em inglês.
+5. Commits locais podem ser automatizados somente após resumo e aprovação específica.
+6. Antes do commit, revisar status, diff, arquivos incluídos e validações.
+7. Não versionar segredos ou arquivos locais sensíveis.
+8. `.gitignore` deve ser adequado à stack e revisado antes da publicação inicial.
+9. Em projeto ainda não publicado, o primeiro push pode ser executado pela IA somente após aprovação explícita.
+10. O primeiro push encerra automaticamente a exceção de bootstrap.
+11. Em repositório existente, a IA nunca executa push.
+12. Toda integração em repositório existente deve passar por Pull Request e revisão humana.
+13. Não executar operações destrutivas ou reescrever histórico silenciosamente.
+14. Não misturar alterações não relacionadas na mesma branch ou commit.

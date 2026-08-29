@@ -92,6 +92,8 @@ Não declarar que uma funcionalidade está concluída quando ainda existirem fal
 A IA deve:
 
 - analisar o código existente antes de propor mudanças;
+- antes de qualquer alteração, verificar o estado local e remoto, os commits recentes e trabalhos concorrentes de outros usuários ou do mesmo usuário em outra sessão;
+- preservar integralmente mudanças preexistentes e interromper a tarefa quando a origem ou a intenção de uma divergência não puder ser determinada com segurança;
 - preservar padrões e arquitetura já adotados, salvo justificativa;
 - implementar apenas o escopo solicitado;
 - evitar complexidade desnecessária;
@@ -104,6 +106,8 @@ A IA deve:
 A IA não deve:
 
 - inventar regras de negócio;
+- assumir que a branch atual, a `main` ou o diretório local representam a última versão trabalhada ou publicada sem antes conferir o histórico e os deploys;
+- modificar, reverter, reorganizar ou publicar por cima de alterações de outro usuário ou de outra sessão sem análise e autorização específica;
 - alterar arquitetura sem necessidade;
 - remover segurança para simplificar uma implementação;
 - esconder erros com supressões genéricas;
