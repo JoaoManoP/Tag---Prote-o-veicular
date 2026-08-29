@@ -50,6 +50,13 @@ test('planos da home chegam ao cadastro e exibem confirmação', () => {
   assert.match(authClient, /rastreon-subscription-confirmation/);
 });
 
+test('home carrega novamente o vídeo limpo do carro como fundo', () => {
+  assert.match(home, /rastreon-hero-clean-1080p\.mp4/);
+  assert.match(home, /autoplay/);
+  assert.match(home, /muted/);
+  assert.doesNotMatch(home, /rastreon-hero-motion\.(?:webm|mp4)/);
+});
+
 test('atalhos de planos usam a rota pública da home', () => {
   assert.doesNotMatch(dashboard, /\/home\.html#planos/);
   assert.match(compactDashboard, /location\.href='\/#planos'/);
