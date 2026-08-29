@@ -40,8 +40,8 @@ export function normalizeColorToHex(input, fallback = '#F5F5F5') {
 }
 
 export class Vehicle3DLayer {
-  constructor({ map, maplibregl, config = defaults, onSelect, onReady, onError }) {
-    this.id = 'rastreon-vehicle-3d';
+  constructor({ id = 'rastreon-vehicle-3d', map, maplibregl, config = defaults, onSelect, onReady, onError }) {
+    this.id = id;
     this.type = 'custom';
     this.renderingMode = '3d';
     this.map = map;

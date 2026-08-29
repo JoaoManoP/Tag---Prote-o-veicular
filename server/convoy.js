@@ -8,6 +8,30 @@ const { normalizePublicContactId } = require('./contact-id');
 
 const id = () => crypto.randomBytes(16).toString('hex');
 const now = () => Date.now();
+const maskedPlate = value => {
+  const plate = String(value || '')
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase();
+  return plate.length >= 4 ? `${plate.slice(0, 3)}-••${plate.slice(-2)}` : null;
+};
+
+function convoyIdentity(database, userId) {
+  const row = database
+    .prepare(
+      `SELECT u.id AS userId,u.name,u.avatar_data AS avatarData,
+        v.nickname AS vehicleNickname,v.brand,v.model,v.color,v.plate
+       FROM users u
+       LEFT JOIN vehicles v ON v.id=(
+         SELECT selected.id FROM vehicles selected
+         WHERE selected.user_id=u.id
+         ORDER BY selected.selected DESC,selected.updated_at DESC LIMIT 1
+       )
+       WHERE u.id=?`
+    )
+    .get(userId);
+  if (!row) return null;
+  return { ...row, plate: maskedPlate(row.plate) };
+}
 function publicContactId(value) {
   return normalizePublicContactId(value);
 }
@@ -50,10 +74,12 @@ function convoyState(database, userId) {
   if (convoy)
     convoy.members = database
       .prepare(
-        `SELECT m.user_id AS userId,m.status,m.joined_at AS joinedAt,u.name,u.public_contact_id AS contactId
+        `SELECT m.user_id AS userId,m.status,m.joined_at AS joinedAt,u.name,u.public_contact_id AS contactId,
+          u.avatar_data AS avatarData,v.nickname AS vehicleNickname,v.brand,v.model,v.color,v.plate
          FROM convoy_members m JOIN users u ON u.id=m.user_id WHERE m.convoy_id=? ORDER BY m.joined_at`
       )
-      .all(convoy.id);
+      .all(convoy.id)
+      .map(member => ({ ...member, plate: maskedPlate(member.plate) }));
   return { enabled: true, profile, connections, invites, convoy: convoy || null };
 }
 
@@ -270,15 +296,17 @@ function installConvoySocket({ io, database }) {
       )
         return acknowledge({ ok: false, error: 'Posição inválida.' });
       socket.data.lastConvoyPositionAt = now();
-      const user = database.prepare('SELECT name FROM users WHERE id=?').get(userId);
+      const identity = convoyIdentity(database, userId);
       socket.to(`convoy:${convoyId}`).emit('convoy:position', {
         userId,
-        name: user.name,
+        name: identity?.name || 'Integrante',
+        identity: socket.data.convoyIdentitySent ? undefined : identity,
         latitude,
         longitude,
         heading: Number.isFinite(Number(payload.heading)) ? Number(payload.heading) : null,
         timestamp: now()
       });
+      socket.data.convoyIdentitySent = true;
       acknowledge({ ok: true });
     });
   });
