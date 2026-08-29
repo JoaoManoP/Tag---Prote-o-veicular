@@ -621,6 +621,28 @@ function createApplication(options = {}) {
   const server = http.createServer(app);
   const io = new Server(server, { cors: { origin: false }, maxHttpBufferSize: 256 * 1024 });
   const publicDir = path.join(__dirname, '..', 'public');
+  const revisionFiles = [
+    'css/dashboard-refresh.css',
+    'css/platform-features.css',
+    'css/community-places.css',
+    'js/dashboard.js',
+    'js/ux.js',
+    'js/map-service.js',
+    'js/platform-features.js',
+    'js/community-places.js',
+    'js/vehicle-3d-config.js'
+  ];
+  const assetRevision =
+    process.env.ASSET_REVISION ||
+    crypto
+      .createHash('sha256')
+      .update(
+        revisionFiles
+          .map(file => fs.readFileSync(path.join(publicDir, file)))
+          .reduce((content, file) => Buffer.concat([content, file]), Buffer.alloc(0))
+      )
+      .digest('hex')
+      .slice(0, 12);
   const configuredSecret = options.sessionSecret || process.env.SESSION_SECRET;
   validateProductionConfig(process.env, { sessionSecret: configuredSecret });
   const sessionSecret = configuredSecret || crypto.randomBytes(32).toString('hex');
@@ -830,7 +852,18 @@ function createApplication(options = {}) {
   const staticAssetOptions = { maxAge: '7d', etag: true, immutable: true };
   app.use('/css', express.static(path.join(publicDir, 'css'), sourceAssetOptions));
   app.use('/js', express.static(path.join(publicDir, 'js'), sourceAssetOptions));
-  app.use('/images', express.static(path.join(publicDir, 'images'), staticAssetOptions));
+  app.use(
+    '/images',
+    express.static(path.join(publicDir, 'images'), {
+      ...staticAssetOptions,
+      setHeaders(res, filePath) {
+        // Sprites SVG mantêm o mesmo nome e podem mudar junto com a interface.
+        // Revalidá-los evita que um navegador preserve ícones antigos ou vazios.
+        if (filePath.endsWith('-icons.svg'))
+          res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+      }
+    })
+  );
   app.use('/models', express.static(path.join(publicDir, 'models'), staticAssetOptions));
   app.use(
     '/vendor/leaflet',
@@ -931,13 +964,12 @@ function createApplication(options = {}) {
   app.get('/', (_req, res) => res.sendFile(path.join(publicDir, 'home.html')));
   app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/login.html');
-    const revision = process.env.ASSET_REVISION || '20260826-vehicle-floating-2',
-      html = fs
-        .readFileSync(path.join(publicDir, 'index.html'), 'utf8')
-        .replace(
-          /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
-          `$1${revision}`
-        );
+    const html = fs
+      .readFileSync(path.join(publicDir, 'index.html'), 'utf8')
+      .replace(
+        /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
+        `$1${assetRevision}`
+      );
     res.set('Cache-Control', 'no-store').type('html').send(html);
   });
   app.get('/admin', requirePageRole(database, ROLES.ADMIN), (_req, res) =>

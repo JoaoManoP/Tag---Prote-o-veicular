@@ -742,7 +742,6 @@
     if (!api.layers.pois) api.layers.pois = api.L.layerGroup().addTo(api.map);
     api.layers.pois.clearLayers();
     document.body.dataset.poiCount = String(places.length);
-    api.map.setNativePoiVisibility?.(places.length === 0);
     const zoom = api.map.getZoom(),
       cell = zoom >= 15 ? 0.002 : zoom >= 13 ? 0.008 : 0.025;
     const groups = new Map();
@@ -855,7 +854,6 @@
     } catch (error) {
       if (poiRequest === requestController) poiActiveKey = null;
       if (error.name !== 'AbortError' && byId('toast')) {
-        api.map.setNativePoiVisibility?.(true);
         if (!document.body.dataset.poiFallbackNotice) {
           document.body.dataset.poiFallbackNotice = 'shown';
           byId('toast').textContent = 'Exibindo os locais disponíveis no Mapbox.';
