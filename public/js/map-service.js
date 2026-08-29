@@ -600,38 +600,78 @@
           if (this._trafficEnabled) this.setTraffic(true);
           window.dispatchEvent(new CustomEvent('rastreon:map-style-restored'));
         });
-        this.ready = new Promise((resolve, reject) => {
-          let timeout;
-          const finish = callback => event => {
-            clearTimeout(timeout);
+        this._mapLoaded = false;
+        this._mapLoadAttempts = 0;
+        this.ready = new Promise(resolve => {
+          const onLoad = () => {
+            this._mapLoaded = true;
+            clearTimeout(this._mapSlowTimer);
+            clearTimeout(this._mapRetryTimer);
             this._map.off('load', onLoad);
-            this._map.off('error', onError);
-            callback(event);
+            this._clearLoadStatus();
+            resolve(this);
           };
-          const onLoad = finish(resolve);
-          const onError = finish(event =>
-            reject(
-              new Error(
-                event?.error?.message || 'O estilo do mapa não pôde ser carregado pelo Mapbox.'
-              )
-            )
-          );
-          this._map.once('load', onLoad);
-          this._map.once('error', onError);
-          timeout = setTimeout(
-            () => onError({ error: new Error('Tempo limite ao carregar o mapa.') }),
-            20000
-          );
-        });
-        this.ready.catch(error => {
-          console.error('[Rastreon Map] Falha ao carregar o estilo vetorial.', error);
-          if (this.container)
-            this.container.innerHTML = `<div class="map-load-error"><strong>Mapa indisponível</strong><span>${String(error.message || error)}</span></div>`;
-          window.dispatchEvent(
-            new CustomEvent('rastreon:map-error', { detail: { message: String(error.message) } })
-          );
+          this._map.on('load', onLoad);
+          this._map.on('error', event => {
+            if (this._mapLoaded) return;
+            const message =
+              event?.error?.message || 'O estilo do mapa ainda não pôde ser carregado.';
+            console.warn(
+              '[Rastreon Map] Carregamento interrompido; uma nova tentativa será feita.',
+              event?.error || event
+            );
+            this._showLoadStatus('Falha temporária ao carregar o mapa.', true);
+            this._scheduleMapRetry();
+            window.dispatchEvent(
+              new CustomEvent('rastreon:map-error', { detail: { message: String(message) } })
+            );
+          });
+          this._mapSlowTimer = setTimeout(() => {
+            if (this._mapLoaded) return;
+            this._showLoadStatus('O mapa está demorando para carregar.', true);
+            this._scheduleMapRetry();
+          }, 20000);
         });
         mapInstance = this;
+      }
+      _showLoadStatus(message, allowRetry = false) {
+        if (!this.container) return;
+        let status = this.container.querySelector('.map-load-status');
+        if (!status) {
+          status = document.createElement('div');
+          status.className = 'map-load-status';
+          status.setAttribute('role', 'status');
+          status.innerHTML =
+            '<strong>Carregando mapa</strong><span></span><button type="button">Tentar novamente</button>';
+          status.querySelector('button').addEventListener('click', () => this._retryMapLoad());
+          this.container.appendChild(status);
+        }
+        status.querySelector('span').textContent = message;
+        status.querySelector('button').hidden = !allowRetry;
+      }
+      _clearLoadStatus() {
+        this.container?.querySelector('.map-load-status')?.remove();
+      }
+      _scheduleMapRetry() {
+        if (this._mapLoaded || this._mapRetryTimer) return;
+        const delay = Math.min(5000 * 2 ** this._mapLoadAttempts, 30000);
+        this._mapRetryTimer = setTimeout(() => {
+          this._mapRetryTimer = null;
+          this._retryMapLoad();
+        }, delay);
+      }
+      _retryMapLoad() {
+        if (this._mapLoaded) return;
+        clearTimeout(this._mapRetryTimer);
+        this._mapRetryTimer = null;
+        this._mapLoadAttempts += 1;
+        this._showLoadStatus('Tentando reconectar ao serviço de mapas…');
+        try {
+          this._map.setStyle(this._styleUrl);
+        } catch (error) {
+          console.warn('[Rastreon Map] Não foi possível reiniciar o estilo do mapa.', error);
+        }
+        this._scheduleMapRetry();
       }
       // Os POIs do estilo-base são a camada resiliente do mapa. Marcadores
       // enriquecidos da aplicação devem ser sobrepostos, nunca substituí-los.

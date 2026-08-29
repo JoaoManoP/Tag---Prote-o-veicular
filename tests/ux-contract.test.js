@@ -193,7 +193,12 @@ test('mapa usa provider configurável, fallback e moldura compacta no desktop', 
   assert.match(html, /maplibre-loader\.js/);
   assert.match(mapService, /leaflet-fallback/);
   assert.match(mapService, /rastreon:map-error/);
-  assert.match(mapService, /Tempo limite ao carregar o mapa/);
+  assert.doesNotMatch(mapService, /Tempo limite ao carregar o mapa/);
+  assert.match(mapService, /O mapa está demorando para carregar/);
+  assert.match(mapService, /_scheduleMapRetry/);
+  assert.match(mapService, /Tentar novamente/);
+  assert.doesNotMatch(mapService, /this\.container\.innerHTML/);
+  assert.match(css, /\.map-load-status/);
   assert.match(compactCss, /width:min\(1180px,calc\(100vw-44px\)\)/);
   assert.match(compactCss, /height:min\(690px,calc\(100vh-128px\)\)/);
 });
