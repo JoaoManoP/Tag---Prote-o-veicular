@@ -2052,3 +2052,208 @@ body[data-active-panel='profile'] .map-panel-backdrop {
   backdrop-filter: blur(1px) !important;
   -webkit-backdrop-filter: blur(1px) !important;
 }
+
+/*
+ * Layout responsivo definitivo do Perfil.
+ * Mantido no escopo de #profileView para não alterar a homepage nem as demais abas.
+ */
+#profileView.view.active {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  place-items: start center !important;
+  scrollbar-gutter: stable;
+}
+
+#profileView .profile-reference-shell {
+  width: min(calc(100% - 32px), 1760px) !important;
+  height: auto !important;
+  min-height: 100% !important;
+  margin-inline: auto !important;
+  padding: clamp(16px, 2vw, 40px) !important;
+  overflow: visible !important;
+}
+
+#profileView .profile-reference-grid {
+  grid-template-columns:
+    minmax(250px, 0.82fr)
+    minmax(380px, 1.28fr)
+    minmax(310px, 1fr);
+  width: auto !important;
+  max-width: 1400px;
+  margin-left: clamp(210px, 14vw, 254px) !important;
+}
+
+#profileView .profile-left-tools {
+  left: clamp(16px, 2vw, 40px) !important;
+}
+
+/* Notebook: o conteúdo passa para duas colunas e continua rolável por inteiro. */
+@media (max-width: 1366px) {
+  #profileView .profile-reference-shell {
+    width: calc(100% - 20px) !important;
+    padding: 18px !important;
+  }
+
+  #profileView .profile-left-tools {
+    position: static !important;
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(230px, 1fr) auto minmax(140px, 180px);
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+
+  #profileView .profile-live-card {
+    width: auto;
+    min-height: 126px;
+  }
+
+  #profileView .profile-map-rail {
+    width: auto;
+    grid-template-columns: repeat(5, 46px);
+    margin: 0;
+  }
+
+  #profileView .profile-map-rail button {
+    width: 46px !important;
+    height: 100% !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.09) !important;
+  }
+
+  #profileView .profile-weather-card {
+    width: auto;
+    margin: 0;
+  }
+
+  #profileView .profile-reference-grid {
+    grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-areas:
+      'identity summary'
+      'identity vehicle'
+      'activity side'
+      'bottom bottom';
+    max-width: none;
+    margin-left: 0 !important;
+  }
+
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Tablet e janelas estreitas. */
+@media (max-width: 820px) {
+  #profileView .profile-left-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  #profileView .profile-weather-card {
+    display: none;
+  }
+
+  #profileView .profile-reference-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'identity'
+      'summary'
+      'vehicle'
+      'activity'
+      'side'
+      'bottom';
+  }
+
+  #profileView .profile-identity-card {
+    min-height: 0;
+  }
+
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Celular em pé. */
+@media (max-width: 560px) {
+  #profileView.view.active {
+    scrollbar-gutter: auto;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+
+  #profileView .profile-left-tools,
+  #profileView .profile-summary-grid,
+  #profileView .profile-bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #profileView .profile-map-rail {
+    width: 100%;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  #profileView .profile-map-rail button {
+    width: 100% !important;
+    min-height: 46px !important;
+  }
+
+  #profileView .profile-ref-card {
+    padding: 16px;
+  }
+
+  #profileView .profile-bottom-card {
+    min-height: 160px;
+  }
+}
+
+/* Celular deitado: duas colunas aproveitam a largura sem cortar a página. */
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 960px) {
+  #profileView.view.active {
+    inset: calc(56px + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom) !important;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100% !important;
+    padding: 8px 12px 18px !important;
+  }
+
+  #profileView .profile-left-tools {
+    grid-template-columns: minmax(210px, 1fr) minmax(230px, auto);
+  }
+
+  #profileView .profile-live-card {
+    min-height: 100px;
+    padding: 14px 18px;
+  }
+
+  #profileView .profile-map-rail {
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+  }
+
+  #profileView .profile-reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'identity summary'
+      'vehicle activity'
+      'side side'
+      'bottom bottom';
+  }
+
+  #profileView .profile-summary-grid,
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #profileView .profile-right-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #profileView .profile-identity-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-bottom-card {
+    min-height: 0;
+  }
+}
