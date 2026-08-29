@@ -104,6 +104,9 @@
   let poiRequest = null;
   let poiRefreshTimer = null;
   let poiRetryTimer = null;
+  let poiActiveKey = null;
+  let poiLastSuccessKey = null;
+  let poiLastSuccessAt = 0;
   let activeRoute = [];
   let fencePoint = null;
   let fencePreview = null;
@@ -739,6 +742,7 @@
     if (!api.layers.pois) api.layers.pois = api.L.layerGroup().addTo(api.map);
     api.layers.pois.clearLayers();
     document.body.dataset.poiCount = String(places.length);
+    api.map.setNativePoiVisibility?.(places.length === 0);
     const zoom = api.map.getZoom(),
       cell = zoom >= 15 ? 0.002 : zoom >= 13 ? 0.008 : 0.025;
     const groups = new Map();
@@ -791,13 +795,12 @@
   async function loadPois() {
     const api = window.rastreonMap;
     if (!api) return;
-    poiRequest?.abort();
-    poiRequest = new AbortController();
     const current = window.rastreonLocation?.current(),
       viewportCenter = api.map.getCenter?.(),
       center =
         viewportCenter || (current ? { lat: current.latitude, lng: current.longitude } : null);
     if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
+    let requestController = null;
     try {
       const scope = activeRoute.length >= 2 ? 'route' : 'nearby',
         zoom = Number(api.map.getZoom?.() || 13),
@@ -818,10 +821,24 @@
         route =
           scope === 'route'
             ? `&route=${encodeURIComponent(sample.map(point => `${point[1]},${point[0]}`).join(';'))}`
-            : '';
+            : '',
+        zoomScope = zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
+        requestKey = [
+          center.lat.toFixed(2),
+          center.lng.toFixed(2),
+          zoomScope,
+          requestedCategories.join(','),
+          route
+        ].join('|');
+      if (poiActiveKey === requestKey) return;
+      if (poiLastSuccessKey === requestKey && Date.now() - poiLastSuccessAt < 30000) return;
+      poiRequest?.abort();
+      requestController = new AbortController();
+      poiRequest = requestController;
+      poiActiveKey = requestKey;
       const response = await fetch(
           `/api/pois?lat=${center.lat}&lng=${center.lng}&zoom=${zoom}&categories=${encodeURIComponent(requestedCategories.join(','))}${route}`,
-          { signal: poiRequest.signal }
+          { signal: requestController.signal }
         ),
         data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -831,14 +848,22 @@
           ?.textContent
       }));
       renderPois(places, 'Locais próximos');
+      poiLastSuccessKey = requestKey;
+      poiLastSuccessAt = Date.now();
+      if (poiRequest === requestController) poiActiveKey = null;
       clearTimeout(poiRetryTimer);
     } catch (error) {
+      if (poiRequest === requestController) poiActiveKey = null;
       if (error.name !== 'AbortError' && byId('toast')) {
-        byId('toast').textContent = error.message || 'Não conseguimos carregar locais agora.';
-        byId('toast').classList.add('show');
-        setTimeout(() => byId('toast').classList.remove('show'), 2600);
+        api.map.setNativePoiVisibility?.(true);
+        if (!document.body.dataset.poiFallbackNotice) {
+          document.body.dataset.poiFallbackNotice = 'shown';
+          byId('toast').textContent = 'Exibindo os locais disponíveis no Mapbox.';
+          byId('toast').classList.add('show');
+          setTimeout(() => byId('toast').classList.remove('show'), 2200);
+        }
         clearTimeout(poiRetryTimer);
-        poiRetryTimer = setTimeout(loadPois, 12000);
+        poiRetryTimer = setTimeout(loadPois, 30000);
       }
     }
   }

@@ -306,6 +306,9 @@ test('locais são automáticos e garagem é separada da visão operacional', () 
   assert.match(ux, /rastreon:user-location/);
   assert.match(ux, /rastreon:map-style-restored/);
   assert.match(ux, /map\.ready\?\.then\(\(\) => schedulePoiLoad\(0\)\)/);
+  assert.match(ux, /poiActiveKey === requestKey/);
+  assert.match(ux, /poiLastSuccessKey === requestKey/);
+  assert.match(ux, /setNativePoiVisibility\?\.\(true\)/);
   assert.doesNotMatch(ux, /refreshPoisBtn|exploreBtn|exploreMenu/);
 });
 

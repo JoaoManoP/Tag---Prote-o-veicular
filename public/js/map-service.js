@@ -577,6 +577,7 @@
         this.container = document.getElementById(id);
         this._shapes = new Set();
         this._trafficEnabled = false;
+        this._nativePoiVisible = true;
         this._styleUrl = config.mapStyleUrl || 'https://tiles.openfreemap.org/styles/liberty';
         this._map = new maplibregl.Map({
           container: id,
@@ -591,7 +592,7 @@
           attributionControl: true
         });
         this._map.on('style.load', () => {
-          this._hideNativePoiLabels();
+          this._applyNativePoiVisibility();
           this._shapes.forEach(shape => {
             if (shape.kind === 'marker' || shape.kind === 'circleMarker') return;
             shape.object = null;
@@ -633,7 +634,7 @@
         });
         mapInstance = this;
       }
-      _hideNativePoiLabels() {
+      _applyNativePoiVisibility() {
         const layers = this._map.getStyle?.().layers || [];
         layers.forEach(layer => {
           const sourceLayer = String(layer['source-layer'] || ''),
@@ -641,9 +642,18 @@
               /(^|[-_])poi([-_]|$)/i.test(layer.id) || /(^|[-_])poi([-_]|$)/i.test(sourceLayer);
           if (!isNativePoi || layer.type !== 'symbol') return;
           try {
-            this._map.setLayoutProperty(layer.id, 'visibility', 'none');
+            this._map.setLayoutProperty(
+              layer.id,
+              'visibility',
+              this._nativePoiVisible ? 'visible' : 'none'
+            );
           } catch {}
         });
+      }
+      setNativePoiVisibility(visible) {
+        this._nativePoiVisible = Boolean(visible);
+        this.ready.then(() => this._applyNativePoiVisibility()).catch(() => {});
+        return this;
       }
       setView(center, zoom) {
         this._map.jumpTo({

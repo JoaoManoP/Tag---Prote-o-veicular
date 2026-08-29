@@ -1050,31 +1050,38 @@ function createApplication(options = {}) {
           )
         ].slice(0, 5),
         requestBody = `data=${encodeURIComponent(query)}`;
-      let data,
-        lastStatus = null;
-      for (const overpassUrl of overpassUrls) {
-        try {
-          const response = await fetch(overpassUrl, {
-            method: 'POST',
-            body: requestBody,
-            signal: AbortSignal.timeout(12000),
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-              'User-Agent': 'Rastreon/1.0'
+      let data;
+      try {
+        data = await cachedServiceCall(
+          `overpass:${key}`,
+          async () => {
+            let lastStatus = null;
+            for (const overpassUrl of overpassUrls) {
+              try {
+                const response = await fetch(overpassUrl, {
+                  method: 'POST',
+                  body: requestBody,
+                  signal: AbortSignal.timeout(12000),
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'User-Agent': 'Rastreon/1.0'
+                  }
+                });
+                lastStatus = response.status;
+                if (response.ok) return response.json();
+              } catch {}
             }
-          });
-          lastStatus = response.status;
-          if (response.ok) {
-            data = await response.json();
-            break;
-          }
-        } catch {}
-      }
+            throw new Error(
+              `Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`
+            );
+          },
+          60000
+        );
+      } catch {}
       if (!data && cached?.staleUntil > Date.now())
         return res.json({ places: cached.places, cached: true, stale: true });
-      if (!data)
-        throw new Error(`Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`);
+      if (!data) throw new Error('Serviço de locais indisponível.');
 
       const places = (Array.isArray(data.elements) ? data.elements : [])
         .slice(0, 240)
