@@ -101,7 +101,6 @@ jobs:
           test -f "$STAFF_PATH"
           test -f package-lock.json
           test -f deploy/ecosystem.config.cjs
-          npm run db:backup
           RELEASE_DIR="$(mktemp -d /tmp/rastreon-release.XXXXXX)"
           trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH" "$STAFF_PATH"' EXIT
           tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
@@ -113,6 +112,7 @@ jobs:
             --exclude=node_modules/ \
             "$RELEASE_DIR/" "$APP_PATH/"
           npm ci --ignore-scripts
+          npm run db:backup
           npm run build
           npm run db:init
           STAFF_CONFIG_PATH="$STAFF_PATH" npm run staff:provision
