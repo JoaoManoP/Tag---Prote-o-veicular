@@ -117,8 +117,11 @@ jobs:
           npm run db:init
           STAFF_CONFIG_PATH="$STAFF_PATH" npm run staff:provision
           npm prune --omit=dev --ignore-scripts
+          # Remove metadados de releases antigas para que PM2 não preserve
+          # caminhos obsoletos como backend/server/server.js.
+          pm2 delete protec-veicular >/dev/null 2>&1 || true
           pm2 delete rastreon >/dev/null 2>&1 || true
-          pm2 startOrReload deploy/ecosystem.config.cjs --update-env
+          pm2 start deploy/ecosystem.config.cjs --update-env
           pm2 save
           if ! curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-connrefused \
             http://127.0.0.1:3000/api/health >/dev/null; then
