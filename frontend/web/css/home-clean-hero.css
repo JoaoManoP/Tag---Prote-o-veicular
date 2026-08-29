@@ -1,0 +1,85 @@
+/* Hero cinematográfico: mídia isolada atrás da interface HTML existente. */
+.hero {
+  isolation: isolate;
+}
+.hero-motion {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  background: #05070a url('/images/home-hero-night.png') center / cover no-repeat;
+  pointer-events: none;
+}
+.hero-motion__video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: 65% center;
+  pointer-events: none;
+}
+.hero-motion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      #05070afc 0%,
+      #05070af2 25%,
+      #05070aa8 43%,
+      #05070a2e 68%,
+      transparent 82%
+    ),
+    linear-gradient(0deg, #05070ad9 0%, transparent 18% 82%, #05070a24 100%);
+}
+.hero:before {
+  background: transparent !important;
+}
+.hero-scene > .phone {
+  display: none !important;
+}
+.hero:after {
+  display: none;
+}
+@media (min-width: 901px) {
+  .hero {
+    grid-template-columns: 52% 48%;
+  }
+  .hero:before {
+    background: transparent;
+  }
+  .hero-copy {
+    padding-left: max(5vw, 70px);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-motion__video {
+    object-position: 68% center;
+  }
+  .hero-motion::after {
+    background:
+      linear-gradient(
+        180deg,
+        #05070af7 0%,
+        #05070ae8 31%,
+        #05070a94 53%,
+        #05070a26 72%,
+        #05070abf 100%
+      ),
+      linear-gradient(90deg, #05070ab8 0%, #05070a3d 72%, transparent 100%);
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-motion__video {
+    object-position: 72% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-motion__video {
+    display: none;
+  }
+}

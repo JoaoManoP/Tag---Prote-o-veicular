@@ -48,7 +48,7 @@ O VIN é armazenado no servidor, mas a API pública expõe somente `hasVin` e os
 Execute:
 
 ```powershell
-node --test tests/vehicle-lookup.test.js
+node --test backend/tests/vehicle-lookup.test.js
 ```
 
 Os testes usam providers simulados. Eles cobrem modelo parcial, outra fabricante no título, ano e versão divergentes, host não autorizado, licença incompatível, separação de cache por versão e atualização de imagem antiga.

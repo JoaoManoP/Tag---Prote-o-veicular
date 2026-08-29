@@ -5,7 +5,7 @@ Data: 17/08/2026
 ## Stack
 
 - Frontend: HTML, CSS e JavaScript sem framework, servido pelo Express.
-- Backend: Node.js 22, Express 4 e Socket.IO 4.
+- Backend: Node.js 24, Express 4 e Socket.IO 4.
 - Banco: SQLite por `node:sqlite`, migrations próprias.
 - Autenticação: sessão persistida no SQLite, cookie HttpOnly/SameSite e bcrypt.
 - Autorização: propriedade por `user_id` e papéis USER/ADMIN/DEVELOPER.
@@ -67,7 +67,7 @@ Data: 17/08/2026
 - Crítico: nenhum confirmado no código versionado após as correções desta fase.
 - Alto: credenciais externas sem validação real e VPS não auditada.
 - Médio: dependência de instâncias públicas OSRM/Overpass; navegação web interrompida em background; prazos jurídicos de retenção ainda não aprovados.
-- Baixo: documentação incompleta, arquivos de runtime locais e artefato legado `client/dist` sem fonte associada.
+- Baixo: documentação incompleta, arquivos de runtime locais e artefato legado `frontend/client/dist` sem fonte associada.
 
 ## Ordem de correção
 

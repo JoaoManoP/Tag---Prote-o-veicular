@@ -28,7 +28,7 @@ NODE_ENV=production
 PORT=3000
 HOST=127.0.0.1
 PUBLIC_URL=https://SEU_DOMINIO
-DATABASE_PATH=./data/rastreon.sqlite
+DATABASE_PATH=./database/data/rastreon.sqlite
 SESSION_SECRET=SEGREDO_LONGO_ALEATORIO
 ROUTE_PROVIDER=osrm
 ```

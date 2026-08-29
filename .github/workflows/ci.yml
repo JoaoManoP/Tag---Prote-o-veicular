@@ -32,6 +32,6 @@ jobs:
       - name: Build check
         run: npm run build
       - name: Install mobile dependencies
-        run: npm ci --prefix mobile
+        run: npm ci --prefix frontend/mobile
       - name: Mobile typecheck and tests
         run: npm run mobile:check

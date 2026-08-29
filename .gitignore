@@ -1,17 +1,14 @@
 node_modules/
-mobile/.expo/
-mobile/.expo-*/
-mobile/.expo-export-check/
-mobile/.gradle-build/
-mobile/.gradle-user/
+frontend/mobile/.expo/
+frontend/mobile/.expo-*/
+frontend/mobile/.expo-export-check/
+frontend/mobile/.gradle-build/
+frontend/mobile/.gradle-user/
 .env
+database/data/
+database/backups/
+database/legacy-data/
 data/
-data/*.sqlite-shm
-data/*.sqlite-wal
-data/*.sqlite
-data/**/*.sqlite
-data/**/*.sqlite-shm
-data/**/*.sqlite-wal
 backups/
 node_modules~*/
 npm-debug.log*
@@ -21,8 +18,8 @@ out.txt
 releases/*.apk
 
 # Local Android build toolchains and generated artifacts
-mobile/android/.gradle-user-home/
-mobile/android/.jdk17/
-mobile/android/temurin17-jdk.zip
-mobile/android/app/debug.keystore
-mobile/dist/
+frontend/mobile/android/.gradle-user-home/
+frontend/mobile/android/.jdk17/
+frontend/mobile/android/temurin17-jdk.zip
+frontend/mobile/android/app/debug.keystore
+frontend/mobile/dist/

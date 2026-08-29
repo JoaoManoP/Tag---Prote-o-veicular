@@ -4,7 +4,7 @@ Aplicação web com autenticação, navegação GPS diária em primeiro plano, p
 
 ## Requisitos e execução
 
-- Node.js 22 ou mais recente
+- Node.js 24
 - Visual Studio Code (recomendado)
 
 ```powershell
@@ -28,7 +28,7 @@ npm audit --omit=dev
 - Ao abrir o site, crie uma conta demo ou entre com uma conta existente.
 - Senhas são armazenadas como hash bcrypt; nunca em texto puro.
 - A sessão utiliza cookie `HttpOnly`, `SameSite=Lax` e expira após 24 horas. Em produção/HTTPS, o cookie também usa `Secure`.
-- Usuários, sessões, veículos, viagens, posições e interrupções ficam no SQLite em `data/rastreon.sqlite` por padrão.
+- Usuários, sessões, veículos, viagens, posições e interrupções ficam no SQLite em `database/data/rastreon.sqlite` por padrão.
 - Cada sessão de rastreamento pertence ao usuário autenticado. Outro usuário recebe resposta de recurso inexistente.
 - O endpoint `GET /api/health` confirma o estado da API e do banco.
 - O endpoint `GET /api/ready` confirma se a instância está pronta para receber tráfego.
@@ -87,7 +87,15 @@ Este cliente móvel é web e funciona em primeiro plano. GPS contínuo com tela 
 
 ## Estrutura
 
-O Express serve os arquivos de `public/`, faz proxy controlado para geocodificação/roteamento e mantém sessões temporárias. O dashboard usa Haversine apenas entre coordenadas GPS para medir o percurso realizado; a distância rodoviária planejada sempre vem do roteador. `mobile.js` controla `watchPosition()`, consentimento e fila offline.
+- `backend/server/`: API Express, Socket.IO, autenticação, integrações e regras de negócio.
+- `backend/tests/`: testes automatizados do backend e contratos da interface web.
+- `frontend/web/`: aplicação web servida pelo Express.
+- `frontend/client/`: build legado do cliente web.
+- `frontend/mobile/`: aplicativo React Native/Expo.
+- `frontend/scripts/` e `frontend/assets/`: geração de assets e recursos compartilhados do frontend.
+- `database/`: conexão SQLite, migrações, inicialização, dados locais e backups.
+
+O Express serve os arquivos de `frontend/web/`, faz proxy controlado para geocodificação/roteamento e mantém sessões temporárias. O dashboard usa Haversine apenas entre coordenadas GPS para medir o percurso realizado; a distância rodoviária planejada sempre vem do roteador. `mobile.js` controla `watchPosition()`, consentimento e fila offline.
 
 ## Provedores de geocodificação e rotas
 

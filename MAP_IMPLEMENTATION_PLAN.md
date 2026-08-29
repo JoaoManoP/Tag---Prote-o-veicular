@@ -69,16 +69,16 @@ Todo registro geográfico terá fonte (`OFFICIAL`, `COMMUNITY`, `PARTNER` ou `SI
 ### Novos
 
 - `MAP_IMPLEMENTATION_PLAN.md`
-- `server/radar/radar-normalizer.js`
-- `server/radar/radar-route-matcher.js`
-- `tests/radar-route-matcher.test.js`
-- `tests/radar-normalizer.test.js`
+- `backend/server/radar/radar-normalizer.js`
+- `backend/server/radar/radar-route-matcher.js`
+- `backend/tests/radar-route-matcher.test.js`
+- `backend/tests/radar-normalizer.test.js`
 
 ### Alterados
 
-- `server/road-events.js`: contrato profissional de radares e consulta por viewport.
-- `server/server.js`: endpoints aditivos em `/api/map/radars` e `/api/navigation/route/radars`.
-- `server/migrations.js`: metadados aditivos de fonte, verificação, confiança, via, km, cidade e estado.
+- `backend/server/road-events.js`: contrato profissional de radares e consulta por viewport.
+- `backend/server/server.js`: endpoints aditivos em `/api/map/radars` e `/api/navigation/route/radars`.
+- `database/migrations.js`: metadados aditivos de fonte, verificação, confiança, via, km, cidade e estado.
 - `package.json`: scripts de validação dos novos módulos.
 - `docs/API.md`, `docs/MAPA_E_NAVEGACAO.md` e exemplos de ambiente conforme cada provider for habilitado.
 

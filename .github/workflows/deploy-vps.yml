@@ -89,6 +89,18 @@ jobs:
           else
             printf '\nGEOCODING_PROVIDER=mapbox\n' >> .env
           fi
+          for setting in \
+            'DATABASE_PATH=./database/data/rastreon.sqlite' \
+            'BACKUP_DIRECTORY=./database/backups' \
+            'COMMUNITY_UPLOAD_DIRECTORY=./database/data/community-photos' \
+            'PRIVATE_DOCUMENTS_PATH=./database/data/private-documents'; do
+            key="${setting%%=*}"
+            if grep -q "^${key}=" .env; then
+              sed -i "s|^${key}=.*|${setting}|" .env
+            else
+              printf '%s\n' "$setting" >> .env
+            fi
+          done
           case "$ARCHIVE_PATH" in
             /tmp/rastreon-release-*.tar.gz) ;;
             *) exit 1 ;;
@@ -101,23 +113,29 @@ jobs:
           test -f "$STAFF_PATH"
           test -f package-lock.json
           test -f deploy/ecosystem.config.cjs
-          npm run db:backup
           RELEASE_DIR="$(mktemp -d /tmp/rastreon-release.XXXXXX)"
           trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH" "$STAFF_PATH"' EXIT
           tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
           rsync -a --delete \
             --exclude=.env \
             --exclude=.git/ \
+            --exclude=database/backups/ \
+            --exclude=database/data/ \
             --exclude=backups/ \
             --exclude=data/ \
             --exclude=node_modules/ \
             "$RELEASE_DIR/" "$APP_PATH/"
+          install -d database
+          if [ -d data ] && [ ! -e database/data ]; then mv data database/data; fi
+          if [ -d backups ] && [ ! -e database/backups ]; then mv backups database/backups; fi
+          install -d database/data database/backups
           npm ci --ignore-scripts
+          npm run db:backup
           npm run build
           npm run db:init
           STAFF_CONFIG_PATH="$STAFF_PATH" npm run staff:provision
           npm prune --omit=dev --ignore-scripts
-          pm2 delete rastreon >/dev/null 2>&1 || true
+          pm2 delete protec-veicular >/dev/null 2>&1 || true
           pm2 startOrReload deploy/ecosystem.config.cjs --update-env
           pm2 save
           curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused \

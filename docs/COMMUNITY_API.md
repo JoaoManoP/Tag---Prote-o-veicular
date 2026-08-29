@@ -1,6 +1,6 @@
 # Comunidade de locais
 
-O módulo `server/community.js` fornece comentários e avaliações de locais sem
+O módulo `backend/server/community.js` fornece comentários e avaliações de locais sem
 acoplar a funcionalidade ao servidor principal. Ele usa o mesmo SQLite e a mesma
 sessão autenticada da aplicação.
 

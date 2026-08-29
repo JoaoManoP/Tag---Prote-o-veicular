@@ -1,0 +1,2259 @@
+:root {
+  --profile-navy: #06172a;
+  --profile-navy-soft: #0c2540;
+  --profile-blue: #087bf0;
+  --profile-blue-soft: #e8f2ff;
+  --profile-green: #0fbf78;
+  --profile-ink: #07182b;
+  --profile-muted: #637389;
+  --profile-line: #dbe4ec;
+}
+
+#profileView {
+  min-height: calc(100vh - 74px);
+  background:
+    linear-gradient(rgba(245, 249, 252, 0.72), rgba(245, 249, 252, 0.82)),
+    repeating-linear-gradient(32deg, transparent 0 46px, rgba(8, 123, 240, 0.07) 47px 49px), #edf3f7;
+  color: var(--profile-ink);
+}
+
+#profileView .profile-page {
+  position: relative;
+  max-width: 1540px;
+  padding: 28px 42px 44px 310px;
+}
+
+#profileView .page-heading {
+  margin-bottom: 18px;
+}
+#profileView .page-heading h2,
+#profileView .page-heading p,
+#profileView .card h2,
+#profileView .card h3,
+#profileView .card strong {
+  color: var(--profile-ink) !important;
+}
+#profileView .card p,
+#profileView .card small,
+#profileView .card dt {
+  color: var(--profile-muted) !important;
+}
+#profileView .eyebrow {
+  color: var(--profile-blue) !important;
+}
+
+#profileView .profile-live-card {
+  position: absolute;
+  top: 102px;
+  left: 42px;
+  display: grid;
+  width: 232px;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(122, 169, 211, 0.22);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #071c32, #061426);
+  box-shadow: 0 20px 44px rgba(4, 22, 40, 0.23);
+  color: #fff;
+}
+.profile-live-label {
+  font-size: 13px;
+  font-weight: 800;
+}
+#profileLiveState {
+  color: #d7e5f1;
+  font-size: 12px;
+}
+#profileLiveState i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--profile-green);
+  box-shadow: 0 0 0 4px rgba(15, 191, 120, 0.12);
+}
+.profile-live-card > strong {
+  color: #fff !important;
+  font-size: 27px;
+}
+.profile-live-card > strong small {
+  color: #d7e5f1 !important;
+  font-size: 12px;
+}
+#profileLiveAddress {
+  color: #b7c8d8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+#profileView .profile-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(400px, 1fr) minmax(330px, 0.82fr);
+  gap: 14px;
+  align-items: start;
+}
+#profileView .card {
+  border: 1px solid rgba(151, 171, 190, 0.35) !important;
+  border-radius: 19px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 12px 32px rgba(13, 37, 61, 0.09) !important;
+}
+#profileView .profile-card {
+  grid-row: span 2;
+  text-align: center;
+}
+#profileView .profile-summary-card {
+  background: linear-gradient(140deg, #071d35, #0b2847) !important;
+}
+#profileView .profile-summary-card h2,
+#profileView .profile-summary-card .profile-section-title small {
+  color: #fff !important;
+}
+#profileView .profile-summary-card .eyebrow {
+  color: #70b3ff !important;
+}
+.profile-section-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 17px;
+}
+.profile-section-title h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+.profile-section-title .eyebrow {
+  font-size: 9px;
+}
+
+.profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+}
+.profile-summary-grid article {
+  display: grid;
+  min-height: 110px;
+  align-content: center;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid rgba(143, 185, 225, 0.12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+.profile-summary-grid article > span {
+  color: #72b4ff;
+  font-size: 19px;
+}
+.profile-summary-grid article > strong {
+  color: #fff !important;
+  font-size: 21px;
+}
+.profile-summary-grid article > small {
+  color: #d2dfeb !important;
+}
+.profile-summary-grid article > b {
+  color: #46d899;
+  font-size: 10px;
+}
+
+#profileView .profile-avatar {
+  background: linear-gradient(145deg, #087bf0, #0759ad) !important;
+}
+#profileView .profile-avatar.editable-avatar:hover {
+  box-shadow: 0 10px 24px rgba(8, 123, 240, 0.25);
+}
+#profileView .profile-contact-id {
+  background: #f7fafc;
+  border-color: var(--profile-line);
+}
+#profileView .profile-contact-id button,
+#profileView button:not(.danger) {
+  border-color: #cddce9 !important;
+  background: #fff !important;
+  color: #0a355d !important;
+}
+#profileView button:not(.danger):hover {
+  border-color: var(--profile-blue) !important;
+  color: var(--profile-blue) !important;
+}
+
+.profile-online-pill,
+.profile-enabled-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e2f8ed;
+  color: #087c4e;
+  font-size: 10px;
+  font-weight: 800;
+}
+.profile-vehicle-main {
+  display: grid;
+  grid-template-columns: 48% 1fr;
+  align-items: center;
+  min-height: 152px;
+  gap: 12px;
+}
+#profileVehicle3d {
+  width: 100%;
+  height: 150px;
+  touch-action: none;
+}
+.profile-vehicle-main > div {
+  display: grid;
+  gap: 7px;
+}
+.profile-vehicle-main > div strong {
+  font-size: 18px;
+}
+.profile-vehicle-main > div span {
+  color: var(--profile-muted);
+  font-size: 12px;
+}
+.profile-vehicle-telemetry {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 5px 0 14px;
+}
+.profile-vehicle-telemetry > div {
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #f2f7fb;
+}
+
+#profileView .profile-activity-card {
+  grid-column: 2;
+}
+#profileView .profile-trip {
+  border-color: var(--profile-line);
+  background: #f9fbfd;
+}
+#profileView .profile-poi-card {
+  grid-column: 3;
+}
+.profile-poi-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 15px;
+}
+.profile-poi-settings label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--profile-line);
+  border-radius: 11px;
+  background: #f8fbfd;
+  color: var(--profile-ink);
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.profile-poi-settings input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--profile-blue);
+}
+#profileView .privacy-card {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+#profileView .privacy-card > .eyebrow,
+#profileView .privacy-card > h2 {
+  grid-column: 1 / -1;
+}
+
+/* Navegação, painel lateral e status na mesma linguagem visual da referência. */
+.topbar {
+  background: linear-gradient(90deg, #041326, #061b31) !important;
+}
+.top-nav .nav-pill.active {
+  border-color: var(--profile-blue) !important;
+  background: rgba(8, 123, 240, 0.13) !important;
+  color: #fff !important;
+}
+#trackingView .control-panel .card,
+#trackingView .vehicle-hud {
+  border-color: rgba(132, 174, 211, 0.2) !important;
+  background: rgba(5, 23, 41, 0.95) !important;
+}
+#trackingView .vehicle-hud__status {
+  color: #55d69a !important;
+}
+#trackingView .vehicle-hud button {
+  background: var(--profile-blue) !important;
+  color: #fff !important;
+}
+.quick-trip-destination {
+  border-left-color: var(--profile-blue) !important;
+  background: #f1f7ff !important;
+}
+.quick-trip-destination small {
+  color: var(--profile-blue) !important;
+}
+
+@media (max-width: 1180px) {
+  #profileView .profile-page {
+    padding-left: 28px;
+  }
+  #profileView .profile-live-card {
+    position: static;
+    width: auto;
+    margin-bottom: 14px;
+    grid-template-columns: repeat(2, auto);
+  }
+  #profileView .profile-layout {
+    grid-template-columns: 260px 1fr;
+  }
+  #profileView .profile-vehicle-card,
+  #profileView .profile-poi-card {
+    grid-column: 2;
+  }
+}
+@media (max-width: 760px) {
+  #profileView .profile-page {
+    padding: 18px 12px 90px;
+  }
+  #profileView .profile-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  #profileView .profile-layout > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+  .profile-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  #profileView .privacy-card {
+    grid-template-columns: 1fr;
+  }
+  #profileView .privacy-card > * {
+    grid-column: 1 !important;
+  }
+}
+
+/* Composição final: apenas os cartões flutuam; nunca existe uma placa branca por trás. */
+body:has(#profileView.active) .map-panel-backdrop,
+body:has(#profileView.active)::before,
+body:has(#profileView.active)::after {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body:has(#profileView.active) #profileView,
+body:has(#profileView.active) #profileView.view.active,
+body:has(#profileView.active) #profileView .profile-reference-shell {
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-grid,
+#profileView .profile-bottom-grid,
+#profileView .profile-right-stack {
+  gap: 12px !important;
+}
+
+#profileView .profile-ref-card {
+  border-color: rgba(151, 171, 190, 0.38) !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  box-shadow: 0 12px 30px rgba(13, 37, 61, 0.1) !important;
+}
+
+#profileView .profile-summary-card {
+  background:
+    radial-gradient(circle at 72% 0, rgba(8, 123, 240, 0.12), transparent 42%),
+    linear-gradient(140deg, #071d35, #0b2847) !important;
+}
+
+#profileView .profile-avatar:not(.has-photo) {
+  background: linear-gradient(145deg, #ff2d0a, #ff7900) !important;
+  color: #fff !important;
+}
+
+#profileView .profile-trip {
+  grid-template-columns: 34px minmax(0, 1fr) auto auto !important;
+  column-gap: 10px;
+}
+
+#profileView .profile-trip-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #247df2;
+  color: #fff !important;
+}
+
+#profileView .profile-trip-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (max-width: 760px) {
+  #profileView .profile-trip {
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+  }
+
+  #profileView .profile-trip > span:not(.profile-trip-icon),
+  #profileView .profile-trip > small {
+    grid-column: 2;
+  }
+}
+
+#profileView .profile-weather-card {
+  z-index: 2;
+}
+
+#profileView .profile-weather-card b,
+#profileView .profile-weather-card small {
+  overflow-wrap: anywhere;
+}
+
+#profileView .profile-title-icon,
+#profileView .profile-action-icon,
+#profileView .profile-card-icon,
+#profileView .profile-weather-icon {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Resumo: mantém a proporção e o contraste exatos do cartão de referência. */
+#profileView .profile-reference-grid > .profile-summary-card {
+  height: 240px;
+  min-height: 240px;
+  align-self: start;
+  padding: 22px;
+  color: #fff;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card header h2,
+#profileView .profile-reference-grid > .profile-summary-card header small,
+#profileView
+  .profile-reference-grid
+  > .profile-summary-card
+  .profile-summary-grid
+  article
+  > strong {
+  color: #fff !important;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > small {
+  color: #d2dfeb !important;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article {
+  display: grid;
+  min-height: 122px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  column-gap: 8px;
+  row-gap: 7px;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-card-icon {
+  display: block;
+  align-self: center;
+}
+
+#profileView
+  .profile-reference-grid
+  > .profile-summary-card
+  .profile-summary-grid
+  article
+  > strong {
+  align-self: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > small,
+#profileView .profile-reference-grid > .profile-summary-card .profile-summary-grid article > b {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  #profileView .profile-reference-grid > .profile-summary-card {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* Perfil v3: painel central dimensionado como a referência, preservando o mapa ao redor. */
+#profileView.view.active {
+  inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
+  display: grid !important;
+  padding: clamp(14px, 2vw, 30px) !important;
+  overflow: hidden !important;
+  place-items: center;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-shell {
+  width: min(1680px, calc(100vw - 72px));
+  height: min(850px, calc(100dvh - 112px));
+  min-height: 0;
+  margin: 0;
+  padding: 22px 26px 28px;
+  overflow: auto;
+  border: 1px solid rgba(151, 171, 190, 0.48);
+  border-radius: 22px;
+  background: rgba(239, 244, 248, 0.95);
+  box-shadow: 0 24px 70px rgba(5, 25, 44, 0.2);
+  scrollbar-color: #9fb5c7 transparent;
+}
+
+#profileView .profile-left-tools {
+  inset: 22px auto 28px 26px;
+}
+
+#profileView .profile-reference-grid {
+  margin-left: 254px;
+}
+
+#profileView .profile-ref-card h2,
+#profileView .profile-ref-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#profileView .profile-card-icon {
+  width: 25px;
+  height: 25px;
+  color: #dce9f5;
+}
+
+#profileView .profile-weather-card strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#profileView .profile-weather-icon {
+  width: 25px;
+  height: 25px;
+  color: #ffc400;
+}
+
+#profileView .profile-contact-id button svg {
+  width: 17px;
+  height: 17px;
+}
+
+#profileView .profile-summary-card header small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#profileView .profile-summary-card header small svg {
+  width: 14px;
+  height: 14px;
+}
+
+#profileView .profile-icon-alert {
+  color: #ffc400;
+}
+
+#profileView .profile-icon-route {
+  color: #4b94ff;
+}
+
+#profileView .profile-title-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: #092744;
+}
+
+#profileView .profile-action-icon {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 1380px) {
+  #profileView .profile-reference-shell {
+    width: calc(100vw - 40px);
+    padding: 18px;
+  }
+
+  #profileView .profile-left-tools {
+    left: 18px;
+  }
+}
+
+@media (max-width: 1120px) {
+  #profileView .profile-left-tools {
+    position: static;
+    grid-template-columns: minmax(220px, 1fr) 150px;
+  }
+
+  #profileView .profile-reference-grid {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  #profileView.view.active {
+    inset: calc(64px + env(safe-area-inset-top)) 0 calc(62px + env(safe-area-inset-bottom)) !important;
+    padding: 7px !important;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  #profileView .profile-left-tools {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * O perfil é uma página de informação, não uma janela modal. Estas regras ficam no
+ * fim do arquivo para neutralizar as dimensões fixas herdadas das demais telas secundárias.
+ */
+#profileView.view.active {
+  position: fixed !important;
+  inset: calc(72px + env(safe-area-inset-top)) 0 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+#profileView.view.active .profile-page {
+  width: min(100%, 1780px) !important;
+  min-height: 100% !important;
+  margin-inline: auto !important;
+  padding: clamp(22px, 2.3vw, 44px) clamp(18px, 3vw, 56px) 64px clamp(286px, 20vw, 336px) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-layout {
+  grid-template-columns:
+    minmax(270px, 0.72fr)
+    minmax(430px, 1.35fr)
+    minmax(350px, 1fr);
+}
+
+#profileView .profile-live-card {
+  top: clamp(96px, 9vw, 132px);
+  left: clamp(18px, 3vw, 56px);
+  width: clamp(226px, 16.5vw, 260px);
+  box-sizing: border-box;
+}
+
+#profileView .card {
+  min-width: 0;
+  padding: clamp(18px, 1.65vw, 28px) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-contact-id code,
+#profileView .profile-trip > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1500px) {
+  #profileView .profile-layout {
+    gap: 18px;
+  }
+  #profileView .profile-summary-grid article {
+    min-height: 126px;
+  }
+}
+
+/* Notebook, monitor 4:3 e CRT largo: duas colunas confortáveis. */
+@media (max-width: 1280px) {
+  #profileView.view.active .profile-page {
+    padding-left: clamp(238px, 23vw, 286px) !important;
+  }
+  #profileView .profile-live-card {
+    width: clamp(204px, 19vw, 238px);
+  }
+  #profileView .profile-layout {
+    grid-template-columns: minmax(245px, 0.72fr) minmax(430px, 1.28fr);
+  }
+  #profileView .profile-card {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  #profileView .profile-summary-card,
+  #profileView .profile-vehicle-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-poi-card {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 961px) and (max-width: 1280px) {
+  #profileView .profile-live-card {
+    position: absolute;
+    margin: 0;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CRT 800x600, tablets e janelas estreitas: fluxo vertical, sem painel lateral fixo. */
+@media (max-width: 960px) {
+  #profileView.view.active .profile-page {
+    padding: 22px 18px 54px !important;
+  }
+  #profileView .profile-live-card {
+    position: static;
+    width: 100%;
+    margin: 0 0 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  #profileView .profile-live-card > strong,
+  #profileView #profileLiveAddress {
+    text-align: right;
+  }
+  #profileView .profile-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  #profileView .profile-card,
+  #profileView .profile-summary-card,
+  #profileView .profile-activity-card,
+  #profileView .privacy-card {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  #profileView .profile-vehicle-card {
+    grid-column: 1;
+  }
+  #profileView .profile-poi-card {
+    grid-column: 2;
+  }
+  #profileView .privacy-card {
+    grid-template-columns: 1fr;
+  }
+  #profileView .privacy-card > * {
+    grid-column: 1 !important;
+  }
+}
+
+/* Telefones e CRT muito estreito: uma coluna e controles com área de toque adequada. */
+@media (max-width: 640px) {
+  #profileView.view.active {
+    inset: calc(64px + env(safe-area-inset-top)) 0 calc(64px + env(safe-area-inset-bottom)) !important;
+    scrollbar-gutter: auto;
+  }
+  #profileView.view.active .profile-page {
+    padding: 16px 10px 34px !important;
+  }
+  #profileView .page-heading {
+    padding-right: 0 !important;
+  }
+  #profileView .page-heading p {
+    max-width: none !important;
+  }
+  #profileView .profile-live-card {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+  #profileView .profile-live-card > strong,
+  #profileView #profileLiveAddress {
+    text-align: left;
+  }
+  #profileView .profile-layout,
+  #profileView .profile-summary-grid,
+  #profileView .profile-poi-settings,
+  #profileView .profile-vehicle-main,
+  #profileView .profile-vehicle-telemetry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #profileView .profile-layout > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+  #profileView .profile-summary-grid article {
+    min-height: 92px;
+  }
+  #profileView .profile-vehicle-main {
+    text-align: center;
+  }
+  #profileVehicle3d {
+    height: 180px;
+  }
+  #profileView .profile-section-title {
+    flex-wrap: wrap;
+  }
+  #profileView button,
+  #profileView .profile-poi-settings label {
+    min-height: 44px !important;
+  }
+}
+
+/* Pouca altura (CRT 800x600 e celulares deitados): reduz apenas espaços, nunca o conteúdo. */
+@media (max-height: 640px) {
+  #profileView.view.active .profile-page {
+    padding-top: 16px !important;
+    padding-bottom: 34px !important;
+  }
+  #profileView .page-heading {
+    margin-bottom: 12px !important;
+  }
+  #profileView .card {
+    padding-block: 17px !important;
+  }
+}
+
+/* Perfil de referência v2: substitui integralmente a composição anterior. */
+#profileView.view.active {
+  background: rgba(239, 244, 248, 0.72) !important;
+  backdrop-filter: saturate(0.82) brightness(1.04);
+}
+
+#profileView .profile-reference-shell {
+  position: relative;
+  width: min(100%, 1760px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 26px 40px 36px;
+  box-sizing: border-box;
+  color: #07182b;
+}
+
+#profileView .profile-left-tools {
+  position: absolute;
+  inset: 26px auto 36px 40px;
+  display: flex;
+  width: 238px;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+#profileView .profile-left-tools > * {
+  pointer-events: auto;
+}
+
+#profileView .profile-live-card {
+  position: static;
+  display: grid;
+  width: 238px;
+  min-height: 176px;
+  margin: 0;
+  padding: 22px 24px;
+  gap: 8px;
+  border: 1px solid rgba(118, 166, 207, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #071d34, #061629);
+  box-shadow: 0 18px 42px rgba(3, 21, 38, 0.24);
+  box-sizing: border-box;
+}
+
+#profileView .profile-live-card > strong {
+  margin-top: 10px;
+  font-size: 25px;
+}
+
+#profileView .profile-map-rail {
+  display: grid;
+  width: 52px;
+  margin-top: 44px;
+  overflow: hidden;
+  border: 1px solid rgba(136, 176, 211, 0.22);
+  border-radius: 17px;
+  background: #071d34;
+  box-shadow: 0 16px 34px rgba(4, 22, 40, 0.22);
+}
+
+#profileView .profile-map-rail button {
+  display: grid !important;
+  width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-size: 22px;
+}
+
+#profileView .profile-map-rail button:nth-child(4) {
+  background: #087bf0 !important;
+  font-size: 29px;
+}
+
+#profileView .profile-weather-card {
+  display: grid;
+  width: 134px;
+  margin-top: auto;
+  padding: 18px;
+  gap: 5px;
+  border-radius: 18px;
+  background: #071d34;
+  box-shadow: 0 16px 36px rgba(4, 22, 40, 0.22);
+  color: #fff;
+  box-sizing: border-box;
+}
+
+#profileView .profile-weather-card strong {
+  color: #fff !important;
+  font-size: 21px;
+}
+
+#profileView .profile-weather-card small,
+#profileView .profile-weather-card b {
+  color: #d3e0eb !important;
+  font-size: 10px;
+}
+
+#profileView .profile-reference-grid {
+  display: grid;
+  grid-template-columns: 294px minmax(440px, 1.25fr) minmax(350px, 0.98fr);
+  grid-template-areas:
+    'identity summary vehicle'
+    'identity activity side'
+    'bottom bottom bottom';
+  gap: 14px;
+  margin-left: 254px;
+  align-items: stretch;
+}
+
+#profileView .profile-ref-card {
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid rgba(151, 171, 190, 0.36);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 30px rgba(13, 37, 61, 0.08);
+  box-sizing: border-box;
+}
+
+#profileView .profile-ref-card h2,
+#profileView .profile-ref-card h3,
+#profileView .profile-ref-card strong {
+  color: #07182b !important;
+}
+
+#profileView .profile-ref-card p,
+#profileView .profile-ref-card small,
+#profileView .profile-ref-card span,
+#profileView .profile-ref-card dt {
+  color: #637389;
+}
+
+#profileView .profile-ref-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#profileView .profile-ref-card header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+#profileView .profile-identity-card {
+  grid-area: identity;
+  display: flex;
+  min-height: 606px;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 28px;
+  text-align: center;
+}
+
+#profileView .profile-avatar {
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 8px;
+  font-size: 35px;
+}
+
+#profileView .profile-identity-card > h2 {
+  margin: 0;
+  font-size: 23px;
+}
+
+#profileView .profile-identity-card > p {
+  margin: 5px 0 15px;
+  font-size: 12px;
+}
+
+#profileView .profile-avatar-action {
+  margin: 0 auto 8px !important;
+  min-height: 28px !important;
+  padding: 3px 10px !important;
+  font-size: 10px !important;
+}
+
+#profileView .profile-contact-id {
+  width: 100%;
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #dbe4ec;
+  border-radius: 14px;
+  background: #fbfcfd;
+  box-sizing: border-box;
+}
+
+#profileView .profile-contact-id > span {
+  display: block;
+  margin-bottom: 9px;
+  color: #314b67;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+#profileView .profile-contact-qr {
+  width: min(160px, 100%);
+  height: auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#profileView .profile-contact-id > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+#profileView .profile-contact-id code {
+  flex: 1;
+  color: #3c526a;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+#profileView .profile-contact-id button {
+  width: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#profileView .profile-account-facts {
+  width: 100%;
+  margin: 15px 0 0;
+}
+
+#profileView .profile-account-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e6ebef;
+  font-size: 11px;
+}
+
+#profileView .profile-account-facts dd {
+  margin: 0;
+  color: #07182b;
+  font-weight: 800;
+  text-align: right;
+}
+
+#profileView .profile-summary-card {
+  grid-area: summary;
+  min-height: 240px;
+  background:
+    radial-gradient(circle at 72% 0, rgba(8, 123, 240, 0.12), transparent 42%),
+    linear-gradient(140deg, #071d35, #0b2847) !important;
+}
+
+#profileView .profile-summary-card header h2,
+#profileView .profile-summary-card header small {
+  color: #fff !important;
+}
+
+#profileView .profile-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+#profileView .profile-summary-grid article {
+  min-height: 122px;
+  padding: 14px;
+}
+
+#profileView .profile-summary-grid article > strong {
+  color: #fff !important;
+}
+
+#profileView .profile-vehicle-card {
+  grid-area: vehicle;
+  min-height: 280px;
+}
+
+#profileView .profile-vehicle-actions {
+  display: flex;
+  gap: 5px;
+}
+
+#profileView .profile-vehicle-actions button {
+  width: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #09233e !important;
+  font-size: 20px;
+}
+
+#profileView .profile-vehicle-main {
+  grid-template-columns: 50% 1fr;
+  min-height: 130px;
+}
+
+#profileView #profileVehicle3d {
+  height: 132px;
+}
+
+#profileView .profile-vehicle-main > div strong {
+  font-size: 18px;
+}
+
+#profileView .profile-online-pill {
+  justify-self: start;
+  padding: 5px 10px;
+}
+
+#profileView .profile-vehicle-telemetry {
+  margin: 5px 0 12px;
+}
+
+#profileView #profileVehicleDetailsBtn {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #dbe4ec !important;
+  border-radius: 10px;
+  background: #fff !important;
+  color: #17314d !important;
+}
+
+#profileView .profile-activity-card {
+  grid-area: activity;
+  min-height: 352px;
+}
+
+#profileView .profile-activity-card header button {
+  border: 0 !important;
+  background: transparent !important;
+  color: #087bf0 !important;
+}
+
+#profileView .profile-trips {
+  gap: 0;
+}
+
+#profileView .profile-trip {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 50px;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid #e6ebef;
+  border-radius: 0;
+  background: transparent;
+}
+
+#profileView .profile-right-stack {
+  grid-area: side;
+  display: grid;
+  gap: 12px;
+}
+
+#profileView .profile-action-card {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 5px 10px;
+  align-items: start;
+  padding: 18px 20px;
+}
+
+#profileView .profile-action-icon {
+  grid-row: span 2;
+  color: #087bf0 !important;
+  font-size: 28px;
+}
+
+#profileView .profile-action-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+#profileView .profile-action-card p {
+  margin: 5px 0;
+  font-size: 11px;
+}
+
+#profileView .profile-action-card b,
+#profileView .profile-bottom-card > b {
+  display: inline-block;
+  justify-self: start;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #def7e9;
+  color: #07814e !important;
+  font-size: 9px;
+}
+
+#profileView .profile-action-card > button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 36px;
+  margin-top: 5px;
+  border: 1px solid #dbe4ec !important;
+  border-radius: 9px;
+  background: #fff !important;
+  color: #17314d !important;
+}
+
+#profileView .profile-bottom-grid {
+  grid-area: bottom;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#profileView .profile-bottom-card {
+  display: flex;
+  min-height: 205px;
+  flex-direction: column;
+  padding: 18px;
+}
+
+#profileView .profile-bottom-card h3 {
+  margin: 0 0 13px;
+  font-size: 13px;
+}
+
+#profileView .profile-bottom-card p {
+  margin: 5px 0 10px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+#profileView .profile-bottom-card button {
+  width: 100%;
+  min-height: 38px;
+  margin-top: auto;
+  border: 1px solid #dbe4ec !important;
+  border-radius: 9px;
+  background: #fff !important;
+  color: #17314d !important;
+}
+
+#profileView .profile-ok-symbol {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin: 3px auto 6px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dff7e9;
+  color: #0ca565;
+  font-size: 22px;
+}
+
+#profileView .profile-bottom-card:first-child {
+  text-align: center;
+}
+
+#profileView .profile-bottom-card:first-child h3 {
+  text-align: left;
+}
+
+#profileView .profile-logout-card {
+  background: linear-gradient(145deg, #fff, #fff4f3) !important;
+}
+
+#profileView .profile-logout-card h3 {
+  color: #dc2e2e !important;
+}
+
+#profileView #profileLogoutBtn {
+  border-color: #ea3b32 !important;
+  background: #e9322c !important;
+  color: #fff !important;
+}
+
+.profile-settings-dialog {
+  width: min(780px, calc(100vw - 28px));
+  max-height: min(86vh, 860px);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: #eef3f7;
+  box-shadow: 0 30px 90px rgba(3, 18, 33, 0.38);
+}
+
+.profile-settings-dialog::backdrop {
+  background: rgba(3, 17, 30, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.profile-settings-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  background: #071d34;
+  color: #fff;
+}
+
+.profile-settings-dialog > header h2,
+.profile-settings-dialog > header small {
+  margin: 0;
+  color: #fff;
+}
+
+.profile-settings-dialog > header button {
+  width: 38px;
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 24px;
+}
+
+.profile-settings-content {
+  display: grid;
+  gap: 12px;
+  max-height: calc(86vh - 78px);
+  padding: 16px;
+  overflow: auto;
+}
+
+.profile-settings-content > .card {
+  border: 1px solid #dbe4ec !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  color: #07182b !important;
+}
+
+@media (max-width: 1380px) {
+  #profileView .profile-reference-shell {
+    padding-inline: 24px;
+  }
+  #profileView .profile-left-tools {
+    left: 24px;
+    width: 210px;
+  }
+  #profileView .profile-live-card {
+    width: 210px;
+  }
+  #profileView .profile-reference-grid {
+    grid-template-columns: 270px minmax(390px, 1.2fr) minmax(320px, 0.95fr);
+    margin-left: 226px;
+  }
+}
+
+@media (max-width: 1120px) {
+  #profileView .profile-reference-shell {
+    padding: 18px;
+  }
+  #profileView .profile-left-tools {
+    position: static;
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(220px, 1fr) auto 150px;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+  #profileView .profile-live-card {
+    width: auto;
+    min-height: 130px;
+  }
+  #profileView .profile-map-rail {
+    width: auto;
+    grid-template-columns: repeat(5, 48px);
+    margin: 0;
+  }
+  #profileView .profile-map-rail button {
+    width: 48px !important;
+    height: 100% !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.09) !important;
+  }
+  #profileView .profile-weather-card {
+    width: auto;
+    margin: 0;
+  }
+  #profileView .profile-reference-grid {
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-areas: 'identity summary' 'identity vehicle' 'activity side' 'bottom bottom';
+    margin-left: 0;
+  }
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  #profileView.view.active {
+    inset: calc(64px + env(safe-area-inset-top)) 0 calc(62px + env(safe-area-inset-bottom)) !important;
+  }
+  #profileView .profile-reference-shell {
+    padding: 10px;
+  }
+  #profileView .profile-left-tools {
+    grid-template-columns: 1fr;
+  }
+  #profileView .profile-map-rail {
+    width: 100%;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  #profileView .profile-map-rail button {
+    width: 100% !important;
+    min-height: 46px !important;
+  }
+  #profileView .profile-weather-card {
+    display: none;
+  }
+  #profileView .profile-reference-grid {
+    display: flex;
+    margin: 0;
+    flex-direction: column;
+  }
+  #profileView .profile-identity-card {
+    min-height: 0;
+  }
+  #profileView .profile-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  #profileView .profile-vehicle-main {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  #profileView #profileVehicle3d {
+    height: 190px;
+  }
+  #profileView .profile-online-pill {
+    justify-self: center;
+  }
+  #profileView .profile-trip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #profileView .profile-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  #profileView .profile-bottom-card {
+    min-height: 175px;
+  }
+}
+
+/* Regras finais do perfil: não permitir que estilos legados ocultem o mapa. */
+body[data-active-panel='profile'] .map-panel-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#profileView.view.active {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+#profileView .profile-reference-shell {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Ocupa a área útil como na referência, mantendo respiro apenas nas bordas. */
+#profileView.view.active {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#profileView .profile-reference-shell {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  padding: clamp(20px, 2vw, 40px) !important;
+  border-radius: 0 !important;
+}
+
+#profileView .profile-left-tools {
+  inset: clamp(20px, 2vw, 40px) auto clamp(20px, 2vw, 40px) clamp(20px, 2vw, 40px) !important;
+}
+
+#profileView .profile-reference-grid {
+  width: auto;
+  margin-left: 254px !important;
+}
+
+body[data-active-panel='profile'] #trackingView #map,
+body[data-active-panel='profile'] #trackingView .maplibregl-canvas,
+body[data-active-panel='profile'] #trackingView .leaflet-tile-pane {
+  opacity: 1 !important;
+  filter: saturate(1.22) contrast(1.06) brightness(0.96) !important;
+}
+
+#profileView .profile-action-card > button,
+#profileView .profile-bottom-card button,
+#profileView #profileVehicleDetailsBtn {
+  min-height: 34px !important;
+  margin-inline: 0 !important;
+  padding: 7px 12px !important;
+}
+
+@media (max-width: 1120px) {
+  #profileView .profile-reference-grid {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #profileView.view.active {
+    padding: 7px !important;
+  }
+
+  #profileView .profile-reference-shell {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* Encaixe desktop: toda a grade permanece dentro da área útil destacada. */
+@media (min-width: 1121px) {
+  #profileView .profile-reference-shell {
+    padding: 24px 40px 10px !important;
+    overflow: hidden !important;
+  }
+
+  #profileView .profile-reference-grid {
+    height: auto;
+    max-height: 100%;
+    min-height: 0;
+    width: min(1380px, calc(100% - 326px));
+    margin-right: auto;
+    grid-template-columns: 280px minmax(0, 1.25fr) minmax(0, 0.98fr);
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
+  #profileView .profile-identity-card,
+  #profileView .profile-summary-card,
+  #profileView .profile-vehicle-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-right-stack,
+  #profileView .profile-bottom-grid,
+  #profileView .profile-bottom-card {
+    min-height: 0 !important;
+  }
+
+  #profileView .profile-reference-grid > .profile-summary-card {
+    height: 220px;
+    min-height: 220px;
+    align-self: start;
+  }
+
+  #profileView .profile-vehicle-card {
+    min-height: 242px !important;
+  }
+
+  #profileView .profile-activity-card,
+  #profileView .profile-right-stack {
+    min-height: 322px !important;
+  }
+
+  #profileView .profile-activity-card {
+    min-height: 374px !important;
+    margin-top: -52px;
+  }
+
+  #profileView .profile-bottom-card {
+    min-height: 156px !important;
+  }
+
+  #profileView .profile-ref-card {
+    padding: 14px 16px;
+  }
+
+  #profileView .profile-ref-card header {
+    margin-bottom: 10px;
+  }
+
+  #profileView .profile-avatar {
+    width: 62px;
+    height: 62px;
+    margin-bottom: 6px;
+  }
+
+  #profileView .profile-contact-id {
+    margin: 10px 0 8px;
+    padding: 11px 13px;
+  }
+
+  #profileView .profile-contact-qr {
+    width: 120px;
+    height: 120px;
+  }
+
+  #profileView .profile-account-facts {
+    margin-top: 8px;
+  }
+
+  #profileView .profile-account-facts div {
+    padding: 6px 0;
+  }
+
+  #profileView .profile-summary-grid article {
+    min-height: 94px;
+    padding: 9px 10px;
+  }
+
+  #profileView .profile-vehicle-main {
+    min-height: 92px;
+  }
+
+  #profileView .profile-vehicle-main > div {
+    min-width: 0;
+  }
+
+  #profileView .profile-vehicle-main > div strong,
+  #profileView .profile-vehicle-main > div span {
+    overflow-wrap: anywhere;
+  }
+
+  #profileView #profileVehicle3d {
+    height: 94px;
+  }
+
+  #profileView .profile-vehicle-telemetry {
+    margin: 2px 0 8px;
+  }
+
+  #profileView .profile-vehicle-telemetry > div {
+    padding: 8px 11px;
+  }
+
+  #profileView #profileVehicleDetailsBtn,
+  #profileView .profile-action-card > button,
+  #profileView .profile-bottom-card button {
+    min-height: 32px !important;
+    padding-block: 5px !important;
+  }
+
+  #profileView .profile-trip {
+    min-height: 41px;
+    padding-block: 7px;
+  }
+
+  #profileView .profile-activity-card header h2 {
+    font-size: 17px;
+  }
+
+  #profileView .profile-right-stack {
+    grid-template-rows: repeat(2, minmax(148px, auto));
+  }
+
+  #profileView .profile-action-card {
+    padding: 14px 17px;
+  }
+
+  #profileView .profile-bottom-card {
+    padding: 12px 14px;
+  }
+
+  #profileView .profile-bottom-card h3 {
+    margin-bottom: 8px;
+  }
+
+  #profileView .profile-bottom-card p {
+    margin: 3px 0 7px;
+  }
+
+  #profileView .profile-ok-symbol {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 4px;
+    font-size: 16px;
+  }
+
+  #profileView .profile-ref-card button:not(#profileLogoutBtn) {
+    border: 1px solid #c7d6e2 !important;
+    background: #edf3f7 !important;
+    color: #17344f !important;
+    font-weight: 750 !important;
+    opacity: 1 !important;
+  }
+
+  #profileView .profile-ref-card button:not(#profileLogoutBtn):hover:not(:disabled) {
+    border-color: #6da9dc !important;
+    background: #e2effa !important;
+    color: #075fae !important;
+  }
+
+  #profileView .profile-ref-card button:disabled:not(#profileLogoutBtn) {
+    border-color: #d2dce4 !important;
+    background: #f0f4f7 !important;
+    color: #687e91 !important;
+    opacity: 1 !important;
+  }
+
+  #profileView .profile-activity-card header button {
+    padding-inline: 14px !important;
+  }
+}
+
+/* Modal de configurações: cada atalho exibe apenas sua seção, sem herdar o painel escuro. */
+#profileView .profile-settings-dialog {
+  width: min(900px, calc(100vw - 40px));
+  max-width: 900px;
+  max-height: min(88dvh, 900px);
+  overflow: hidden;
+  color-scheme: light;
+  border: 1px solid #b9c9d7;
+  border-radius: 20px;
+  background: #eef3f7 !important;
+}
+
+#profileView .profile-settings-dialog > header {
+  min-height: 82px;
+  padding: 17px 22px;
+}
+
+#profileView .profile-settings-dialog > header h2 {
+  margin-top: 3px;
+  font-size: 23px;
+}
+
+#profileView .profile-settings-content {
+  display: block;
+  width: 100%;
+  max-height: calc(88dvh - 82px);
+  padding: 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: #eef3f7;
+}
+
+#profileView .profile-settings-content > .card[hidden] {
+  display: none !important;
+}
+
+#profileView .profile-settings-content > .card {
+  position: static !important;
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 0 16px !important;
+  padding: 24px !important;
+  overflow: visible !important;
+  border: 1px solid #d2dde6 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #12283c !important;
+  box-shadow: 0 8px 22px rgba(16, 43, 66, 0.08) !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content > .card:last-child {
+  margin-bottom: 0 !important;
+}
+
+#profileView .profile-settings-content .card h2,
+#profileView .profile-settings-content .card h3,
+#profileView .profile-settings-content .card strong,
+#profileView .profile-settings-content .card b,
+#profileView .profile-settings-content .card label {
+  color: #12283c !important;
+}
+
+#profileView .profile-settings-content .card h2 {
+  margin: 3px 0 8px;
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+#profileView .profile-settings-content .card h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+#profileView .profile-settings-content .card p,
+#profileView .profile-settings-content .card small {
+  color: #65798b !important;
+  line-height: 1.5;
+}
+
+#profileView .profile-settings-content .eyebrow {
+  color: #087bf0 !important;
+}
+
+#profileView .profile-settings-content .profile-poi-settings,
+#profileView .profile-settings-content .notification-preference-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label,
+#profileView .profile-settings-content .notification-preference-list label {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid #d3dfe8;
+  border-radius: 11px;
+  background: #f6f9fb !important;
+  font-size: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content .profile-poi-settings .poi-group-title {
+  grid-column: 1 / -1;
+  margin: 10px 0 -2px;
+  color: #087bf0 !important;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+#profileView .profile-settings-content .profile-poi-settings .poi-essential {
+  border-color: #b9d8cc;
+  background: #effaf5 !important;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label span {
+  display: grid;
+  gap: 2px;
+}
+
+#profileView .profile-settings-content .profile-poi-settings label small {
+  color: #15865d !important;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+#profileView .profile-settings-content .profile-poi-settings input:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+#profileView .profile-settings-content .poi-restore-defaults {
+  margin-top: 18px;
+}
+
+#profileView .profile-settings-content input[type='checkbox'] {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  flex: none;
+  accent-color: #087bf0;
+}
+
+#profileView .profile-settings-content input:not([type='checkbox']),
+#profileView .profile-settings-content select,
+#profileView .profile-settings-content textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  margin-top: 6px;
+  padding: 10px 12px !important;
+  border: 1px solid #c9d6e0 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #12283c !important;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content input[type='file'] {
+  padding: 7px !important;
+}
+
+#profileView .profile-settings-content button:not(.danger) {
+  min-height: 40px !important;
+  padding: 9px 14px !important;
+  border: 1px solid #b7cad9 !important;
+  border-radius: 10px !important;
+  background: #e8f1f8 !important;
+  color: #153b5c !important;
+  font-weight: 750 !important;
+}
+
+#profileView .profile-settings-content .verification-row,
+#profileView .profile-settings-content .empty-fines {
+  border-color: #d8e2ea !important;
+  background: #f6f9fb !important;
+}
+
+#profileView .profile-settings-content .privacy-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#profileView .profile-settings-content .privacy-card > h2 {
+  grid-column: 1 / -1;
+}
+
+#profileView .profile-settings-content .password-change,
+#profileView .profile-settings-content .privacy-export,
+#profileView .profile-settings-content .privacy-danger {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #d8e2ea;
+  border-radius: 13px;
+  background: #f7fafc;
+  box-sizing: border-box;
+}
+
+#profileView .profile-settings-content .privacy-danger {
+  grid-column: 1 / -1;
+  border-color: #f0c8c5;
+  background: #fff8f7;
+}
+
+#profileView .profile-settings-content .privacy-danger .danger {
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #e9322c !important;
+  color: #fff !important;
+}
+
+@media (max-width: 680px) {
+  #profileView .profile-settings-dialog {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  #profileView .profile-settings-content {
+    max-height: calc(100dvh - 102px);
+    padding: 14px;
+  }
+
+  #profileView .profile-settings-content > .card {
+    padding: 18px !important;
+  }
+
+  #profileView .profile-settings-content .profile-poi-settings,
+  #profileView .profile-settings-content .notification-preference-list,
+  #profileView .profile-settings-content .privacy-card {
+    grid-template-columns: 1fr;
+  }
+
+  #profileView .profile-settings-content .privacy-card > h2,
+  #profileView .profile-settings-content .privacy-danger {
+    grid-column: 1;
+  }
+}
+
+/* Especificidade deliberada: impede o tema do painel de recolorir o conteúdo do modal. */
+#profileView #profileSettingsDialog .profile-settings-content > .card {
+  position: static !important;
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  border-color: #d2dde6 !important;
+  background: #fff !important;
+  color: #12283c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content > .card[hidden] {
+  display: none !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content .card h2,
+#profileView #profileSettingsDialog .profile-settings-content .card h3,
+#profileView #profileSettingsDialog .profile-settings-content .card strong,
+#profileView #profileSettingsDialog .profile-settings-content .card label {
+  color: #12283c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content .card p,
+#profileView #profileSettingsDialog .profile-settings-content .card small {
+  color: #65798b !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content button:not(.danger) {
+  border-color: #b7cad9 !important;
+  background: #e8f1f8 !important;
+  color: #153b5c !important;
+}
+
+#profileView #profileSettingsDialog .profile-settings-content input,
+#profileView #profileSettingsDialog .profile-settings-content select,
+#profileView #profileSettingsDialog .profile-settings-content textarea {
+  border-color: #c9d6e0 !important;
+  background-color: #fff !important;
+  color: #12283c !important;
+}
+
+/* No Perfil, somente os cartões flutuantes permanecem nítidos; o mapa usa o backdrop padrão. */
+body:has(#profileView.active) .map-panel-backdrop,
+body[data-active-panel='profile'] .map-panel-backdrop {
+  opacity: 1 !important;
+  pointer-events: none !important;
+  background: rgba(4, 12, 22, 0.16) !important;
+  backdrop-filter: blur(1px) !important;
+  -webkit-backdrop-filter: blur(1px) !important;
+}
+
+/*
+ * Layout responsivo definitivo do Perfil.
+ * Mantido no escopo de #profileView para não alterar a homepage nem as demais abas.
+ */
+#profileView.view.active {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  place-items: start center !important;
+  scrollbar-gutter: stable;
+}
+
+#profileView .profile-reference-shell {
+  width: min(calc(100% - 32px), 1760px) !important;
+  height: auto !important;
+  min-height: 100% !important;
+  margin-inline: auto !important;
+  padding: clamp(16px, 2vw, 40px) !important;
+  overflow: visible !important;
+}
+
+#profileView .profile-reference-grid {
+  grid-template-columns:
+    minmax(250px, 0.82fr)
+    minmax(380px, 1.28fr)
+    minmax(310px, 1fr);
+  width: auto !important;
+  max-width: 1400px;
+  margin-left: clamp(210px, 14vw, 254px) !important;
+}
+
+#profileView .profile-left-tools {
+  left: clamp(16px, 2vw, 40px) !important;
+}
+
+/* Notebook: o conteúdo passa para duas colunas e continua rolável por inteiro. */
+@media (max-width: 1366px) {
+  #profileView .profile-reference-shell {
+    width: calc(100% - 20px) !important;
+    padding: 18px !important;
+  }
+
+  #profileView .profile-left-tools {
+    position: static !important;
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(230px, 1fr) auto minmax(140px, 180px);
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+
+  #profileView .profile-live-card {
+    width: auto;
+    min-height: 126px;
+  }
+
+  #profileView .profile-map-rail {
+    width: auto;
+    grid-template-columns: repeat(5, 46px);
+    margin: 0;
+  }
+
+  #profileView .profile-map-rail button {
+    width: 46px !important;
+    height: 100% !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.09) !important;
+  }
+
+  #profileView .profile-weather-card {
+    width: auto;
+    margin: 0;
+  }
+
+  #profileView .profile-reference-grid {
+    grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-areas:
+      'identity summary'
+      'identity vehicle'
+      'activity side'
+      'bottom bottom';
+    max-width: none;
+    margin-left: 0 !important;
+  }
+
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Tablet e janelas estreitas. */
+@media (max-width: 820px) {
+  #profileView .profile-left-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  #profileView .profile-weather-card {
+    display: none;
+  }
+
+  #profileView .profile-reference-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'identity'
+      'summary'
+      'vehicle'
+      'activity'
+      'side'
+      'bottom';
+  }
+
+  #profileView .profile-identity-card {
+    min-height: 0;
+  }
+
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Celular em pé. */
+@media (max-width: 560px) {
+  #profileView.view.active {
+    scrollbar-gutter: auto;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+
+  #profileView .profile-left-tools,
+  #profileView .profile-summary-grid,
+  #profileView .profile-bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #profileView .profile-map-rail {
+    width: 100%;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  #profileView .profile-map-rail button {
+    width: 100% !important;
+    min-height: 46px !important;
+  }
+
+  #profileView .profile-ref-card {
+    padding: 16px;
+  }
+
+  #profileView .profile-bottom-card {
+    min-height: 160px;
+  }
+}
+
+/* Celular deitado: duas colunas aproveitam a largura sem cortar a página. */
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 960px) {
+  #profileView.view.active {
+    inset: calc(56px + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom) !important;
+  }
+
+  #profileView .profile-reference-shell {
+    width: 100% !important;
+    padding: 8px 12px 18px !important;
+  }
+
+  #profileView .profile-left-tools {
+    grid-template-columns: minmax(210px, 1fr) minmax(230px, auto);
+  }
+
+  #profileView .profile-live-card {
+    min-height: 100px;
+    padding: 14px 18px;
+  }
+
+  #profileView .profile-map-rail {
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+  }
+
+  #profileView .profile-reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'identity summary'
+      'vehicle activity'
+      'side side'
+      'bottom bottom';
+  }
+
+  #profileView .profile-summary-grid,
+  #profileView .profile-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #profileView .profile-right-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #profileView .profile-identity-card,
+  #profileView .profile-activity-card,
+  #profileView .profile-bottom-card {
+    min-height: 0;
+  }
+}

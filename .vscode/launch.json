@@ -5,7 +5,7 @@
       "name": "RastroTack: servidor",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/server/server.js",
+      "program": "${workspaceFolder}/backend/server/server.js",
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "skipFiles": ["<node_internals>/**"]
