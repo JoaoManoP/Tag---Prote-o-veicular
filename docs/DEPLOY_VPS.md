@@ -4,16 +4,44 @@ O modelo Nginx versionado está em `deploy/protec.nexobg.com.br.nginx.conf`.
 
 ## Fluxo obrigatório
 
-1. Executar `npm run db:backup` e copiar também o `.env` por um canal seguro. O comando usa `VACUUM INTO` e valida a cópia SQLite.
-2. `npm ci --omit=dev` em release versionada.
-3. Executar `npm run predeploy` antes da publicação.
-4. Conferir migrations sem apagar dados.
-5. Reiniciar por PM2/systemd/painel, nunca por processo manual permanente.
-6. Validar `/api/health` e `/api/ready`.
-7. Executar smoke test autenticado e WebSocket.
-8. Conferir logs e manter release anterior para rollback.
+1. Executar o preflight de colaboração descrito abaixo e identificar o commit da última publicação bem-sucedida.
+2. Executar `npm run db:backup` e copiar também o `.env` por um canal seguro. O comando usa `VACUUM INTO` e valida a cópia SQLite.
+3. `npm ci --omit=dev` em release versionada.
+4. Executar `npm run predeploy` antes da publicação.
+5. Conferir migrations sem apagar dados.
+6. Reiniciar por PM2/systemd/painel, nunca por processo manual permanente.
+7. Validar `/api/health` e `/api/ready`.
+8. Executar smoke test autenticado e WebSocket.
+9. Conferir logs e manter release anterior para rollback.
 
 O deploy permanece bloqueado até existir acesso autorizado ao ambiente real.
+
+### Preflight de colaboração e publicação
+
+Antes de empacotar ou sincronizar uma release:
+
+- atualizar as referências remotas com `git fetch --prune`;
+- conferir `git status`, branches locais/remotas e divergências com `origin/main`;
+- revisar commits recentes, autores e arquivos modificados por outros usuários ou por outras sessões do mesmo usuário;
+- consultar os workflows anteriores de CI e deploy, incluindo falhas e execuções pendentes;
+- identificar o SHA efetivamente publicado e comparar `SHA publicado...SHA candidato`;
+- comparar a estrutura ativa na VPS com a árvore da release, sem presumir que `main` representa o servidor;
+- confirmar que layouts, mapa, localização, modelo 3D, banco e arquivos operacionais preexistentes serão preservados;
+- interromper o deploy quando houver arquivos exclusivos do servidor, branches divergentes ou mudanças concorrentes cuja origem não esteja clara.
+
+`rsync --delete`, remoção de diretórios, troca de estrutura (`backend/frontend`, monólito ou equivalente) e substituição de configuração do PM2 exigem comparação prévia e aprovação específica. Uma autorização genérica de deploy não autoriza apagar ou reverter trabalho existente.
+
+### Fase separada para banco de dados
+
+O manifesto da release compara a candidata com o último deploy bem-sucedido. Alterações em migrations, inicialização, acesso, backup ou estrutura versionada do banco são classificadas como críticas.
+
+- O deploy automático é bloqueado quando houver impacto crítico de banco.
+- A publicação deve ser iniciada manualmente com `approve_database_changes=true` após revisão específica.
+- O backup validado é criado com a release ainda ativa, antes da sincronização de código.
+- `db:init` roda em uma fase separada somente quando o manifesto indicar mudança crítica aprovada.
+- Contas administrativas não são mais reprovisionadas em todo deploy; essa mutação exige execução manual com `provision_staff=true`.
+- O manifesto anterior verifica alterações feitas diretamente na VPS e bloqueia a sobreposição. Na primeira execução, a comparação usa o manifesto reconstruído do último deploy bem-sucedido.
+- A sincronização normal não usa `--delete`; arquivos desconhecidos não são removidos silenciosamente.
 
 ## Atualização automática pelo GitHub Actions
 
