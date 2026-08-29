@@ -1034,22 +1034,35 @@ function createApplication(options = {}) {
           .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
           .join(''),
         query = `[out:json][timeout:14];(${clauses});out center 240;`,
-        overpassUrls = String(
-          process.env.OVERPASS_API_URLS ||
-            process.env.OVERPASS_API_URL ||
-            'https://overpass-api.de/api/interpreter'
-        )
-          .split(',')
-          .map(value => value.trim().replace(/\/$/, ''))
-          .filter(value => /^https:\/\//.test(value))
-          .slice(0, 3);
+        configuredOverpassUrls = String(
+          process.env.OVERPASS_API_URLS || process.env.OVERPASS_API_URL || ''
+        ).split(','),
+        overpassUrls = [
+          ...new Set(
+            [
+              ...configuredOverpassUrls,
+              'https://overpass-api.de/api/interpreter',
+              'https://lz4.overpass-api.de/api/interpreter',
+              'https://z.overpass-api.de/api/interpreter'
+            ]
+              .map(value => value.trim().replace(/\/$/, ''))
+              .filter(value => /^https:\/\//.test(value))
+          )
+        ].slice(0, 5),
+        requestBody = `data=${encodeURIComponent(query)}`;
       let data,
         lastStatus = null;
       for (const overpassUrl of overpassUrls) {
         try {
-          const response = await fetch(`${overpassUrl}?data=${encodeURIComponent(query)}`, {
-            signal: AbortSignal.timeout(16000),
-            headers: { 'User-Agent': 'Rastreon/1.0' }
+          const response = await fetch(overpassUrl, {
+            method: 'POST',
+            body: requestBody,
+            signal: AbortSignal.timeout(12000),
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'User-Agent': 'Rastreon/1.0'
+            }
           });
           lastStatus = response.status;
           if (response.ok) {
@@ -1058,6 +1071,8 @@ function createApplication(options = {}) {
           }
         } catch {}
       }
+      if (!data && cached?.staleUntil > Date.now())
+        return res.json({ places: cached.places, cached: true, stale: true });
       if (!data)
         throw new Error(`Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`);
 
@@ -1084,7 +1099,11 @@ function createApplication(options = {}) {
         .filter(
           item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
         );
-      poiCache.set(key, { places, expiresAt: Date.now() + 300000 });
+      poiCache.set(key, {
+        places,
+        expiresAt: Date.now() + 300000,
+        staleUntil: Date.now() + 86400000
+      });
       res.json({ places, cached: false, scope: route.length ? 'route-corridor' : 'nearby' });
     } catch {
       res.status(502).json({ error: 'Locais próximos indisponíveis no momento.' });
@@ -3779,7 +3798,8 @@ function createApplication(options = {}) {
     for (const [id, tracking] of sessions)
       if (tracking.closed || now - tracking.createdAt > ttlMs) sessions.delete(id);
     for (const [key, value] of serviceCache) if (value.expiresAt <= now) serviceCache.delete(key);
-    for (const [key, value] of poiCache) if (value.expiresAt <= now) poiCache.delete(key);
+    for (const [key, value] of poiCache)
+      if ((value.staleUntil || value.expiresAt) <= now) poiCache.delete(key);
   }, 60000);
   cleanup.unref();
   const close = () => {
