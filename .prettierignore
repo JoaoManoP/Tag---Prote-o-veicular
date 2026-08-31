@@ -7,6 +7,9 @@ mobile/.expo-export-check/
 mobile/package-lock-*-backup.json
 client/dist/
 public/js/*.bundle.js
+frontend/mobile/package-lock-*-backup.json
+frontend/client/dist/
+frontend/web/js/*.bundle.js
 public/models/
 data/
 backups/

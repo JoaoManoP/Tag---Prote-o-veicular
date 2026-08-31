@@ -215,12 +215,18 @@ function createConvoyRouter({
 
   router.patch('/sessions/:id/details', (req, res) => {
     const session = database
-      .prepare("SELECT owner_user_id AS ownerId FROM convoy_sessions WHERE id=? AND status='ACTIVE'")
+      .prepare(
+        "SELECT owner_user_id AS ownerId FROM convoy_sessions WHERE id=? AND status='ACTIVE'"
+      )
       .get(req.params.id);
     if (!session || session.ownerId !== req.auth.userId)
       return res.status(403).json({ error: 'Somente o líder pode alterar destino e rota.' });
-    const destinationLabel = String(req.body?.destinationLabel || '').trim().slice(0, 160),
-      routeLabel = String(req.body?.routeLabel || '').trim().slice(0, 240);
+    const destinationLabel = String(req.body?.destinationLabel || '')
+        .trim()
+        .slice(0, 160),
+      routeLabel = String(req.body?.routeLabel || '')
+        .trim()
+        .slice(0, 240);
     database
       .prepare('UPDATE convoy_sessions SET destination_label=?,route_label=? WHERE id=?')
       .run(destinationLabel || null, routeLabel || null, req.params.id);
@@ -304,8 +310,7 @@ function installConvoySocket({ io, database }) {
       const userId = Number(socket.request.session?.userId),
         convoyId = socket.data.convoyId,
         signal = String(payload.signal || '').toUpperCase();
-      if (!convoyId || !activeMember(database, convoyId, userId))
-        return acknowledge({ ok: false });
+      if (!convoyId || !activeMember(database, convoyId, userId)) return acknowledge({ ok: false });
       if (!['STOPPED', 'HELP', 'LEAVING'].includes(signal))
         return acknowledge({ ok: false, error: 'Aviso inválido.' });
       const user = database.prepare('SELECT name FROM users WHERE id=?').get(userId);

@@ -109,9 +109,7 @@
     const dLng = radians(b.longitude - a.longitude);
     const value =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos(radians(a.latitude)) *
-        Math.cos(radians(b.latitude)) *
-        Math.sin(dLng / 2) ** 2;
+      Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2;
     return 6371000 * 2 * Math.asin(Math.sqrt(value));
   }
   function updateCommunityMap() {
@@ -134,8 +132,10 @@
     const latitudes = entries.map(entry => Number(entry.latitude)).filter(Number.isFinite);
     const longitudes = entries.map(entry => Number(entry.longitude)).filter(Number.isFinite);
     if (!latitudes.length) return;
-    const minLat = Math.min(...latitudes), maxLat = Math.max(...latitudes);
-    const minLng = Math.min(...longitudes), maxLng = Math.max(...longitudes);
+    const minLat = Math.min(...latitudes),
+      maxLat = Math.max(...latitudes);
+    const minLng = Math.min(...longitudes),
+      maxLng = Math.max(...longitudes);
     for (const entry of entries) {
       const marker = node('button', `mini-map-marker ${kind}`, kind === 'report' ? '!' : '⛽');
       marker.type = 'button';
@@ -188,11 +188,15 @@
     if (!price) return notice('Não há preço informado para confirmar.');
     try {
       const result = await api(`/api/platform/stations/${station.id}/prices/${price.id}/confirm`, {
-        method: 'PUT', body: {}, csrf: true
+        method: 'PUT',
+        body: {},
+        csrf: true
       });
       notice(`Preço confirmado por ${result.confirmations} pessoa(s).`);
       loadStations(state.stationRadius);
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function uploadPhoto(entityType, entityId) {
     const input = document.createElement('input');
@@ -333,8 +337,7 @@
     state.stations = stations
       .map(station => ({
         ...station,
-        distanceMeters:
-          station.distanceMeters ?? Math.round(distanceMeters(position, station))
+        distanceMeters: station.distanceMeters ?? Math.round(distanceMeters(position, station))
       }))
       .filter(station => station.distanceMeters <= state.stationRadius)
       .sort((a, b) => a.distanceMeters - b.distanceMeters);
@@ -434,7 +437,13 @@
     const brand = (byId('stationBrand')?.value || '').trim().toLowerCase();
     const sort = byId('stationSort')?.value || 'distance';
     const stations = state.stations
-      .filter(station => !brand || String(station.brand || '').toLowerCase().includes(brand))
+      .filter(
+        station =>
+          !brand ||
+          String(station.brand || '')
+            .toLowerCase()
+            .includes(brand)
+      )
       .filter(station => !fuel || stationBestPrice(station, fuel) !== Infinity)
       .sort((a, b) =>
         sort === 'price'
@@ -445,7 +454,10 @@
     renderMiniMap(byId('stationMiniMap'), stations, 'station');
     if (!stations.length) return empty(host, 'Nenhum posto corresponde aos filtros desta aba.');
     for (const station of stations) {
-      const confirmationCount = Math.max(0, ...(station.prices || []).map(value => value.confirmations || 0));
+      const confirmationCount = Math.max(
+        0,
+        ...(station.prices || []).map(value => value.confirmations || 0)
+      );
       const article = item(
         station.name,
         `${station.brand || 'Sem bandeira'} · ${distanceLabel(station.distanceMeters)} · ${station.address || ''}`
@@ -462,13 +474,22 @@
         node(
           'strong',
           'station-featured-price',
-          price === Infinity ? 'Preço não informado' : `A partir de R$ ${price.toFixed(2).replace('.', ',')}`
+          price === Infinity
+            ? 'Preço não informado'
+            : `A partir de R$ ${price.toFixed(2).replace('.', ',')}`
         )
       );
       const stationActions = [{ label: 'Ir até o posto', action: () => navigateTo(station) }];
       if (station.registered) {
-        stationActions.unshift({ label: 'Atualizar preço', action: () => submitFuelPrice(station) });
-        stationActions.unshift({ label: 'Confirmar preço', secondary: true, action: () => confirmFuelPrice(station, fuel) });
+        stationActions.unshift({
+          label: 'Atualizar preço',
+          action: () => submitFuelPrice(station)
+        });
+        stationActions.unshift({
+          label: 'Confirmar preço',
+          secondary: true,
+          action: () => confirmFuelPrice(station, fuel)
+        });
       }
       actions(article, stationActions);
       host.append(article);
@@ -581,8 +602,15 @@
           )
         );
         actions(article, [
-          { label: report.myVote === 'CONFIRM' ? 'Confirmado' : 'Confirmar', action: () => voteReport(report.id, 'CONFIRM') },
-          { label: 'Não está mais ocorrendo', secondary: true, action: () => voteReport(report.id, 'RESOLVED') },
+          {
+            label: report.myVote === 'CONFIRM' ? 'Confirmado' : 'Confirmar',
+            action: () => voteReport(report.id, 'CONFIRM')
+          },
+          {
+            label: 'Não está mais ocorrendo',
+            secondary: true,
+            action: () => voteReport(report.id, 'RESOLVED')
+          },
           { label: 'Comentar', secondary: true, action: () => comments('ROAD_REPORT', report.id) },
           {
             label: 'Enviar foto',
@@ -662,7 +690,11 @@
       `/api/platform/photos?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
       {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': file.type, 'X-CSRF-Token': await token() },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': file.type,
+          'X-CSRF-Token': await token()
+        },
         body: file
       }
     );
@@ -723,17 +755,42 @@
         )
       );
       actions(article, [
-        { label: `Confirmo (${message.reactions.confirm})`, action: () => reactPx(message.id, 'CONFIRM') },
-        { label: `Obrigado (${message.reactions.thanks})`, secondary: true, action: () => reactPx(message.id, 'THANKS') },
+        {
+          label: `Confirmo (${message.reactions.confirm})`,
+          action: () => reactPx(message.id, 'CONFIRM')
+        },
+        {
+          label: `Obrigado (${message.reactions.thanks})`,
+          secondary: true,
+          action: () => reactPx(message.id, 'THANKS')
+        },
         { label: 'Responder', secondary: true, action: () => setPxReply(message) },
-        { label: 'Denunciar', secondary: true, action: () => reportContent('PX_MESSAGE', message.id) },
+        {
+          label: 'Denunciar',
+          secondary: true,
+          action: () => reportContent('PX_MESSAGE', message.id)
+        },
         ...(state.pxCanModerate
-          ? [{ label: message.pinned ? 'Desafixar' : 'Fixar', secondary: true, action: () => pinPx(message) }]
+          ? [
+              {
+                label: message.pinned ? 'Desafixar' : 'Fixar',
+                secondary: true,
+                action: () => pinPx(message)
+              }
+            ]
           : []),
         ...(!message.mine
           ? [
-              { label: 'Silenciar', secondary: true, action: () => managePxUser(message.author.userId, 'mute') },
-              { label: 'Bloquear', secondary: true, action: () => managePxUser(message.author.userId, 'block') }
+              {
+                label: 'Silenciar',
+                secondary: true,
+                action: () => managePxUser(message.author.userId, 'mute')
+              },
+              {
+                label: 'Bloquear',
+                secondary: true,
+                action: () => managePxUser(message.author.userId, 'block')
+              }
             ]
           : [])
       ]);
@@ -742,38 +799,62 @@
     const summary = byId('communityPxSummary');
     if (summary) {
       summary.replaceChildren();
-      for (const message of data.messages.filter(value => value.pinned || value.reactions.confirm > 0).slice(0, 3))
-        summary.append(item(message.pinned ? 'Mensagem fixada' : `${message.reactions.confirm} confirmações`, message.body));
+      for (const message of data.messages
+        .filter(value => value.pinned || value.reactions.confirm > 0)
+        .slice(0, 3))
+        summary.append(
+          item(
+            message.pinned ? 'Mensagem fixada' : `${message.reactions.confirm} confirmações`,
+            message.body
+          )
+        );
       if (!summary.children.length) empty(summary, 'Nenhuma mensagem importante neste momento.');
     }
   }
   function setPxReply(message) {
     state.pxReply = message;
     const preview = byId('pxReplyPreview');
-    preview.querySelector('span').textContent = `Respondendo a ${message.author.displayName}: ${message.body}`;
+    preview.querySelector('span').textContent =
+      `Respondendo a ${message.author.displayName}: ${message.body}`;
     preview.classList.remove('hidden');
     byId('pxBody').focus();
   }
   async function reactPx(id, reaction) {
     try {
-      await api(`/api/platform/px/messages/${id}/reactions`, { method: 'PUT', body: { reaction }, csrf: true });
+      await api(`/api/platform/px/messages/${id}/reactions`, {
+        method: 'PUT',
+        body: { reaction },
+        csrf: true
+      });
       await loadPxMessages();
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function managePxUser(userId, action) {
     try {
-      await api(`/api/platform/px/users/${userId}/${action}`, { method: 'POST', body: {}, csrf: true });
+      await api(`/api/platform/px/users/${userId}/${action}`, {
+        method: 'POST',
+        body: {},
+        csrf: true
+      });
       notice(action === 'mute' ? 'Usuário silenciado.' : 'Usuário bloqueado.');
       await loadPxMessages();
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function pinPx(message) {
     try {
       await api(`/api/platform/px/messages/${message.id}/pin`, {
-        method: 'PATCH', body: { pinned: !message.pinned }, csrf: true
+        method: 'PATCH',
+        body: { pinned: !message.pinned },
+        csrf: true
       });
       await loadPxMessages();
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function submitPx(event) {
     event.preventDefault();
@@ -809,9 +890,7 @@
       byId('chatEnabled').checked = settings.chat.enabled;
       state.conversations = conversations.conversations;
       if (byId('communityConversationCount'))
-        byId('communityConversationCount').textContent = String(
-          conversations.conversations.length
-        );
+        byId('communityConversationCount').textContent = String(conversations.conversations.length);
       const summary = byId('communityConversationSummary');
       if (summary) {
         summary.replaceChildren();
@@ -822,7 +901,9 @@
           const avatar = node(
             'i',
             'px-avatar',
-            String(conversation.peer.displayName || '?').slice(0, 2).toUpperCase()
+            String(conversation.peer.displayName || '?')
+              .slice(0, 2)
+              .toUpperCase()
           );
           const copy = node('span');
           copy.append(
@@ -871,7 +952,8 @@
           conversation.peer.displayName,
           `${conversation.archived ? 'Arquivada · ' : ''}${conversation.unreadCount ? `${conversation.unreadCount} não lida(s) · ` : ''}${conversation.lastMessage || 'Sem mensagens'} · ${formatDate(conversation.lastMessageAt || conversation.updatedAt)}`
         );
-        article.dataset.conversationSearch = `${conversation.peer.displayName} ${conversation.peer.contactId || ''}`.toLowerCase();
+        article.dataset.conversationSearch =
+          `${conversation.peer.displayName} ${conversation.peer.contactId || ''}`.toLowerCase();
         actions(article, [{ label: 'Abrir', action: () => openConversation(conversation.id) }]);
         conversationHost.append(article);
       }
@@ -904,7 +986,11 @@
         const locationActive = message.messageType === 'LOCATION' && message.expiresAt > Date.now();
         const article = item(
           message.mine ? 'Você' : 'Motorista',
-          locationActive ? 'Localização temporária disponível' : message.messageType === 'LOCATION' ? 'Localização expirada' : message.body
+          locationActive
+            ? 'Localização temporária disponível'
+            : message.messageType === 'LOCATION'
+              ? 'Localização expirada'
+              : message.body
         );
         article.classList.add('platform-message');
         if (message.mine) article.classList.add('mine');
@@ -930,14 +1016,18 @@
     if (!state.activeConversation) return;
     try {
       await api(`/api/platform/conversations/${state.activeConversation}`, {
-        method: 'PATCH', body: { action }, csrf: true
+        method: 'PATCH',
+        body: { action },
+        csrf: true
       });
       notice(action === 'ARCHIVE' ? 'Conversa arquivada.' : 'Usuário bloqueado.');
       state.activeConversation = null;
       byId('conversationForm').classList.add('hidden');
       byId('conversationActions').classList.add('hidden');
       loadChat();
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function shareTemporaryLocation() {
     if (!state.activeConversation) return;
@@ -946,12 +1036,18 @@
       const position = await locate();
       await api(`/api/platform/conversations/${state.activeConversation}/messages`, {
         method: 'POST',
-        body: { messageType: 'LOCATION', latitude: position.latitude, longitude: position.longitude },
+        body: {
+          messageType: 'LOCATION',
+          latitude: position.latitude,
+          longitude: position.longitude
+        },
         csrf: true
       });
       notice('Localização compartilhada por 1 hora.');
       openConversation(state.activeConversation);
-    } catch (error) { notice(error.message); }
+    } catch (error) {
+      notice(error.message);
+    }
   }
   async function submitConversation(event) {
     event.preventDefault();
@@ -997,12 +1093,17 @@
       if (!data.routes.length) return empty(host, 'Ainda não há rotas compartilhadas publicadas.');
       for (const route of data.routes) {
         const article = item(route.title, `${route.originLabel} → ${route.destinationLabel}`);
-        if (route.stops.length) article.append(node('p', '', `Paradas: ${route.stops.join(' · ')}`));
-        if (route.alerts.length) article.append(node('p', '', `Alertas: ${route.alerts.join(' · ')}`));
-        if (route.sponsored) article.append(node('span', 'sponsored-label', 'Conteúdo patrocinado'));
+        if (route.stops.length)
+          article.append(node('p', '', `Paradas: ${route.stops.join(' · ')}`));
+        if (route.alerts.length)
+          article.append(node('p', '', `Alertas: ${route.alerts.join(' · ')}`));
+        if (route.sponsored)
+          article.append(node('span', 'sponsored-label', 'Conteúdo patrocinado'));
         host.append(article);
       }
-    } catch (error) { empty(host, error.message); }
+    } catch (error) {
+      empty(host, error.message);
+    }
   }
   async function loadBenefits() {
     const host = byId('benefitList');
@@ -1021,24 +1122,33 @@
         actions(article, [{ label: 'Ir até o parceiro', action: () => navigateTo(benefit) }]);
         host.append(article);
       }
-    } catch (error) { empty(host, error.message); }
+    } catch (error) {
+      empty(host, error.message);
+    }
   }
   function customizeDiscover() {
     const blocks = [...document.querySelectorAll('[data-discover-block]')];
     const names = blocks.map(block => block.dataset.discoverBlock).join(', ');
-    const selected = prompt(`Blocos disponíveis: ${names}. Digite os que deseja mostrar, separados por vírgula:`, localStorage.getItem('rastreon:community-blocks') || names);
+    const selected = prompt(
+      `Blocos disponíveis: ${names}. Digite os que deseja mostrar, separados por vírgula:`,
+      localStorage.getItem('rastreon:community-blocks') || names
+    );
     if (selected == null) return;
     const visible = new Set(selected.split(',').map(value => value.trim().toLowerCase()));
     localStorage.setItem('rastreon:community-blocks', [...visible].join(','));
-    blocks.forEach(block => block.classList.toggle('hidden', !visible.has(block.dataset.discoverBlock)));
+    blocks.forEach(block =>
+      block.classList.toggle('hidden', !visible.has(block.dataset.discoverBlock))
+    );
   }
   function restoreDiscoverBlocks() {
     const saved = localStorage.getItem('rastreon:community-blocks');
     if (!saved) return;
     const visible = new Set(saved.split(','));
-    document.querySelectorAll('[data-discover-block]').forEach(block =>
-      block.classList.toggle('hidden', !visible.has(block.dataset.discoverBlock))
-    );
+    document
+      .querySelectorAll('[data-discover-block]')
+      .forEach(block =>
+        block.classList.toggle('hidden', !visible.has(block.dataset.discoverBlock))
+      );
   }
 
   async function initialize() {
@@ -1056,35 +1166,49 @@
     byId('roadReportMiniMap').addEventListener('click', event => {
       if (!state.position) return chooseReportPosition();
       const bounds = event.currentTarget.getBoundingClientRect();
-      const latitude = state.position.latitude + (0.5 - (event.clientY - bounds.top) / bounds.height) * 0.04;
-      const longitude = state.position.longitude + ((event.clientX - bounds.left) / bounds.width - 0.5) * 0.04;
+      const latitude =
+        state.position.latitude + (0.5 - (event.clientY - bounds.top) / bounds.height) * 0.04;
+      const longitude =
+        state.position.longitude + ((event.clientX - bounds.left) / bounds.width - 0.5) * 0.04;
       byId('roadReportLatitude').value = latitude.toFixed(6);
       byId('roadReportLongitude').value = longitude.toFixed(6);
       notice('Posição da ocorrência ajustada no mapa.');
     });
-    ['reportDistance', 'reportCategoryFilter', 'reportSeverityFilter', 'reportTimeFilter'].forEach(id =>
-      byId(id).addEventListener('change', loadReports)
+    ['reportDistance', 'reportCategoryFilter', 'reportSeverityFilter', 'reportTimeFilter'].forEach(
+      id => byId(id).addEventListener('change', loadReports)
     );
     byId('pxForm').addEventListener('submit', submitPx);
     byId('pxChannel').addEventListener('change', loadPxMessages);
-    byId('pxReplyPreview').querySelector('button').addEventListener('click', () => {
-      state.pxReply = null;
-      byId('pxReplyPreview').classList.add('hidden');
-    });
+    byId('pxReplyPreview')
+      .querySelector('button')
+      .addEventListener('click', () => {
+        state.pxReply = null;
+        byId('pxReplyPreview').classList.add('hidden');
+      });
     byId('conversationForm').addEventListener('submit', submitConversation);
     byId('shareTemporaryLocation').addEventListener('click', shareTemporaryLocation);
     byId('archiveConversation').addEventListener('click', () => conversationAction('ARCHIVE'));
     byId('blockConversation').addEventListener('click', () => conversationAction('BLOCK'));
-    byId('reportConversation').addEventListener('click', () => reportContent('CONVERSATION', state.activeConversation));
+    byId('reportConversation').addEventListener('click', () =>
+      reportContent('CONVERSATION', state.activeConversation)
+    );
     byId('conversationSearch').addEventListener('input', event => {
       const query = event.target.value.trim().toLowerCase();
-      byId('conversationList').querySelectorAll('[data-conversation-search]').forEach(article =>
-        article.classList.toggle('hidden', !article.dataset.conversationSearch.includes(query))
-      );
+      byId('conversationList')
+        .querySelectorAll('[data-conversation-search]')
+        .forEach(article =>
+          article.classList.toggle('hidden', !article.dataset.conversationSearch.includes(query))
+        );
     });
-    byId('stationRadius').addEventListener('change', event => loadStations(Number(event.target.value)));
-    byId('reloadStationTab').addEventListener('click', () => loadStations(Number(byId('stationRadius').value)));
-    ['stationFuel', 'stationSort'].forEach(id => byId(id).addEventListener('change', renderStationTab));
+    byId('stationRadius').addEventListener('change', event =>
+      loadStations(Number(event.target.value))
+    );
+    byId('reloadStationTab').addEventListener('click', () =>
+      loadStations(Number(byId('stationRadius').value))
+    );
+    ['stationFuel', 'stationSort'].forEach(id =>
+      byId(id).addEventListener('change', renderStationTab)
+    );
     byId('stationBrand').addEventListener('input', renderStationTab);
     byId('stationListMode').addEventListener('click', () => {
       byId('stationMiniMap').classList.add('hidden');

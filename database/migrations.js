@@ -771,7 +771,11 @@ const migrations = [
     version: 20,
     name: 'community-hub-regional-channels-and-message-state',
     up(database) {
-      addColumn(database, 'px_messages', 'parent_id TEXT REFERENCES px_messages(id) ON DELETE SET NULL');
+      addColumn(
+        database,
+        'px_messages',
+        'parent_id TEXT REFERENCES px_messages(id) ON DELETE SET NULL'
+      );
       addColumn(database, 'px_messages', 'latitude REAL');
       addColumn(database, 'px_messages', 'longitude REAL');
       addColumn(database, 'px_messages', 'expires_at INTEGER');
@@ -825,9 +829,30 @@ const migrations = [
       const insertChannel = database.prepare(
         'INSERT OR IGNORE INTO px_channels (id,kind,slug,name,description,enabled,created_at) VALUES (?,?,?,?,?,1,?)'
       );
-      insertChannel.run('px-transito', 'REGION', 'transito', 'Trânsito', 'Condições e alertas regionais', createdAt);
-      insertChannel.run('px-ajuda', 'REGION', 'ajuda', 'Ajuda', 'Pedidos de ajuda da região', createdAt);
-      insertChannel.run('px-viagem', 'ROUTE', 'viagem', 'Viagem', 'Dicas e informações de rota', createdAt);
+      insertChannel.run(
+        'px-transito',
+        'REGION',
+        'transito',
+        'Trânsito',
+        'Condições e alertas regionais',
+        createdAt
+      );
+      insertChannel.run(
+        'px-ajuda',
+        'REGION',
+        'ajuda',
+        'Ajuda',
+        'Pedidos de ajuda da região',
+        createdAt
+      );
+      insertChannel.run(
+        'px-viagem',
+        'ROUTE',
+        'viagem',
+        'Viagem',
+        'Dicas e informações de rota',
+        createdAt
+      );
     }
   },
   {

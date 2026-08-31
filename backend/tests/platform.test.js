@@ -257,7 +257,9 @@ test('hub comunitário aplica filtros, reações, distância aproximada e locali
     true
   ).expect(200);
   const pxMessages = await auth(
-    request(app).get('/api/platform/px/channels/px-ajuda/messages?latitude=-19.581&longitude=-42.641'),
+    request(app).get(
+      '/api/platform/px/channels/px-ajuda/messages?latitude=-19.581&longitude=-42.641'
+    ),
     2
   ).expect(200);
   assert.equal(pxMessages.body.messages[0].reactions.thanks, 1);

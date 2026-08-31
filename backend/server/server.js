@@ -1057,8 +1057,7 @@ function createApplication(options = {}) {
           ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
           : '',
         categoryKey = [...categories].sort().join(','),
-        zoomScope =
-          zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
+        zoomScope = zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
         key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${radius}:${routeKey}`,
         cached = poiCache.get(key);
       if (cached && cached.expiresAt > Date.now())

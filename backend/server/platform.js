@@ -1320,7 +1320,9 @@ function createPlatformRouter({
           'INSERT OR IGNORE INTO user_blocks (blocker_user_id,blocked_user_id,created_at) VALUES (?,?,?)'
         )
         .run(req.session.userId, peer, now);
-      database.prepare("UPDATE conversations SET status='BLOCKED',updated_at=? WHERE id=?").run(now, conversation.id);
+      database
+        .prepare("UPDATE conversations SET status='BLOCKED',updated_at=? WHERE id=?")
+        .run(now, conversation.id);
     } else return res.status(400).json({ error: 'Ação inválida.' });
     res.json({ action, ok: true });
   });
@@ -1361,7 +1363,11 @@ function createPlatformRouter({
       messages: rows.map(row => ({
         id: row.id,
         body: row.body,
-        author: { displayName: alias(row.author_name), avatar: row.avatar_data || null, userId: row.user_id },
+        author: {
+          displayName: alias(row.author_name),
+          avatar: row.avatar_data || null,
+          userId: row.user_id
+        },
         replyTo: row.parent_id ? { id: row.parent_id, body: row.parent_body } : null,
         distanceMeters:
           latitude !== null && longitude !== null && row.latitude !== null
@@ -1421,7 +1427,11 @@ function createPlatformRouter({
     const reaction = cleanText(req.body?.reaction, 20).toUpperCase();
     if (!['CONFIRM', 'THANKS'].includes(reaction))
       return res.status(400).json({ error: 'Reação inválida.' });
-    if (!database.prepare("SELECT 1 FROM px_messages WHERE id=? AND status='PUBLISHED'").get(req.params.id))
+    if (
+      !database
+        .prepare("SELECT 1 FROM px_messages WHERE id=? AND status='PUBLISHED'")
+        .get(req.params.id)
+    )
       return res.status(404).json({ error: 'Mensagem não encontrada.' });
     database
       .prepare(
@@ -1446,11 +1456,15 @@ function createPlatformRouter({
       return res.status(400).json({ error: 'Usuário inválido.' });
     if (action === 'MUTE')
       database
-        .prepare('INSERT OR IGNORE INTO user_mutes (user_id,muted_user_id,created_at) VALUES (?,?,?)')
+        .prepare(
+          'INSERT OR IGNORE INTO user_mutes (user_id,muted_user_id,created_at) VALUES (?,?,?)'
+        )
         .run(req.session.userId, target, Date.now());
     else if (action === 'BLOCK')
       database
-        .prepare('INSERT OR IGNORE INTO user_blocks (blocker_user_id,blocked_user_id,created_at) VALUES (?,?,?)')
+        .prepare(
+          'INSERT OR IGNORE INTO user_blocks (blocker_user_id,blocked_user_id,created_at) VALUES (?,?,?)'
+        )
         .run(req.session.userId, target, Date.now());
     else return res.status(400).json({ error: 'Ação inválida.' });
     res.status(204).end();
@@ -1462,7 +1476,12 @@ function createPlatformRouter({
         "SELECT id,title,origin_label AS originLabel,destination_label AS destinationLabel,stops_json AS stops,alerts_json AS alerts,sponsored,updated_at AS updatedAt FROM shared_routes WHERE status='PUBLISHED' ORDER BY updated_at DESC LIMIT 100"
       )
       .all()
-      .map(route => ({ ...route, stops: json(route.stops), alerts: json(route.alerts), sponsored: Boolean(route.sponsored) }));
+      .map(route => ({
+        ...route,
+        stops: json(route.stops),
+        alerts: json(route.alerts),
+        sponsored: Boolean(route.sponsored)
+      }));
     res.json({ routes });
   });
 

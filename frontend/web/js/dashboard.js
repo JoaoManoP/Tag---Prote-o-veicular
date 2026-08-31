@@ -2010,7 +2010,8 @@ window.RastroMap.ready
     function renderVehicleCards() {
       const grid = $('vehiclesGrid');
       if (!grid) return;
-      if ($('garageVehicleCount')) $('garageVehicleCount').textContent = String(savedVehicles.length);
+      if ($('garageVehicleCount'))
+        $('garageVehicleCount').textContent = String(savedVehicles.length);
       const filter = $('garageVehicleFilter')?.value || 'all';
       const visibleVehicles = savedVehicles.filter(item =>
         filter === 'selected' ? item.selected : filter === 'others' ? !item.selected : true
@@ -2079,7 +2080,8 @@ window.RastroMap.ready
       const list = $('devicesList');
       if (!list) return;
       if (!vehicle?.id) {
-        list.innerHTML = '<div class="empty-state">Selecione um veículo para consultar os dispositivos vinculados.</div>';
+        list.innerHTML =
+          '<div class="empty-state">Selecione um veículo para consultar os dispositivos vinculados.</div>';
         if ($('garageDeviceCount')) $('garageDeviceCount').textContent = '0';
         if ($('garageVehicleStatus')) $('garageVehicleStatus').textContent = 'Cadastrados';
         return;
@@ -2117,7 +2119,9 @@ window.RastroMap.ready
           : 'Conecte um dispositivo para receber a localização';
       }
       if ($('garageVehicleStatus'))
-        $('garageVehicleStatus').textContent = activeDevices.length ? 'Veículo online' : 'Requer atenção';
+        $('garageVehicleStatus').textContent = activeDevices.length
+          ? 'Veículo online'
+          : 'Requer atenção';
       list
         .querySelectorAll('[data-revoke-device]')
         .forEach(button => (button.onclick = () => revokeDevice(button.dataset.revokeDevice)));
@@ -2877,9 +2881,12 @@ window.RastroMap.ready
         ])
           if ($(id)) $(id).textContent = value;
         destroyHistoryMap();
-        $('historyRoutePreview').innerHTML = '<div class="empty-state">A rota aparecerá após a primeira viagem concluída.</div>';
-        $('historyTripList').innerHTML = '<div class="empty-state">Nenhuma viagem neste período.</div>';
-        $('eventTimeline').innerHTML = '<div class="empty-state">Nenhum evento registrado neste período.</div>';
+        $('historyRoutePreview').innerHTML =
+          '<div class="empty-state">A rota aparecerá após a primeira viagem concluída.</div>';
+        $('historyTripList').innerHTML =
+          '<div class="empty-state">Nenhuma viagem neste período.</div>';
+        $('eventTimeline').innerHTML =
+          '<div class="empty-state">Nenhum evento registrado neste período.</div>';
         $('historyTripCount').textContent = '0 viagens';
         $('tripStarted').textContent = '—';
         $('tripEnded').textContent = '—';
@@ -2916,7 +2923,8 @@ window.RastroMap.ready
       $('tripEnded').textContent = latest.endedAt
         ? new Date(latest.endedAt).toLocaleString('pt-BR')
         : 'Em andamento';
-      $('complianceTripTime').textContent = `${new Date(latest.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às ${latest.endedAt ? new Date(latest.endedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'agora'}`;
+      $('complianceTripTime').textContent =
+        `${new Date(latest.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às ${latest.endedAt ? new Date(latest.endedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'agora'}`;
       $('tripDuration').textContent = formatDuration(latest.comparison.actualDurationSeconds);
       const selectedDistance = formatDistance(latest.comparison.actualDistanceMeters);
       $('historySelectedDistance').textContent = selectedDistance;
@@ -2924,8 +2932,7 @@ window.RastroMap.ready
       $('movingTime').textContent = formatDuration(latest.comparison.movingSeconds);
       $('stoppedTime').textContent = formatDuration(latest.comparison.stoppedSeconds);
       $('historyAverageSpeed').textContent = `${br(latest.comparison.averageSpeedKmh)} km/h`;
-      $('speedStats').textContent =
-        `${br(latest.comparison.maximumSpeedKmh)} km/h`;
+      $('speedStats').textContent = `${br(latest.comparison.maximumSpeedKmh)} km/h`;
       $('historyMetricDistance').textContent = formatDistance(
         trips.reduce((total, trip) => total + Number(trip.comparison?.actualDistanceMeters || 0), 0)
       );
@@ -2939,8 +2946,10 @@ window.RastroMap.ready
       $('historyDetailsBtn').disabled = false;
       $('historyDetailsBtn').onclick = () => {
         $('referenceDialogEyebrow').textContent = 'DETALHES DA ROTA';
-        $('referenceDialogTitle').textContent = `Viagem de ${new Date(latest.startedAt).toLocaleDateString('pt-BR')}`;
-        $('referenceDialogBody').innerHTML = `<div class="reference-modal-stats"><article><small>Distância</small><b>${selectedDistance}</b></article><article><small>Duração</small><b>${formatDuration(latest.comparison.actualDurationSeconds)}</b></article><article><small>Velocidade média</small><b>${br(latest.comparison.averageSpeedKmh)} km/h</b></article></div>`;
+        $('referenceDialogTitle').textContent =
+          `Viagem de ${new Date(latest.startedAt).toLocaleDateString('pt-BR')}`;
+        $('referenceDialogBody').innerHTML =
+          `<div class="reference-modal-stats"><article><small>Distância</small><b>${selectedDistance}</b></article><article><small>Duração</small><b>${formatDuration(latest.comparison.actualDurationSeconds)}</b></article><article><small>Velocidade média</small><b>${br(latest.comparison.averageSpeedKmh)} km/h</b></article></div>`;
         $('referenceDialog').showModal();
       };
     }

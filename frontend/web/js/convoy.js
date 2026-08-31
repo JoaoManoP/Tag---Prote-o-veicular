@@ -52,7 +52,9 @@
     const radians = value => (value * Math.PI) / 180,
       dLat = radians(b.latitude - a.latitude),
       dLng = radians(b.longitude - a.longitude),
-      value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2;
+      value =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2;
     return 6371000 * 2 * Math.asin(Math.sqrt(value));
   }
   function convoyMemberRows() {

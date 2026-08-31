@@ -12,8 +12,12 @@ document.addEventListener('click', event => {
   }
 });
 
-document.getElementById('closeReferenceDialog')?.addEventListener('click', () => referenceDialog.close());
-document.getElementById('confirmReferenceDialog')?.addEventListener('click', () => referenceDialog.close());
+document
+  .getElementById('closeReferenceDialog')
+  ?.addEventListener('click', () => referenceDialog.close());
+document
+  .getElementById('confirmReferenceDialog')
+  ?.addEventListener('click', () => referenceDialog.close());
 referenceDialog?.addEventListener('click', event => {
   if (event.target === referenceDialog) referenceDialog.close();
 });

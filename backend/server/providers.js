@@ -433,9 +433,7 @@ class PhotonGeocodingProvider {
       const dLng = radians(place.longitude - longitude);
       const value =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(radians(latitude)) *
-          Math.cos(radians(place.latitude)) *
-          Math.sin(dLng / 2) ** 2;
+        Math.cos(radians(latitude)) * Math.cos(radians(place.latitude)) * Math.sin(dLng / 2) ** 2;
       return 6371000 * 2 * Math.asin(Math.sqrt(value));
     };
     return data.features
@@ -713,9 +711,7 @@ class MapboxGeocodingProvider {
       const dLng = radians(place.longitude - longitude);
       const value =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(radians(latitude)) *
-          Math.cos(radians(place.latitude)) *
-          Math.sin(dLng / 2) ** 2;
+        Math.cos(radians(latitude)) * Math.cos(radians(place.latitude)) * Math.sin(dLng / 2) ** 2;
       return 6371000 * 2 * Math.asin(Math.sqrt(value));
     };
     return data.features
