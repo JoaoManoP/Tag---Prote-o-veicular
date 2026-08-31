@@ -460,7 +460,10 @@
               border: `${this.options.weight || 2}px solid ${this.options.color || '#fff'}`
             });
           }
-          this.object = new maplibregl.Marker({ element, anchor: 'center' })
+          this.object = new maplibregl.Marker({
+            element,
+            anchor: this.options.icon?.options?.iconAnchor ? 'bottom' : 'center'
+          })
             .setLngLat(lngLat(this.value))
             .addTo(this.map);
           this.listeners.forEach(([name, handler]) =>

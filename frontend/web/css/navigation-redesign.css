@@ -1137,7 +1137,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
 
 #vehiclesView .vehicle-card-3d-wrap {
   grid-column: 1;
-  grid-row: 1 / 6;
+  grid-row: 1 / -1;
   height: 142px;
   margin: 0;
 }
@@ -1145,6 +1145,7 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
 #vehiclesView .vehicle-card-head,
 #vehiclesView .vehicle-card > h3,
 #vehiclesView .vehicle-card > p,
+#vehiclesView .vehicle-card > .vehicle-operation,
 #vehiclesView .vehicle-card > dl,
 #vehiclesView .vehicle-card > .vehicle-actions {
   grid-column: 2;
@@ -1158,6 +1159,54 @@ body[data-map-theme='day'] .map-theme-setting #mapThemeSchedule {
 #vehiclesView .vehicle-card > p,
 #vehiclesView .vehicle-card > dl {
   margin-block: 2px 5px;
+}
+
+#vehiclesView .vehicle-operation {
+  display: flex;
+  margin: 7px 0 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(141, 166, 187, 0.24);
+  border-radius: 9px;
+  background: rgba(126, 149, 169, 0.08);
+  align-items: center;
+  gap: 9px;
+}
+
+#vehiclesView .vehicle-operation > span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8799aa;
+  box-shadow: 0 0 0 4px rgba(135, 153, 170, 0.14);
+}
+
+#vehiclesView .vehicle-operation.online > span { background: #15aa68; box-shadow: 0 0 0 4px rgba(21, 170, 104, 0.14); }
+#vehiclesView .vehicle-operation.offline > span { background: #e79822; box-shadow: 0 0 0 4px rgba(231, 152, 34, 0.14); }
+#vehiclesView .vehicle-operation div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+#vehiclesView .vehicle-operation b { font-size: 10px; }
+#vehiclesView .vehicle-operation small { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+
+#vehiclesView .vehicle-more { position: relative; min-width: 0; }
+#vehiclesView .vehicle-more summary {
+  display: grid;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid rgba(188, 211, 230, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 11px;
+  list-style: none;
+  place-items: center;
+}
+#vehiclesView .vehicle-more summary::-webkit-details-marker { display: none; }
+#vehiclesView .vehicle-more[open] button {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 5px);
+  right: 0;
+  width: max-content;
+  min-width: 130px;
+  box-shadow: 0 8px 22px rgba(4, 20, 34, 0.22);
 }
 
 #vehiclesView .vehicle-card dl div {

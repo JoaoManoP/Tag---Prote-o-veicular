@@ -766,6 +766,94 @@ const migrations = [
            OR substr(public_contact_id, 4) GLOB '*[^0-9A-F]*';
       `);
     }
+  },
+  {
+    version: 20,
+    name: 'community-hub-regional-channels-and-message-state',
+    up(database) {
+      addColumn(database, 'px_messages', 'parent_id TEXT REFERENCES px_messages(id) ON DELETE SET NULL');
+      addColumn(database, 'px_messages', 'latitude REAL');
+      addColumn(database, 'px_messages', 'longitude REAL');
+      addColumn(database, 'px_messages', 'expires_at INTEGER');
+      addColumn(database, 'px_messages', 'pinned_at INTEGER');
+      addColumn(database, 'conversation_messages', "message_type TEXT NOT NULL DEFAULT 'TEXT'");
+      addColumn(database, 'conversation_messages', 'latitude REAL');
+      addColumn(database, 'conversation_messages', 'longitude REAL');
+      addColumn(database, 'conversation_messages', 'expires_at INTEGER');
+      addColumn(database, 'conversation_messages', 'delivered_at INTEGER');
+      addColumn(database, 'conversation_messages', 'read_at INTEGER');
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS px_message_reactions (
+          message_id TEXT NOT NULL REFERENCES px_messages(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          reaction TEXT NOT NULL CHECK(reaction IN ('CONFIRM','THANKS')),
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(message_id,user_id,reaction)
+        );
+        CREATE TABLE IF NOT EXISTS user_mutes (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          muted_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(user_id,muted_user_id),
+          CHECK(user_id <> muted_user_id)
+        );
+        CREATE TABLE IF NOT EXISTS conversation_user_state (
+          conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          archived_at INTEGER,
+          last_read_at INTEGER,
+          PRIMARY KEY(conversation_id,user_id)
+        );
+        CREATE TABLE IF NOT EXISTS shared_routes (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          title TEXT NOT NULL,
+          origin_label TEXT NOT NULL,
+          destination_label TEXT NOT NULL,
+          stops_json TEXT NOT NULL DEFAULT '[]',
+          alerts_json TEXT NOT NULL DEFAULT '[]',
+          status TEXT NOT NULL DEFAULT 'PUBLISHED',
+          sponsored INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_px_messages_expiry ON px_messages(channel_id,status,expires_at,created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_conversation_state_user ON conversation_user_state(user_id,archived_at);
+        CREATE INDEX IF NOT EXISTS idx_shared_routes_status ON shared_routes(status,updated_at DESC);
+      `);
+      const createdAt = Date.now();
+      const insertChannel = database.prepare(
+        'INSERT OR IGNORE INTO px_channels (id,kind,slug,name,description,enabled,created_at) VALUES (?,?,?,?,?,1,?)'
+      );
+      insertChannel.run('px-transito', 'REGION', 'transito', 'Trânsito', 'Condições e alertas regionais', createdAt);
+      insertChannel.run('px-ajuda', 'REGION', 'ajuda', 'Ajuda', 'Pedidos de ajuda da região', createdAt);
+      insertChannel.run('px-viagem', 'ROUTE', 'viagem', 'Viagem', 'Dicas e informações de rota', createdAt);
+    }
+  },
+  {
+    version: 21,
+    name: 'convoy-route-presence-and-safety-signals',
+    up(database) {
+      addColumn(database, 'convoy_sessions', 'destination_label TEXT');
+      addColumn(database, 'convoy_sessions', 'route_label TEXT');
+      addColumn(database, 'convoy_members', 'last_latitude REAL');
+      addColumn(database, 'convoy_members', 'last_longitude REAL');
+      addColumn(database, 'convoy_members', 'last_seen_at INTEGER');
+    }
+  },
+  {
+    version: 22,
+    name: 'fuel-price-community-confirmations',
+    up(database) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS fuel_price_confirmations (
+          price_id TEXT NOT NULL REFERENCES fuel_prices(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(price_id,user_id)
+        );
+      `);
+    }
   }
 ];
 

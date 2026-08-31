@@ -626,11 +626,13 @@ function createApplication(options = {}) {
     'css/dashboard-refresh.css',
     'css/platform-features.css',
     'css/community-places.css',
+    'css/reference-screens.css',
     'js/dashboard.js',
     'js/ux.js',
     'js/map-service.js',
     'js/platform-features.js',
     'js/community-places.js',
+    'js/reference-screens.js',
     'js/vehicle-3d-config.js'
   ];
   const assetRevision =
@@ -963,7 +965,7 @@ function createApplication(options = {}) {
     const html = fs
       .readFileSync(path.join(publicDir, 'index.html'), 'utf8')
       .replace(
-        /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
+        /((?:dashboard-refresh\.css|platform-features\.css|community-places\.css|reference-screens\.css|dashboard\.js|ux\.js|map-service\.js|platform-features\.js|community-places\.js|reference-screens\.js|vehicle-3d-config\.js)\?v=)[^"']+/g,
         `$1${assetRevision}`
       );
     res.set('Cache-Control', 'no-store').type('html').send(html);
@@ -1042,20 +1044,27 @@ function createApplication(options = {}) {
       if (!validCenter || route === null || !categories.length)
         return res.status(400).json({ error: 'Consulta de locais inválida.' });
 
-      const routeKey = route.length
+      const zoom = Number(req.query.zoom),
+        requestedRadius = Number(req.query.radiusMeters),
+        radius = Number.isFinite(requestedRadius)
+          ? Math.min(6000, Math.max(100, requestedRadius))
+          : zoom >= 15
+            ? 2500
+            : zoom >= 13
+              ? 4000
+              : 6000,
+        routeKey = route.length
           ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
           : '',
         categoryKey = [...categories].sort().join(','),
         zoomScope =
-          Number(req.query.zoom) >= 15 ? 'near' : Number(req.query.zoom) >= 13 ? 'city' : 'wide',
-        key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${routeKey}`,
+          zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
+        key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${radius}:${routeKey}`,
         cached = poiCache.get(key);
       if (cached && cached.expiresAt > Date.now())
         return res.json({ places: cached.places, cached: true });
 
-      const zoom = Number(req.query.zoom),
-        radius = zoom >= 15 ? 2500 : zoom >= 13 ? 4000 : 6000,
-        area = route.length
+      const area = route.length
           ? `(around:1200,${route.map(([lng, lat]) => `${lat},${lng}`).join(',')})`
           : `(around:${radius},${latitude},${longitude})`,
         clauses = categories
@@ -1109,9 +1118,7 @@ function createApplication(options = {}) {
       } catch {}
       if (!data && cached?.staleUntil > Date.now())
         return res.json({ places: cached.places, cached: true, stale: true });
-      if (!data) throw new Error('Serviço de locais indisponível.');
-
-      const places = (Array.isArray(data.elements) ? data.elements : [])
+      let places = (Array.isArray(data?.elements) ? data.elements : [])
         .slice(0, 240)
         .map(item => {
           const tags = item.tags || {},
@@ -1119,6 +1126,7 @@ function createApplication(options = {}) {
           return {
             id: `${item.type}-${item.id}`,
             name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
+            brand: String(tags.brand || tags.operator || '').slice(0, 100) || null,
             address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
               .filter(Boolean)
               .join(', ')
@@ -1133,13 +1141,42 @@ function createApplication(options = {}) {
         })
         .filter(
           item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
-        );
+        )
+        .map(item => ({
+          ...item,
+          distanceMeters: Math.round(distanceBetween({ latitude, longitude }, item))
+        }))
+        .filter(item => route.length || item.distanceMeters <= radius)
+        .sort((a, b) => a.distanceMeters - b.distanceMeters);
+      let source = 'openstreetmap-overpass';
+      if (!places.length && !route.length && categories.includes('fuel')) {
+        const fallbackProviders = [
+          ['mapbox-search-fallback', mapboxGeocoder],
+          ['openstreetmap-photon-fallback', photonGeocoder]
+        ];
+        for (const [providerName, provider] of fallbackProviders) {
+          if (!provider?.nearbyFuelStations) continue;
+          try {
+            places = await provider.nearbyFuelStations(latitude, longitude, radius);
+            if (places.length) {
+              source = providerName;
+              break;
+            }
+          } catch {}
+        }
+      }
+      if (!data && !places.length) throw new Error('Serviço de locais indisponível.');
       poiCache.set(key, {
         places,
         expiresAt: Date.now() + 300000,
         staleUntil: Date.now() + 86400000
       });
-      res.json({ places, cached: false, scope: route.length ? 'route-corridor' : 'nearby' });
+      res.json({
+        places,
+        cached: false,
+        source,
+        scope: route.length ? 'route-corridor' : 'nearby'
+      });
     } catch {
       res.status(502).json({ error: 'Locais próximos indisponíveis no momento.' });
     }

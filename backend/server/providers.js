@@ -401,6 +401,78 @@ class PhotonGeocodingProvider {
     if (this.cache.size > 200) this.cache.delete(this.cache.keys().next().value);
     return results;
   }
+  async nearbyFuelStations(latitude, longitude, radiusMeters = 3000) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+    const radius = Math.min(6000, Math.max(100, Number(radiusMeters) || 3000));
+    const latitudeDelta = radius / 111320;
+    const longitudeDelta = radius / (111320 * Math.max(0.2, Math.cos((latitude * Math.PI) / 180)));
+    const params = new URLSearchParams({
+      q: 'posto',
+      limit: '50',
+      lang: 'default',
+      lat: String(latitude),
+      lon: String(longitude),
+      bbox: [
+        longitude - longitudeDelta,
+        latitude - latitudeDelta,
+        longitude + longitudeDelta,
+        latitude + latitudeDelta
+      ].join(','),
+      osm_tag: 'amenity:fuel'
+    });
+    const data = await requestJson(
+      this.fetch,
+      `${this.baseUrl}/api/?${params}`,
+      { headers: { 'User-Agent': 'Rastreon/1.0' } },
+      this.timeoutMs
+    );
+    if (!Array.isArray(data?.features)) throw new Error('Resposta de postos Photon inválida');
+    const radians = value => (value * Math.PI) / 180;
+    const distance = place => {
+      const dLat = radians(place.latitude - latitude);
+      const dLng = radians(place.longitude - longitude);
+      const value =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(radians(latitude)) *
+          Math.cos(radians(place.latitude)) *
+          Math.sin(dLng / 2) ** 2;
+      return 6371000 * 2 * Math.asin(Math.sqrt(value));
+    };
+    return data.features
+      .map(feature => {
+        const properties = feature.properties || {};
+        const coordinates = feature.geometry?.coordinates || [];
+        const place = {
+          id: `photon-${properties.osm_type || 'place'}-${properties.osm_id || coordinates.join('-')}`,
+          name: String(properties.name || properties.brand || 'Posto próximo').slice(0, 100),
+          brand: String(properties.brand || properties.operator || '').slice(0, 100) || null,
+          address: [
+            properties.street,
+            properties.housenumber,
+            properties.district || properties.city,
+            properties.state
+          ]
+            .filter(Boolean)
+            .join(', ')
+            .slice(0, 180),
+          category: 'fuel',
+          latitude: Number(coordinates[1]),
+          longitude: Number(coordinates[0]),
+          openingHours: properties.opening_hours || null,
+          phone: properties.phone || null,
+          website: properties.website || null,
+          source: 'OpenStreetMap via Photon'
+        };
+        return { ...place, distanceMeters: Math.round(distance(place)) };
+      })
+      .filter(
+        place =>
+          Number.isFinite(place.latitude) &&
+          Number.isFinite(place.longitude) &&
+          place.distanceMeters <= radius
+      )
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+  }
   async reverse(latitude, longitude) {
     const params = new URLSearchParams({
         lat: String(latitude),
@@ -563,12 +635,14 @@ class MapboxGeocodingProvider {
     accessToken,
     fetchImpl = fetch,
     baseUrl = 'https://api.mapbox.com/search/geocode/v6',
+    searchBoxBaseUrl = 'https://api.mapbox.com/search/searchbox/v1',
     timeoutMs = 12000
   } = {}) {
     if (!accessToken) throw new Error('MAPBOX_ACCESS_TOKEN é obrigatório');
     this.accessToken = accessToken;
     this.fetch = fetchImpl;
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.searchBoxBaseUrl = searchBoxBaseUrl.replace(/\/$/, '');
     this.timeoutMs = timeoutMs;
   }
   normalize(feature) {
@@ -614,6 +688,65 @@ class MapboxGeocodingProvider {
       .filter(
         place => place.label && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)
       );
+  }
+  async nearbyFuelStations(latitude, longitude, radiusMeters = 3000) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+    const radius = Math.min(6000, Math.max(100, Number(radiusMeters) || 3000));
+    const params = new URLSearchParams({
+      access_token: this.accessToken,
+      language: 'pt',
+      limit: '25',
+      proximity: `${longitude},${latitude}`,
+      radius: String(radius / 111320),
+      country: 'BR'
+    });
+    const data = await requestJson(
+      this.fetch,
+      `${this.searchBoxBaseUrl}/category/gas_station?${params}`,
+      {},
+      this.timeoutMs
+    );
+    if (!Array.isArray(data?.features)) throw new Error('Resposta de postos Mapbox inválida');
+    const radians = value => (value * Math.PI) / 180;
+    const distance = place => {
+      const dLat = radians(place.latitude - latitude);
+      const dLng = radians(place.longitude - longitude);
+      const value =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(radians(latitude)) *
+          Math.cos(radians(place.latitude)) *
+          Math.sin(dLng / 2) ** 2;
+      return 6371000 * 2 * Math.asin(Math.sqrt(value));
+    };
+    return data.features
+      .map(feature => {
+        const properties = feature.properties || {};
+        const metadata = properties.metadata || {};
+        const coordinates = feature.geometry?.coordinates || [];
+        const place = {
+          id: `mapbox-${properties.mapbox_id || feature.id || coordinates.join('-')}`,
+          name: String(properties.name || 'Posto próximo').slice(0, 100),
+          brand: String(properties.brand || '').slice(0, 100) || null,
+          address: String(
+            properties.full_address || properties.place_formatted || properties.address || ''
+          ).slice(0, 180),
+          category: 'fuel',
+          latitude: Number(coordinates[1]),
+          longitude: Number(coordinates[0]),
+          openingHours: metadata.open_hours || null,
+          phone: metadata.phone || null,
+          website: metadata.website || null,
+          source: 'Mapbox Search'
+        };
+        return { ...place, distanceMeters: Math.round(distance(place)) };
+      })
+      .filter(
+        place =>
+          Number.isFinite(place.latitude) &&
+          Number.isFinite(place.longitude) &&
+          place.distanceMeters <= radius
+      )
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
   async reverse(latitude, longitude) {
     const url = `${this.baseUrl}/reverse?longitude=${encodeURIComponent(longitude)}&latitude=${encodeURIComponent(latitude)}&country=br&language=pt-BR&access_token=${encodeURIComponent(this.accessToken)}`;

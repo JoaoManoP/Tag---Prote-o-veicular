@@ -2282,3 +2282,43 @@ body[data-active-panel='profile'] .map-panel-backdrop {
 #profileView .profile-settings-dialog {
   pointer-events: auto;
 }
+
+/* Cabeçalho do modal: mantém título e fechamento legíveis sobre o fundo azul. */
+#profileView #profileSettingsDialog > header small {
+  color: #9fb5c9 !important;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+#profileView #profileSettingsDialog > header h2 {
+  color: #fff !important;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+#profileView #closeProfileSettings {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.32) !important;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  font-family: Arial, sans-serif;
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1;
+  opacity: 1;
+}
+
+#profileView #closeProfileSettings:hover,
+#profileView #closeProfileSettings:focus-visible {
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  outline: 2px solid rgba(126, 196, 255, 0.85);
+  outline-offset: 2px;
+}

@@ -75,6 +75,13 @@ test('conexão exige aceite antes do convite e comboio encerra o compartilhament
     contactId: 'RT-22222222222222222222222222222222'
   }).expect(201);
   const convoy = await mutate(app, 1, 'post', '/api/convoy/sessions').expect(201);
+  await mutate(app, 1, 'patch', `/api/convoy/sessions/${convoy.body.convoy.id}/details`, {
+    destinationLabel: 'Belo Horizonte',
+    routeLabel: 'BR-381 · parada em João Monlevade'
+  }).expect(200);
+  const routed = await as(app, 1).expect(200);
+  assert.equal(routed.body.convoy.destinationLabel, 'Belo Horizonte');
+  assert.equal(routed.body.convoy.members[0].userId, routed.body.convoy.ownerId);
   await mutate(app, 1, 'post', `/api/convoy/sessions/${convoy.body.convoy.id}/invites`, {
     contactId: 'RT-22222222222222222222222222222222'
   }).expect(403);

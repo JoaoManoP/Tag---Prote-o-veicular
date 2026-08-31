@@ -77,13 +77,27 @@ test('postos permanentes preservam histórico, confiança e benefício com valid
     1,
     true
   ).expect(201);
-  await auth(
+  const latestPrice = await auth(
     request(app)
       .post(`/api/platform/stations/${stationId}/prices`)
       .send({ fuelType: 'GASOLINE', price: 6.09, observedAt: Date.now() + 1 }),
     2,
     true
   ).expect(201);
+  await auth(
+    request(app).put(
+      `/api/platform/stations/${stationId}/prices/${latestPrice.body.price.id}/confirm`
+    ),
+    1,
+    true
+  ).expect(200);
+  await auth(
+    request(app).put(
+      `/api/platform/stations/${stationId}/prices/${latestPrice.body.price.id}/confirm`
+    ),
+    2,
+    true
+  ).expect(200);
   const now = Date.now();
   await auth(
     request(app)
@@ -101,7 +115,8 @@ test('postos permanentes preservam histórico, confiança e benefício com valid
     request(app).get('/api/platform/stations?latitude=-19.58&longitude=-42.64')
   ).expect(200);
   assert.equal(listing.body.stations[0].prices[0].price, 6.09);
-  assert.equal(listing.body.stations[0].prices[0].status, 'PENDING');
+  assert.equal(listing.body.stations[0].prices[0].status, 'CONFIRMED');
+  assert.equal(listing.body.stations[0].prices[0].confirmations, 2);
   assert.equal(listing.body.stations[0].partnerBenefit.description, 'Desconto de teste');
   assert.equal(
     database.prepare('SELECT COUNT(*) AS total FROM fuel_prices WHERE station_id=?').get(stationId)
@@ -196,6 +211,95 @@ test('PX bloqueia telefone/e-mail e fotos validam assinatura real, tipo e limite
   assert.equal(safePhoto(Buffer.from('imagem falsa'), 'image/jpeg'), null);
   const jpeg = Buffer.concat([Buffer.from('ffd8ffe000104a464946', 'hex'), Buffer.alloc(20)]);
   assert.equal(safePhoto(jpeg, 'image/jpeg').extension, '.jpg');
+});
+
+test('hub comunitário aplica filtros, reações, distância aproximada e localização temporária', async t => {
+  const { app } = setup(t);
+  const report = await auth(
+    request(app).post('/api/platform/road-reports').send({
+      category: 'HAZARD',
+      severity: 'HIGH',
+      description: 'Carga na pista.',
+      latitude: -19.58,
+      longitude: -42.64
+    }),
+    1,
+    true
+  ).expect(201);
+  await auth(
+    request(app)
+      .put(`/api/platform/road-reports/${report.body.report.id}/vote`)
+      .send({ vote: 'CONFIRM' }),
+    2,
+    true
+  ).expect(200);
+  const filtered = await auth(
+    request(app).get('/api/platform/road-reports?category=HAZARD&severity=HIGH&sinceHours=3')
+  ).expect(200);
+  assert.equal(filtered.body.reports.length, 1);
+  assert.equal(filtered.body.reports[0].confirmations, 1);
+  assert.ok(filtered.body.reports[0].lastConfirmationAt);
+
+  const px = await auth(
+    request(app).post('/api/platform/px/channels/px-ajuda/messages').send({
+      body: 'Preciso de apoio próximo à rodovia.',
+      latitude: -19.58,
+      longitude: -42.64
+    }),
+    1,
+    true
+  ).expect(201);
+  await auth(
+    request(app)
+      .put(`/api/platform/px/messages/${px.body.message.id}/reactions`)
+      .send({ reaction: 'THANKS' }),
+    2,
+    true
+  ).expect(200);
+  const pxMessages = await auth(
+    request(app).get('/api/platform/px/channels/px-ajuda/messages?latitude=-19.581&longitude=-42.641'),
+    2
+  ).expect(200);
+  assert.equal(pxMessages.body.messages[0].reactions.thanks, 1);
+  assert.equal(pxMessages.body.messages[0].distanceMeters, 500);
+  assert.ok(pxMessages.body.messages[0].expiresAt > Date.now());
+
+  const pending = await auth(
+    request(app).post('/api/platform/conversation-requests').send({
+      recipientContactId: 'RT-22222222222222222222222222222222'
+    }),
+    1,
+    true
+  ).expect(201);
+  const accepted = await auth(
+    request(app)
+      .post(`/api/platform/conversation-requests/${pending.body.request.id}/respond`)
+      .send({ action: 'ACCEPT' }),
+    2,
+    true
+  ).expect(200);
+  await auth(
+    request(app)
+      .post(`/api/platform/conversations/${accepted.body.conversationId}/messages`)
+      .send({ messageType: 'LOCATION', latitude: -19.58, longitude: -42.64 }),
+    1,
+    true
+  ).expect(201);
+  const privateMessages = await auth(
+    request(app).get(`/api/platform/conversations/${accepted.body.conversationId}/messages`),
+    2
+  ).expect(200);
+  assert.equal(privateMessages.body.messages[0].messageType, 'LOCATION');
+  assert.ok(privateMessages.body.messages[0].expiresAt > Date.now());
+  await auth(
+    request(app)
+      .patch(`/api/platform/conversations/${accepted.body.conversationId}`)
+      .send({ action: 'ARCHIVE' }),
+    2,
+    true
+  ).expect(200);
+  const conversations = await auth(request(app).get('/api/platform/conversations'), 2).expect(200);
+  assert.equal(conversations.body.conversations[0].archived, true);
 });
 
 test('Traccar autentica, oculta identificador e normaliza nós para telemetria SI', () => {

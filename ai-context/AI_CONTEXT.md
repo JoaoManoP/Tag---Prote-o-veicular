@@ -154,3 +154,25 @@ Regras centrais:
 - o primeiro push encerra automaticamente essa exceção;
 - segredos nunca devem ser versionados;
 - operações destrutivas ou de reescrita de histórico não podem ser executadas silenciosamente.
+
+## 11. Escopo estrito, impacto, testes e entrega
+
+Em toda solicitação de alteração do site, a IA deve observar obrigatoriamente o seguinte fluxo:
+
+1. limitar a implementação exclusivamente às áreas, arquivos, funcionalidades e contextos solicitados no prompt atual;
+2. não realizar ajustes oportunistas, refatorações, reorganizações, correções ou mudanças visuais fora do escopo solicitado;
+3. antes de editar, analisar dependências e possíveis impactos da mudança sobre outras áreas do sistema;
+4. quando identificar que outra área pode ser afetada, informar claramente o impacto e aguardar aprovação antes de realizar a alteração;
+5. preservar todas as mudanças preexistentes que não pertençam ao escopo atual;
+6. executar ao menos um teste ou verificação compatível com a alteração realizada;
+7. informar quais verificações foram executadas, seus resultados e qualquer risco ou limitação remanescente;
+8. ao final de cada prompt que altere o site, preparar a entrega completa com commit local e deploy da versão validada no ambiente autorizado.
+
+O commit e o deploy somente podem incluir os arquivos pertencentes ao escopo aprovado. Alterações pendentes de outras tarefas não podem ser misturadas silenciosamente.
+
+Esta regra não elimina aprovações, proteções ou proibições definidas em `SECURITY_RULES.md`, `GIT_RULES.md` e `project/PROJECT_CONTEXT.md`. Em especial:
+
+- o resumo e a aprovação específica exigidos para commit local continuam obrigatórios;
+- deploy deve respeitar o preflight, a autorização e o procedimento definidos para o ambiente;
+- em repositórios remotos já publicados, deploy não autoriza `git push` pela IA;
+- quando commit ou deploy não puder ser realizado com segurança, a IA deve interromper essa etapa e informar o motivo, sem ampliar o escopo nem improvisar uma publicação alternativa.

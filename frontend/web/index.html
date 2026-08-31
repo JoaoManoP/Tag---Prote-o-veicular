@@ -50,11 +50,12 @@
         ><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button>
       </div>
     </header>
-    <link rel="stylesheet" href="/css/platform-features.css?v=20260829-pois-1" />
+    <link rel="stylesheet" href="/css/platform-features.css?v=20260831-community-hub-1" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
-    <link rel="stylesheet" href="/css/profile-reference.css?v=20260829-profile-map-pois-1" />
+    <link rel="stylesheet" href="/css/profile-reference.css?v=20260831-settings-header-1" />
     <link rel="stylesheet" href="/css/reference-tabs.css?v=20260831-restore-1" />
+    <link rel="stylesheet" href="/css/reference-screens.css?v=20260831-nearby-fuel-1" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -168,8 +169,7 @@
                   >
                     Trânsito</button
                   ><button id="locateMeBtn" class="secondary">Minha localização</button
-                  ><button id="tripPlannerBtn" class="secondary">Viagem</button
-                  ><button id="simulateBtn" class="dev-only hidden">Simular percurso</button>
+                  ><button id="tripPlannerBtn" class="secondary">Viagem</button>
                 </div>
               </div>
               <div id="mapModeNotice" class="map-mode-notice hidden" role="status"></div>
@@ -279,8 +279,8 @@
           <div class="page-heading">
             <div>
               <span class="eyebrow">RELATÓRIO OPERACIONAL</span>
-              <h2>Histórico de viagens</h2>
-              <p>Percursos concluídos, eventos e indicadores em uma visão organizada.</p>
+              <h2>Relatório operacional</h2>
+              <p>Acompanhe o desempenho, eventos e indicadores da sua frota em um só lugar.</p>
             </div>
             <div class="filters">
               <select id="dateFilter">
@@ -303,102 +303,71 @@
               /><input id="timeFrom" type="time" value="00:00" /><span>até</span
               ><input id="timeTo" type="time" value="23:59" /><button id="applyFilter">
                 Aplicar</button
-              ><button id="replayTripBtn" class="secondary" disabled>▶ Reproduzir viagem</button>
+              ><button id="exportHistoryBtn" class="secondary history-export" type="button">
+                <svg aria-hidden="true"><use href="/images/ui-icons.svg#document"></use></svg>
+                Exportar relatório
+              </button>
             </div>
           </div>
           <section class="reference-metrics history-metrics" aria-label="Indicadores do período">
             <article>
-              <span>▣</span><small>VIAGENS REALIZADAS</small
-              ><strong id="historyMetricTrips">0</strong><em>Neste período</em>
+              <span><svg aria-hidden="true"><use href="/images/ui-icons.svg#document"></use></svg></span
+              ><small>VIAGENS REALIZADAS</small><strong id="historyMetricTrips">0</strong
+              ><em>Neste período</em>
             </article>
             <article>
-              <span>⌁</span><small>DISTÂNCIA TOTAL</small
-              ><strong id="historyMetricDistance">0 km</strong><em>Percorridos</em>
+              <span><svg aria-hidden="true"><use href="/images/ui-icons.svg#route"></use></svg></span
+              ><small>DISTÂNCIA TOTAL</small><strong id="historyMetricDistance">0 km</strong
+              ><em>Percorridos</em>
             </article>
             <article>
-              <span>◷</span><small>HORAS RODADAS</small
-              ><strong id="historyMetricMoving">0 min</strong><em>Tempo em movimento</em>
+              <span><svg aria-hidden="true"><use href="/images/ui-icons.svg#history"></use></svg></span
+              ><small>HORAS RODADAS</small><strong id="historyMetricMoving">0min</strong
+              ><em>Tempo em movimento</em>
             </article>
             <article>
-              <span>◴</span><small>TEMPO PARADO</small
-              ><strong id="historyMetricStopped">0 min</strong><em>Com o veículo ligado</em>
+              <span><svg aria-hidden="true"><use href="/images/ui-icons.svg#history"></use></svg></span
+              ><small>TEMPO PARADO</small><strong id="historyMetricStopped">0min</strong
+              ><em>Com o veículo ligado</em>
             </article>
             <article>
-              <span>⌁</span><small>VELOCIDADE MÁXIMA</small
-              ><strong id="historyMetricSpeed">0 km/h</strong><em>Registrada</em>
+              <span><svg aria-hidden="true"><use href="/images/ui-icons.svg#speed-bump"></use></svg></span
+              ><small>VELOCIDADE MÁXIMA</small><strong id="historyMetricSpeed">0 km/h</strong
+              ><em>Registrada</em>
             </article>
           </section>
           <section class="history-overview">
             <div class="history-route-card">
               <div class="history-route-head">
-                <div>
-                  <span class="eyebrow">ÚLTIMO PERCURSO</span>
-                  <h2>Traçado da viagem</h2>
-                </div>
-                <span class="history-route-badge">GPS confirmado</span>
+                <span class="eyebrow">TRAÇADO DA ÚLTIMA VIAGEM</span>
               </div>
               <div id="historyRoutePreview" class="history-route-preview">
-                <div class="empty-state">Nenhum percurso registrado.</div>
+                <div class="empty-state">A rota aparecerá após a primeira viagem concluída.</div>
               </div>
+              <div class="history-route-facts"><span><small>Início</small><b id="tripStarted">—</b></span><span><small>Término</small><b id="tripEnded">—</b></span><span><small>Distância</small><b id="historySelectedDistance">0 km</b></span><span><small>Duração</small><b id="tripDuration">0min</b></span><button id="historyDetailsBtn" type="button" class="secondary" disabled><svg aria-hidden="true"><use href="/images/ui-icons.svg#route"></use></svg>Ver detalhes da rota</button></div>
             </div>
             <aside class="history-filter-card">
-              <span class="eyebrow">RESUMO</span><strong id="historyTripCount">0 viagens</strong>
-              <p>Selecione um período para revisar os deslocamentos.</p>
-              <button id="exportHistoryBtn" class="secondary wide" type="button">
-                Exportar relatório
-              </button>
+              <header><span class="eyebrow">RESUMO</span><span class="history-route-badge">Sem viagem</span></header>
+              <dl class="history-summary-list"><div><dt><svg aria-hidden="true"><use href="/images/ui-icons.svg#route"></use></svg>Distância percorrida</dt><dd id="historySummaryDistance">0 km</dd></div><div><dt><svg aria-hidden="true"><use href="/images/ui-icons.svg#history"></use></svg>Tempo em movimento</dt><dd id="movingTime">0min</dd></div><div><dt><svg aria-hidden="true"><use href="/images/ui-icons.svg#history"></use></svg>Tempo parado</dt><dd id="stoppedTime">0min</dd></div><div><dt><svg aria-hidden="true"><use href="/images/ui-icons.svg#speed-bump"></use></svg>Velocidade média</dt><dd id="historyAverageSpeed">0 km/h</dd></div><div><dt><svg aria-hidden="true"><use href="/images/ui-icons.svg#speed-bump"></use></svg>Velocidade máxima</dt><dd id="speedStats">0 km/h</dd></div></dl>
+              <strong id="historyTripCount" class="sr-only">0 viagens</strong>
+              <button id="replayTripBtn" type="button" disabled><svg aria-hidden="true"><use href="/images/ui-icons.svg#navigation"></use></svg>Reproduzir rota</button>
             </aside>
           </section>
-          <div class="summary-grid">
-            <div class="summary-card"><span>Início</span><strong id="tripStarted">—</strong></div>
-            <div class="summary-card"><span>Chegada</span><strong id="tripEnded">—</strong></div>
-            <div class="summary-card">
-              <span>Duração total</span><strong id="tripDuration">0 min</strong>
-            </div>
-            <div class="summary-card">
-              <span>Em movimento</span><strong id="movingTime">0 min</strong>
-            </div>
-            <div class="summary-card">
-              <span>Tempo parado</span><strong id="stoppedTime">0 min</strong>
-            </div>
-            <div class="summary-card">
-              <span>Velocidade média / máxima</span><strong id="speedStats">0 / 0 km/h</strong>
-            </div>
-          </div>
           <div class="history-content">
             <section class="card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">LINHA DO TEMPO</span>
-                  <h2>Atividade da viagem</h2>
-                </div>
-              </div>
+              <span class="eyebrow">EVENTOS DO PERCURSO</span>
               <div id="eventTimeline" class="event-timeline">
-                <div class="empty-state">Inicie uma viagem para registrar eventos por hora.</div>
+                <div class="empty-state">Nenhum evento registrado neste período.</div>
               </div>
             </section>
             <section class="card history-list-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">VIAGENS</span>
-                  <h2>Registros recentes</h2>
-                </div>
-              </div>
+              <div class="reference-card-title"><span class="eyebrow">VIAGENS RECENTES</span></div>
               <div id="historyTripList" class="history-trip-list">
-                <div class="empty-state">Nenhuma viagem registrada.</div>
+                <div class="empty-state">Nenhuma viagem neste período.</div>
               </div>
             </section>
             <section class="card schedule-card">
-              <span class="eyebrow">HORÁRIOS AUTORIZADOS</span>
-              <h2>Regras de utilização</h2>
-              <label class="toggle-row"
-                ><input id="scheduleEnabled" type="checkbox" checked /> Segunda a sexta</label
-              >
-              <div class="schedule-row">
-                <input id="allowedFrom" type="time" value="07:00" /><span>às</span
-                ><input id="allowedTo" type="time" value="19:00" />
-              </div>
-              <button id="saveSchedule" class="wide secondary">Salvar regra</button>
+              <span class="eyebrow">CONFORMIDADE DE USO</span><div class="compliance-state"><svg aria-hidden="true"><use href="/images/ui-icons.svg#shield"></use></svg><div><strong id="complianceTitle">Nenhuma regra ativa</strong><p id="complianceCopy">Selecione um veículo para consultar a regra de uso.</p></div></div><dl><dt>Horário autorizado</dt><dd id="complianceSchedule">Não configurado</dd><dt>Horário da viagem</dt><dd id="complianceTripTime">Sem viagem selecionada</dd></dl><div class="schedule-controls"><label><input id="scheduleEnabled" type="checkbox" /> Ativar regra</label><input id="allowedFrom" type="time" value="06:00" aria-label="Início do horário autorizado" /><span>até</span><input id="allowedTo" type="time" value="22:00" aria-label="Fim do horário autorizado" /></div><button id="saveSchedule" class="text-btn">Salvar regra de utilização</button>
               <div id="scheduleAlert" class="alert-box hidden">
                 Movimentação detectada fora do horário permitido.
               </div>
@@ -475,20 +444,22 @@
             <aside class="garage-summary card">
               <header>
                 <strong>Resumo da garagem</strong
-                ><select aria-label="Filtrar veículos">
-                  <option>Todos os veículos</option>
+                ><select id="garageVehicleFilter" aria-label="Filtrar veículos">
+                  <option value="all">Todos os veículos</option>
+                  <option value="selected">Veículo selecionado</option>
+                  <option value="others">Outros veículos</option>
                 </select>
               </header>
               <div>
                 <article>
-                  <strong id="garageVehicleCount">0</strong><small>Veículos</small><em>◆ Ativos</em>
+                  <strong id="garageVehicleCount">0</strong><small>Veículos</small><em id="garageVehicleStatus">Cadastrados</em>
                 </article>
                 <article>
                   <strong id="garageDeviceCount">0</strong><small>Dispositivos</small
-                  ><em>⌾ Conectados</em>
+                  ><em>Vinculados</em>
                 </article>
                 <article>
-                  <strong>2</strong><small>Alertas ativos</small><em>◎ Ver todos</em>
+                  <strong id="garageAlertCount">0</strong><small>Alertas ativos</small><em>Configurados</em>
                 </article>
               </div>
             </aside>
@@ -503,67 +474,52 @@
                 <button id="connectPhoneBtn" class="secondary">Conectar celular</button>
               </div>
               <div id="devicesList" class="devices-list">
-                <div class="empty-state">Selecione um veículo.</div>
+                <div class="empty-state">Selecione um veículo para consultar os dispositivos vinculados.</div>
               </div>
             </section>
-            <section class="card garage-speed">
+            <section id="garageSpeedRulePanel" class="card garage-speed">
               <header>
                 <div>
                   <span class="eyebrow">ALERTA DE VELOCIDADE</span>
                   <h2>Configuração do alerta</h2>
                 </div>
-                <label class="switch"><input type="checkbox" checked /><span></span></label>
+                <label class="switch"><input id="garageSpeedEnabled" type="checkbox" disabled /><span></span></label>
               </header>
               <p>Receba alertas quando o limite de velocidade for excedido.</p>
               <div>
-                <label>Limite configurado (km/h)<input type="number" value="80" /></label
-                ><button class="secondary" type="button">Editar limite</button>
+                <label>Limite configurado (km/h)<input id="garageSpeedMaximum" type="number" min="20" max="200" value="80" disabled /></label
+                ><button id="saveGarageSpeedRule" class="secondary" type="button" disabled>Salvar alerta</button>
               </div>
+              <small class="garage-notice">Os alertas serão enviados para seus canais configurados.</small>
             </section>
             <section class="card garage-documents">
               <span class="eyebrow">MANUTENÇÃO E DOCUMENTOS</span>
               <h2>Manutenções e documentos</h2>
-              <div>
-                <article><b>▣ Revisão</b><em>Em dia</em><small>Próxima: 10/11/2026</small></article>
-                <article><b>▣ IPVA 2026</b><em>Pago</em><small>Venc.: 15/04/2026</small></article>
-                <article><b>◇ Seguro</b><em>Ativo</em><small>Venc.: 12/03/2027</small></article>
-                <article><b>▤ Documentos</b><em>Enviar / Ver</em></article>
-              </div>
+              <div class="empty-state"><strong>Nenhum documento veicular cadastrado</strong><span>Somente documentos enviados e validados serão exibidos aqui.</span><button id="openDocumentsBtn" type="button" class="secondary">Gerenciar documentos</button></div>
             </section>
           </div>
+          <footer class="garage-security"><svg aria-hidden="true"><use href="/images/ui-icons.svg#shield"></use></svg>Seus dados veiculares são acessíveis somente pela sua conta autenticada.</footer>
         </div>
       </section>
       <section id="communityView" class="view">
         <div class="page-content platform-page">
           <div class="page-heading">
             <div>
-              <span class="eyebrow">MAPA COLABORATIVO</span>
               <h2>Comunidade RASTREON</h2>
-              <p>Postos, ocorrências, avaliações, conversas privadas e PX com privacidade.</p>
+              <p>Conecte-se, compartilhe e viaje com mais segurança.</p>
             </div>
-            <span id="platformTrafficStatus" class="badge offline">Trânsito indisponível</span>
+            <span id="platformTrafficStatus" class="sr-only">Trânsito indisponível</span>
           </div>
-          <section class="community-metrics" aria-label="Resumo da comunidade">
-            <article>
-              <span>△</span><strong>128</strong><small>Ocorrências<br />últimas 24h</small>
-            </article>
-            <article>
-              <span>◯</span><strong>42</strong><small>Conversas ativas<br />agora</small>
-            </article>
-            <article>
-              <span>▤</span><strong>86</strong><small>Postos parceiros<br />com benefícios</small>
-            </article>
-            <article>
-              <span>♧</span><strong>14</strong><small>Comboios ativos<br />planejados</small>
-            </article>
-          </section>
+          <div class="community-search"><svg aria-hidden="true"><use href="/images/ui-icons.svg#search"></use></svg><input id="platformSearchInput" autocomplete="off" placeholder="Buscar na comunidade" /><div id="platformSearchResults" class="platform-list" aria-live="polite"></div></div>
           <div class="platform-tabs" role="tablist" aria-label="Recursos da comunidade">
             <button type="button" role="tab" aria-selected="true" data-platform-tab="discover">
-              Descobrir</button
+              Destaques</button
             ><button type="button" role="tab" aria-selected="false" data-platform-tab="reports">
               Ocorrências</button
             ><button type="button" role="tab" aria-selected="false" data-platform-tab="px">
               PX</button
+            ><button type="button" role="tab" aria-selected="false" data-platform-tab="stations">
+              Postos próximos</button
             ><button type="button" role="tab" aria-selected="false" data-platform-tab="chat">
               Conversas
             </button>
@@ -575,47 +531,36 @@
               aria-selected="false"
               data-platform-tab="convoy"
             >
-              Comboio
-            </button>
+              Convoy</button
+            ><button type="button" role="tab" aria-selected="false" data-platform-tab="routes" data-platform-more>
+              Rotas compartilhadas
+            </button><button type="button" role="tab" aria-selected="false" data-platform-tab="benefits" data-platform-more>
+              Benefícios
+            </button><label class="platform-more-select">Mais<select id="communityMoreTab" aria-label="Mais opções"><option value="">Escolha</option><option value="routes">Rotas compartilhadas</option><option value="benefits">Benefícios</option></select></label>
           </div>
           <section id="platformDiscover" class="platform-pane">
-            <div class="card platform-search-card">
-              <label class="field"
-                >Busca global<input
-                  id="platformSearchInput"
-                  autocomplete="off"
-                  placeholder="Veículo, endereço, posto, preço ou ocorrência"
-              /></label>
-              <div id="platformSearchResults" class="platform-list" aria-live="polite"></div>
-            </div>
-            <div class="platform-grid">
-              <section class="card">
-                <div class="section-head">
-                  <div>
-                    <span class="eyebrow">PERTO DE VOCÊ</span>
-                    <h2>Postos e parceiros</h2>
-                  </div>
-                  <button id="reloadStations" type="button" class="secondary">Atualizar</button>
-                </div>
-                <div id="platformStations" class="platform-list">
-                  <div class="empty-state">Buscando postos cadastrados…</div>
-                </div>
-              </section>
-              <section class="card">
-                <span class="eyebrow">CAMADAS</span>
-                <h2>Informação confiável</h2>
-                <p>
-                  Preços comunitários ficam pendentes até revisão. Benefícios só aparecem durante a
-                  validade.
-                </p>
-                <p class="notice">
-                  Trânsito em tempo real permanece indisponível enquanto não houver fonte licenciada
-                  configurada.
-                </p>
-              </section>
+            <div class="community-reference-grid">
+              <div class="community-main-column">
+                <section class="card community-occurrences" data-discover-block="occurrences"><div class="reference-card-title"><h2><svg aria-hidden="true"><use href="/images/ui-icons.svg#document"></use></svg>Ocorrências em destaque — próximas e recentes</h2><button type="button" class="text-btn" data-platform-tab-jump="reports">Ver todas</button></div><div id="communityOccurrenceSummary" class="community-occurrence-list"><div class="empty-state">Carregando ocorrências reais…</div></div></section>
+                <section class="card community-partners" data-discover-block="stations"><div class="reference-card-title"><div><h2><svg aria-hidden="true"><use href="/images/ui-icons.svg#fuel"></use></svg>Postos em até 3 km</h2><small>Preços informados pela comunidade; valores indisponíveis não são estimados.</small></div><button id="reloadStations" type="button" class="text-btn">Atualizar</button></div><div id="communityStationSummary" class="reference-partners"><div class="empty-state">Autorize a localização para consultar postos em até 3 km.</div></div></section>
+                <section class="card" data-discover-block="px"><div class="reference-card-title"><h2>Mensagens PX importantes</h2><button type="button" class="text-btn" data-platform-tab-jump="px">Abrir PX</button></div><div id="communityPxSummary" class="platform-list"><div class="empty-state">Carregando mensagens relevantes…</div></div></section>
+              </div>
+              <aside class="community-side-column">
+                <section class="card community-conversations"><div class="reference-card-title"><h2><svg aria-hidden="true"><use href="/images/ui-icons.svg#chat"></use></svg>Conversas</h2><button type="button" class="text-btn" data-platform-tab-jump="chat">Ver todas</button></div><div id="communityConversationSummary" class="reference-conversations"><div class="empty-state">Carregando conversas reais…</div></div><button type="button" class="secondary wide" data-platform-tab-jump="chat">Abrir conversas</button></section>
+                <section class="card community-convoys" data-discover-block="convoy"><div class="reference-card-title"><h2><svg aria-hidden="true"><use href="/images/ui-icons.svg#community"></use></svg>Comboio ativo</h2><button type="button" class="text-btn" data-platform-tab-jump="convoy">Gerenciar</button></div><div id="communityConvoySummary" class="empty-state">Nenhum comboio ativo nesta conta.</div><button type="button" class="secondary wide" data-platform-tab-jump="convoy">Gerenciar comboio</button></section>
+                <button id="customizeDiscover" type="button" class="secondary wide">Personalizar blocos</button>
+                <section class="card community-trust"><h2><svg aria-hidden="true"><use href="/images/ui-icons.svg#shield"></use></svg>Confiança e suporte</h2><div><article><svg aria-hidden="true"><use href="/images/ui-icons.svg#shield"></use></svg><span><b>Comunidade moderada</b><small>Conteúdo revisado por nossa equipe.</small></span></article><article><svg aria-hidden="true"><use href="/images/ui-icons.svg#community"></use></svg><span><b>Respeito e colaboração</b><small>Espaço seguro para todos.</small></span></article><article><svg aria-hidden="true"><use href="/images/ui-icons.svg#help"></use></svg><span><b>Precisa de ajuda?</b><small>Fale com nosso suporte.</small></span></article></div><footer><svg aria-hidden="true"><use href="/images/ui-icons.svg#shield"></use></svg><span>Todos juntos por um trânsito mais seguro.<small>Sua contribuição faz a diferença.</small></span></footer></section>
+              </aside>
             </div>
           </section>
           <section id="platformReports" class="platform-pane hidden">
+            <div class="platform-filterbar" aria-label="Filtros de ocorrências">
+              <label>Distância<select id="reportDistance"><option value="3000">3 km</option><option value="10000" selected>10 km</option><option value="30000">30 km</option></select></label>
+              <label>Categoria<select id="reportCategoryFilter"><option value="">Todas</option><option value="ACCIDENT">Acidente</option><option value="TRAFFIC">Trânsito</option><option value="BLOCKAGE">Bloqueio</option><option value="ROADWORK">Obra</option><option value="FLOOD">Alagamento</option><option value="HAZARD">Perigo</option><option value="POTHOLE">Buraco</option></select></label>
+              <label>Gravidade<select id="reportSeverityFilter"><option value="">Todas</option><option value="HIGH">Alta</option><option value="MEDIUM">Média</option><option value="LOW">Baixa</option></select></label>
+              <label>Horário<select id="reportTimeFilter"><option value="3">3 horas</option><option value="6">6 horas</option><option value="24" selected>24 horas</option></select></label>
+            </div>
+            <div id="roadReportMiniMap" class="community-mini-map" role="img" aria-label="Mapa das ocorrências próximas"><span>Mapa de ocorrências</span></div>
             <div class="platform-grid">
               <form id="roadReportForm" class="card">
                 <span class="eyebrow">ALERTA COMUNITÁRIO</span>
@@ -644,9 +589,12 @@
                     required
                   ></textarea>
                 </label>
+                <div class="coordinate-fields"><label>Latitude<input id="roadReportLatitude" inputmode="decimal" readonly></label><label>Longitude<input id="roadReportLongitude" inputmode="decimal" readonly></label></div>
+                <button id="useReportLocation" type="button" class="secondary wide">Escolher minha posição no mapa</button>
+                <label class="field">Foto opcional<input id="roadReportPhoto" type="file" accept="image/jpeg,image/png,image/webp"><small>Até 5 MB. A imagem passa por moderação antes de ficar pública.</small></label>
                 <p class="notice">
                   Usa a posição do evento no momento do envio. Nunca é apresentada como fonte
-                  oficial.
+                  oficial. Toque no mapa para ajustar a posição antes de publicar.
                 </p>
                 <button type="submit" class="wide">Publicar ocorrência</button>
               </form>
@@ -662,16 +610,23 @@
               </section>
             </div>
           </section>
+          <section id="platformStations" class="platform-pane hidden">
+            <div class="section-head"><div><span class="eyebrow">POSTOS PRÓXIMOS</span><h2>Preço real, distância e confiança</h2></div><div class="view-toggle"><button id="stationListMode" type="button">Lista</button><button id="stationMapMode" type="button" class="secondary">Mapa</button></div></div>
+            <div class="platform-filterbar"><label>Raio<select id="stationRadius"><option value="3000">3 km</option><option value="5000">5 km</option><option value="10000">10 km</option><option value="20000">20 km</option></select></label><label>Combustível<select id="stationFuel"><option value="">Todos</option><option value="GASOLINE">Gasolina</option><option value="ETHANOL">Etanol</option><option value="DIESEL">Diesel</option><option value="CNG">GNV</option></select></label><label>Bandeira<input id="stationBrand" placeholder="Todas"></label><label>Ordenar<select id="stationSort"><option value="distance">Distância</option><option value="price">Menor preço</option></select></label><button id="reloadStationTab" type="button" class="secondary">Atualizar</button></div>
+            <div id="stationMiniMap" class="community-mini-map hidden" role="img" aria-label="Mapa de postos próximos"><span>Mapa de postos</span></div>
+            <div id="stationTabList" class="platform-list"></div>
+          </section>
           <section id="platformPx" class="platform-pane hidden">
             <section class="card platform-feed">
               <div class="section-head">
                 <div>
-                  <span class="eyebrow">MURAL REGIONAL</span>
-                  <h2>PX comunitário</h2>
+                  <span class="eyebrow">CANAL REGIONAL</span>
+                  <h2>PX comunitário</h2><small>Distâncias são aproximadas e mensagens expiram após 24 horas.</small>
                 </div>
                 <select id="pxChannel" aria-label="Canal PX"></select>
               </div>
               <div id="pxMessages" class="platform-list"></div>
+              <div id="pxReplyPreview" class="reply-preview hidden"><span></span><button type="button" aria-label="Cancelar resposta">×</button></div>
               <form id="pxForm" class="platform-compose">
                 <label class="sr-only" for="pxBody">Mensagem curta</label
                 ><input
@@ -683,7 +638,8 @@
             </section>
           </section>
           <section id="platformChat" class="platform-pane hidden">
-            <div class="platform-grid">
+            <div class="chat-toolbar"><input id="conversationSearch" placeholder="Buscar por nome ou ID RASTREON"><span>Solicitações desconhecidas são limitadas para evitar spam.</span></div>
+            <div class="platform-grid chat-layout">
               <section class="card">
                 <div class="section-head">
                   <div>
@@ -697,8 +653,8 @@
                 <div id="conversationRequests" class="platform-list"></div>
               </section>
               <section class="card">
-                <span class="eyebrow">PRIVADO</span>
-                <h2>Conversas aceitas</h2>
+                <span class="eyebrow">MENSAGEIRO PRIVADO</span>
+                <h2 id="activeConversationTitle">Conversas aceitas</h2>
                 <div id="conversationList" class="platform-list"></div>
                 <div id="conversationMessages" class="platform-list platform-messages"></div>
                 <form id="conversationForm" class="platform-compose hidden">
@@ -709,12 +665,16 @@
                     placeholder="Digite uma mensagem"
                   /><button type="submit">Enviar</button>
                 </form>
+                <div id="conversationActions" class="platform-item__actions hidden"><button id="shareTemporaryLocation" type="button" class="secondary">Compartilhar localização por 1 hora</button><button id="archiveConversation" type="button" class="secondary">Arquivar</button><button id="blockConversation" type="button" class="secondary">Bloquear</button><button id="reportConversation" type="button" class="secondary">Denunciar</button></div>
               </section>
             </div>
           </section>
           <section id="platformConvoy" class="platform-pane hidden" aria-labelledby="convoyTab">
             <div id="convoyRoot" class="convoy-grid" aria-live="polite"></div>
           </section>
+          <section id="platformRoutes" class="platform-pane hidden"><div class="section-head"><div><span class="eyebrow">ROTAS COMPARTILHADAS</span><h2>Rotas, paradas e alertas</h2></div></div><div id="sharedRouteList" class="platform-list"></div></section>
+          <section id="platformBenefits" class="platform-pane hidden"><div class="section-head"><div><span class="eyebrow">BENEFÍCIOS</span><h2>Parceiros e descontos</h2><small>Todo conteúdo comercial é identificado como patrocinado.</small></div></div><div id="benefitList" class="platform-list"></div></section>
+          <aside class="community-privacy"><strong>Privacidade e moderação</strong><span>Localizações de ocorrências ficam enquanto o alerta estiver ativo; mensagens PX expiram em 24 horas; localizações privadas expiram em 1 hora; o comboio para de compartilhar ao ser encerrado. Conteúdo comunitário pode ser denunciado e moderado.</span></aside>
           <div id="platformNotice" class="toast" role="status" aria-live="polite"></div>
         </div>
       </section>
@@ -1196,6 +1156,16 @@
         <button type="submit" class="wide">Salvar perfil do veículo</button>
       </form>
     </dialog>
+    <dialog id="referenceDialog" class="reference-dialog">
+      <section>
+        <header class="modal-head">
+          <div><span id="referenceDialogEyebrow" class="eyebrow">RASTREON</span><h2 id="referenceDialogTitle">Detalhes</h2></div>
+          <button type="button" id="closeReferenceDialog" class="icon-btn" aria-label="Fechar">×</button>
+        </header>
+        <div id="referenceDialogBody" class="reference-dialog-body"></div>
+        <footer><button type="button" id="confirmReferenceDialog">Concluir</button></footer>
+      </section>
+    </dialog>
     <div id="toast" class="toast" role="status"></div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/map-config.js"></script>
@@ -1205,11 +1175,12 @@
     <script src="/js/vehicle-images.js?v=3"></script>
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
-    <script src="/js/platform-features.js?v=20260825-1"></script>
+    <script src="/js/platform-features.js?v=20260831-community-hub-1"></script>
     <script src="/vendor/zxing/zxing-browser.min.js"></script>
-    <script src="/js/convoy.js?v=20260827-contact-qr-1"></script>
+    <script src="/js/convoy.js?v=20260831-community-hub-1"></script>
     <script src="/js/dashboard.js?v=20260828-profile-reference-2"></script>
     <script src="/js/ux.js?v=20260829-pois-fallback-2"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>
+    <script src="/js/reference-screens.js?v=20260831-faithful-2"></script>
   </body>
 </html>

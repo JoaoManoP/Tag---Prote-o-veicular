@@ -42,7 +42,7 @@ function convoyState(database, userId) {
     .all(userId);
   const convoy = database
     .prepare(
-      `SELECT s.id,s.owner_user_id AS ownerId,s.created_at AS createdAt FROM convoy_sessions s
+      `SELECT s.id,s.owner_user_id AS ownerId,s.destination_label AS destinationLabel,s.route_label AS routeLabel,s.created_at AS createdAt FROM convoy_sessions s
        JOIN convoy_members m ON m.convoy_id=s.id
        WHERE m.user_id=? AND m.status='ACCEPTED' AND s.status='ACTIVE' ORDER BY s.created_at DESC LIMIT 1`
     )
@@ -50,7 +50,7 @@ function convoyState(database, userId) {
   if (convoy)
     convoy.members = database
       .prepare(
-        `SELECT m.user_id AS userId,m.status,m.joined_at AS joinedAt,u.name,u.public_contact_id AS contactId
+        `SELECT m.user_id AS userId,m.status,m.joined_at AS joinedAt,m.last_latitude AS latitude,m.last_longitude AS longitude,m.last_seen_at AS lastSeenAt,u.name,u.public_contact_id AS contactId
          FROM convoy_members m JOIN users u ON u.id=m.user_id WHERE m.convoy_id=? ORDER BY m.joined_at`
       )
       .all(convoy.id);
@@ -213,6 +213,20 @@ function createConvoyRouter({
     res.json({ ok: true });
   });
 
+  router.patch('/sessions/:id/details', (req, res) => {
+    const session = database
+      .prepare("SELECT owner_user_id AS ownerId FROM convoy_sessions WHERE id=? AND status='ACTIVE'")
+      .get(req.params.id);
+    if (!session || session.ownerId !== req.auth.userId)
+      return res.status(403).json({ error: 'Somente o líder pode alterar destino e rota.' });
+    const destinationLabel = String(req.body?.destinationLabel || '').trim().slice(0, 160),
+      routeLabel = String(req.body?.routeLabel || '').trim().slice(0, 240);
+    database
+      .prepare('UPDATE convoy_sessions SET destination_label=?,route_label=? WHERE id=?')
+      .run(destinationLabel || null, routeLabel || null, req.params.id);
+    res.json({ destinationLabel, routeLabel });
+  });
+
   router.post('/sessions/:id/end', (req, res) => {
     const session = database
       .prepare(
@@ -271,12 +285,34 @@ function installConvoySocket({ io, database }) {
         return acknowledge({ ok: false, error: 'Posição inválida.' });
       socket.data.lastConvoyPositionAt = now();
       const user = database.prepare('SELECT name FROM users WHERE id=?').get(userId);
-      socket.to(`convoy:${convoyId}`).emit('convoy:position', {
+      database
+        .prepare(
+          'UPDATE convoy_members SET last_latitude=?,last_longitude=?,last_seen_at=? WHERE convoy_id=? AND user_id=?'
+        )
+        .run(latitude, longitude, now(), convoyId, userId);
+      io.to(`convoy:${convoyId}`).emit('convoy:position', {
         userId,
         name: user.name,
         latitude,
         longitude,
         heading: Number.isFinite(Number(payload.heading)) ? Number(payload.heading) : null,
+        timestamp: now()
+      });
+      acknowledge({ ok: true });
+    });
+    socket.on('convoy:signal', (payload = {}, acknowledge = () => {}) => {
+      const userId = Number(socket.request.session?.userId),
+        convoyId = socket.data.convoyId,
+        signal = String(payload.signal || '').toUpperCase();
+      if (!convoyId || !activeMember(database, convoyId, userId))
+        return acknowledge({ ok: false });
+      if (!['STOPPED', 'HELP', 'LEAVING'].includes(signal))
+        return acknowledge({ ok: false, error: 'Aviso inválido.' });
+      const user = database.prepare('SELECT name FROM users WHERE id=?').get(userId);
+      io.to(`convoy:${convoyId}`).emit('convoy:signal', {
+        userId,
+        name: user.name,
+        signal,
         timestamp: now()
       });
       acknowledge({ ok: true });

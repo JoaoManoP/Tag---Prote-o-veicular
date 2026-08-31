@@ -112,9 +112,6 @@ window.RastroMap.ready
       positions = [],
       confirmedMeters = 0,
       rebuiltMeters = 0,
-      simulationTimer = null,
-      simIndex = 0,
-      simulationSequence = Date.now() * 1000,
       tripId = null,
       tripStart = null,
       tripEnd = null,
@@ -1485,14 +1482,25 @@ window.RastroMap.ready
       }
       renderVehicleCards();
       await loadDevices();
+      await loadGarageSpeedRule();
     }
     function ensureGeofencePanel() {
       if ($('geofencePanel')) return;
       const panel = document.createElement('section');
       panel.id = 'geofencePanel';
       panel.className = 'card geofence-panel';
-      panel.innerHTML =
-        '<div class="section-head"><div><span class="eyebrow">ZONA SEGURA</span><h2>Área de cobertura</h2></div></div><p class="muted-copy">Escolha o centro no mapa ou use a última posição recebida.</p><div class="geofence-form"><input id="geofenceName" placeholder="Nome, ex.: Casa"><input id="geofenceLat" type="number" step="any" placeholder="Latitude"><input id="geofenceLng" type="number" step="any" placeholder="Longitude"><select id="geofenceRadius"><option value="100">100 m</option><option value="250">250 m</option><option value="500" selected>500 m</option><option value="1000">1 km</option><option value="5000">5 km</option></select><button id="useGeofencePoint" class="secondary">Usar ponto atual</button><button id="saveGeofence">Salvar área</button></div><div id="geofenceList" class="geofence-list"></div>';
+      panel.innerHTML = `<div class="section-head"><div><span class="eyebrow">ZONA SEGURA</span><h2>Área de cobertura</h2></div></div>
+        <p class="muted-copy">Defina um centro no mapa ou use a última posição recebida.</p>
+        <div class="reference-geofence-layout">
+          <div class="geofence-form">
+            <label>Nome da área<input id="geofenceName" placeholder="Ex.: Casa, trabalho ou garagem" aria-label="Nome da área"></label>
+            <input id="geofenceLat" class="sr-only" type="number" step="any" placeholder="Latitude">
+            <input id="geofenceLng" class="sr-only" type="number" step="any" placeholder="Longitude">
+            <label>Raio<select id="geofenceRadius"><option value="100">100 m</option><option value="250">250 m</option><option value="500" selected>500 m</option><option value="1000">1 km</option><option value="5000">5 km</option></select></label>
+            <div><button id="useGeofencePoint" class="secondary">Usar posição atual</button><button id="saveGeofence">Salvar área</button></div>
+          </div>
+          <div class="coverage-preview"><i><svg aria-hidden="true"><use href="/images/ui-icons.svg#vehicle"></use></svg></i><b>500 m</b></div>
+        </div><div id="geofenceList" class="geofence-list"></div>`;
       document.querySelector('.garage-reference-grid')?.prepend(panel);
       $('useGeofencePoint').onclick = () => {
         const point = positions.at(-1) || origin;
@@ -2002,18 +2010,29 @@ window.RastroMap.ready
     function renderVehicleCards() {
       const grid = $('vehiclesGrid');
       if (!grid) return;
-      if ($('garageVehicleCount'))
-        $('garageVehicleCount').textContent = String(savedVehicles.length);
+      if ($('garageVehicleCount')) $('garageVehicleCount').textContent = String(savedVehicles.length);
+      const filter = $('garageVehicleFilter')?.value || 'all';
+      const visibleVehicles = savedVehicles.filter(item =>
+        filter === 'selected' ? item.selected : filter === 'others' ? !item.selected : true
+      );
       garageVehicle3DPreviews.forEach(preview => preview?.destroy?.());
       garageVehicle3DPreviews = [];
-      grid.innerHTML = savedVehicles.length
-        ? savedVehicles
+      grid.innerHTML = visibleVehicles.length
+        ? visibleVehicles
             .map(
               v =>
-                `<article class="vehicle-card ${v.selected ? 'selected' : ''}"><div class="vehicle-card-3d-wrap"><canvas class="vehicle-card-3d" data-vehicle-id="${v.id}" aria-label="Modelo 3D de ${escapeHtml(v.brand)} ${escapeHtml(v.model)}"></canvas><img class="vehicle-card-image" hidden alt="Imagem de apoio de ${escapeHtml(v.brand)} ${escapeHtml(v.model)}"><span>MODELO 3D</span></div><div class="vehicle-card-head"><span class="vehicle-type">${v.type === 'motorcycle' ? 'MOTO' : 'VEÍCULO'}</span>${v.selected ? '<span class="badge online">Selecionado</span>' : ''}</div><h3>${escapeHtml(v.nickname)}</h3><p>${escapeHtml(v.brand)} ${escapeHtml(v.model)} ${escapeHtml(v.version)}</p><dl><div><dt>Ano</dt><dd>${v.manufactureYear || '—'} / ${v.year || '—'}</dd></div><div><dt>Placa</dt><dd>${escapeHtml(v.plate || 'Não informada')}</dd></div><div><dt>Cor</dt><dd>${escapeHtml(v.color || '—')}</dd></div><div><dt>Combustível</dt><dd>${escapeHtml(v.fuel || '—')}</dd></div></dl>${v.image?.attribution ? `<small class="image-credit">Créditos da imagem de apoio: ${escapeHtml(v.image.attribution)}</small>` : ''}<div class="vehicle-actions">${v.selected ? '' : `<button data-select="${v.id}">Selecionar</button>`}<button class="secondary" data-edit="${v.id}">Editar</button><button class="danger" data-delete="${v.id}">Excluir</button></div></article>`
+                `<article class="vehicle-card ${v.selected ? 'selected' : ''}" data-vehicle-card="${v.id}"><div class="vehicle-card-3d-wrap"><canvas class="vehicle-card-3d" data-vehicle-id="${v.id}" aria-label="Modelo 3D de ${escapeHtml(v.brand)} ${escapeHtml(v.model)}"></canvas><img class="vehicle-card-image" hidden alt="Imagem de apoio de ${escapeHtml(v.brand)} ${escapeHtml(v.model)}"><span>MODELO 3D</span></div><div class="vehicle-card-head"><span class="vehicle-type">${v.type === 'motorcycle' ? 'MOTO' : 'VEÍCULO'}</span>${v.selected ? '<span class="badge online">Selecionado</span>' : ''}</div><h3>${escapeHtml(v.nickname)}</h3><p>${escapeHtml(v.brand)} ${escapeHtml(v.model)} ${escapeHtml(v.version)}</p><div class="vehicle-operation ${v.selected ? 'checking' : 'standby'}" data-vehicle-operation="${v.id}"><span aria-hidden="true"></span><div><b>${v.selected ? 'Verificando rastreador…' : 'Veículo não selecionado'}</b><small>${v.selected ? 'Consultando a última conexão' : 'Selecione para consultar localização e alertas'}</small></div></div><dl><div><dt>Ano</dt><dd>${v.manufactureYear || '—'} / ${v.year || '—'}</dd></div><div><dt>Placa</dt><dd>${escapeHtml(v.plate || 'Não informada')}</dd></div><div><dt>Cor</dt><dd>${escapeHtml(v.color || '—')}</dd></div><div><dt>Combustível</dt><dd>${escapeHtml(v.fuel || '—')}</dd></div></dl>${v.image?.attribution ? `<small class="image-credit">Créditos da imagem de apoio: ${escapeHtml(v.image.attribution)}</small>` : ''}<div class="vehicle-actions">${v.selected ? `<button data-locate="${v.id}">Ver no mapa</button>` : `<button data-select="${v.id}">Selecionar</button>`}<button class="secondary" data-edit="${v.id}">Editar</button><details class="vehicle-more"><summary aria-label="Mais opções para ${escapeHtml(v.nickname)}">Mais opções</summary><button class="danger" data-delete="${v.id}">Excluir veículo</button></details></div></article>`
             )
             .join('')
-        : '<div class="empty-garage"><h3>Nenhum veículo cadastrado</h3><p>Adicione seu primeiro veículo para começar uma viagem.</p></div>';
+        : savedVehicles.length
+          ? '<div class="empty-state garage-empty"><strong>Nenhum veículo neste filtro</strong><span>Altere o filtro para visualizar os demais veículos da garagem.</span><button type="button" id="clearGarageFilter">Mostrar todos</button></div>'
+          : '<div class="empty-state garage-empty"><strong>Nenhum veículo cadastrado</strong><span>Cadastre seu veículo para configurar rastreador, zona segura e alertas.</span><button type="button" id="emptyGarageAddVehicle">Adicionar veículo</button></div>';
+      $('emptyGarageAddVehicle')?.addEventListener('click', () => $('newVehicleBtn')?.click());
+      $('clearGarageFilter')?.addEventListener('click', () => {
+        $('garageVehicleFilter').value = 'all';
+        renderVehicleCards();
+        loadDevices();
+      });
       grid.querySelectorAll('[data-vehicle-id]').forEach(canvas => {
         const item = savedVehicles.find(value => value.id === Number(canvas.dataset.vehicleId));
         installVehiclePreview(canvas, item).then(preview => {
@@ -2030,6 +2049,13 @@ window.RastroMap.ready
       grid
         .querySelectorAll('[data-select]')
         .forEach(b => (b.onclick = () => selectVehicle(Number(b.dataset.select))));
+      grid.querySelectorAll('[data-locate]').forEach(
+        b =>
+          (b.onclick = () => {
+            document.querySelector('[data-view="tracking"]')?.click();
+            setTimeout(() => map.invalidateSize(), 60);
+          })
+      );
       grid
         .querySelectorAll('[data-edit]')
         .forEach(
@@ -2053,7 +2079,9 @@ window.RastroMap.ready
       const list = $('devicesList');
       if (!list) return;
       if (!vehicle?.id) {
-        list.innerHTML = '<div class="empty-state">Cadastre e selecione um veículo.</div>';
+        list.innerHTML = '<div class="empty-state">Selecione um veículo para consultar os dispositivos vinculados.</div>';
+        if ($('garageDeviceCount')) $('garageDeviceCount').textContent = '0';
+        if ($('garageVehicleStatus')) $('garageVehicleStatus').textContent = 'Cadastrados';
         return;
       }
       const response = await fetch(`/api/vehicles/${vehicle.id}/devices`),
@@ -2072,9 +2100,75 @@ window.RastroMap.ready
             .join('')
         : '<div class="empty-state">Nenhum rastreador vinculado a este veículo.</div>';
       if ($('garageDeviceCount')) $('garageDeviceCount').textContent = String(data.devices.length);
+      const activeDevices = data.devices.filter(item => deviceState(item).key === 'online');
+      const newestDevice = [...data.devices]
+        .filter(item => item.lastSeen)
+        .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())[0];
+      const operation = document.querySelector(`[data-vehicle-operation="${vehicle.id}"]`);
+      if (operation) {
+        operation.className = `vehicle-operation ${activeDevices.length ? 'online' : 'offline'}`;
+        operation.querySelector('b').textContent = activeDevices.length
+          ? 'Rastreador online'
+          : data.devices.length
+            ? 'Rastreador offline'
+            : 'Sem rastreador vinculado';
+        operation.querySelector('small').textContent = newestDevice
+          ? `Último contato: ${new Date(newestDevice.lastSeen).toLocaleString('pt-BR')}`
+          : 'Conecte um dispositivo para receber a localização';
+      }
+      if ($('garageVehicleStatus'))
+        $('garageVehicleStatus').textContent = activeDevices.length ? 'Veículo online' : 'Requer atenção';
       list
         .querySelectorAll('[data-revoke-device]')
         .forEach(button => (button.onclick = () => revokeDevice(button.dataset.revokeDevice)));
+    }
+    async function loadGarageSpeedRule() {
+      const enabled = $('garageSpeedEnabled'),
+        maximum = $('garageSpeedMaximum'),
+        save = $('saveGarageSpeedRule');
+      if (!enabled || !maximum || !save) return;
+      const available = Boolean(vehicle?.id);
+      enabled.disabled = !available;
+      maximum.disabled = !available;
+      save.disabled = !available;
+      if (!available) {
+        enabled.checked = false;
+        maximum.value = '80';
+        if ($('garageAlertCount')) $('garageAlertCount').textContent = '0';
+        return;
+      }
+      try {
+        const response = await fetch(`/api/vehicles/${vehicle.id}/speed-rule`),
+          data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Não foi possível carregar o alerta.');
+        enabled.checked = Boolean(data.rule?.enabled);
+        maximum.value = String(data.rule?.maximumKmh || 80);
+        if ($('garageAlertCount'))
+          $('garageAlertCount').textContent = data.rule?.enabled ? '1' : '0';
+      } catch (error) {
+        toast(error.message);
+      }
+    }
+    async function saveGarageSpeedRule() {
+      if (!vehicle?.id) return toast('Cadastre e selecione um veículo.');
+      try {
+        const csrfResponse = await fetch('/api/auth/csrf'),
+          csrfData = await csrfResponse.json(),
+          response = await fetch(`/api/vehicles/${vehicle.id}/speed-rule`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.token },
+            body: JSON.stringify({
+              enabled: $('garageSpeedEnabled').checked,
+              maximumKmh: Number($('garageSpeedMaximum').value)
+            })
+          }),
+          data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Não foi possível salvar o alerta.');
+        await loadGarageSpeedRule();
+        toast('Alerta de velocidade salvo.');
+      } catch (error) {
+        toast(error.message);
+      }
     }
     async function revokeDevice(id) {
       if (!confirm('Desvincular este celular? Ele deixará de enviar localização imediatamente.'))
@@ -2775,15 +2869,30 @@ window.RastroMap.ready
         .forEach(button => (button.onclick = () => loadTripHistory(button.dataset.historyTrip)));
       if (!trips.length) {
         for (const [id, value] of [
+          ['historyMetricTrips', '0'],
           ['historyMetricDistance', '0 km'],
-          ['historyMetricMoving', '0 min'],
-          ['historyMetricStopped', '0 min'],
+          ['historyMetricMoving', '0min'],
+          ['historyMetricStopped', '0min'],
           ['historyMetricSpeed', '0 km/h']
         ])
           if ($(id)) $(id).textContent = value;
         destroyHistoryMap();
-        $('historyRoutePreview').innerHTML =
-          '<div class="empty-state">Nenhum percurso registrado neste período.</div>';
+        $('historyRoutePreview').innerHTML = '<div class="empty-state">A rota aparecerá após a primeira viagem concluída.</div>';
+        $('historyTripList').innerHTML = '<div class="empty-state">Nenhuma viagem neste período.</div>';
+        $('eventTimeline').innerHTML = '<div class="empty-state">Nenhum evento registrado neste período.</div>';
+        $('historyTripCount').textContent = '0 viagens';
+        $('tripStarted').textContent = '—';
+        $('tripEnded').textContent = '—';
+        $('tripDuration').textContent = '0min';
+        $('movingTime').textContent = '0min';
+        $('stoppedTime').textContent = '0min';
+        $('speedStats').textContent = '0 km/h';
+        $('historySelectedDistance').textContent = '0 km';
+        $('historySummaryDistance').textContent = '0 km';
+        $('historyAverageSpeed').textContent = '0 km/h';
+        document.querySelector('.history-route-badge').textContent = 'Sem viagem';
+        $('historyDetailsBtn').disabled = true;
+        $('replayTripBtn').disabled = true;
         return;
       }
       const id = selectedId || trips[0].id,
@@ -2807,11 +2916,16 @@ window.RastroMap.ready
       $('tripEnded').textContent = latest.endedAt
         ? new Date(latest.endedAt).toLocaleString('pt-BR')
         : 'Em andamento';
+      $('complianceTripTime').textContent = `${new Date(latest.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às ${latest.endedAt ? new Date(latest.endedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'agora'}`;
       $('tripDuration').textContent = formatDuration(latest.comparison.actualDurationSeconds);
+      const selectedDistance = formatDistance(latest.comparison.actualDistanceMeters);
+      $('historySelectedDistance').textContent = selectedDistance;
+      $('historySummaryDistance').textContent = selectedDistance;
       $('movingTime').textContent = formatDuration(latest.comparison.movingSeconds);
       $('stoppedTime').textContent = formatDuration(latest.comparison.stoppedSeconds);
+      $('historyAverageSpeed').textContent = `${br(latest.comparison.averageSpeedKmh)} km/h`;
       $('speedStats').textContent =
-        `${br(latest.comparison.averageSpeedKmh)} / ${br(latest.comparison.maximumSpeedKmh)} km/h`;
+        `${br(latest.comparison.maximumSpeedKmh)} km/h`;
       $('historyMetricDistance').textContent = formatDistance(
         trips.reduce((total, trip) => total + Number(trip.comparison?.actualDistanceMeters || 0), 0)
       );
@@ -2822,6 +2936,13 @@ window.RastroMap.ready
       const badge = document.querySelector('.history-route-badge');
       if (badge)
         badge.textContent = `GPS filtrado · ${latest.comparison.metricSampleCount || 0} pontos`;
+      $('historyDetailsBtn').disabled = false;
+      $('historyDetailsBtn').onclick = () => {
+        $('referenceDialogEyebrow').textContent = 'DETALHES DA ROTA';
+        $('referenceDialogTitle').textContent = `Viagem de ${new Date(latest.startedAt).toLocaleDateString('pt-BR')}`;
+        $('referenceDialogBody').innerHTML = `<div class="reference-modal-stats"><article><small>Distância</small><b>${selectedDistance}</b></article><article><small>Duração</small><b>${formatDuration(latest.comparison.actualDurationSeconds)}</b></article><article><small>Velocidade média</small><b>${br(latest.comparison.averageSpeedKmh)} km/h</b></article></div>`;
+        $('referenceDialog').showModal();
+      };
     }
     function stopTripReplay({ clear = true } = {}) {
       if (replayTimer) clearInterval(replayTimer);
@@ -2885,13 +3006,36 @@ window.RastroMap.ready
         );
     }
     async function loadSchedule() {
-      if (!vehicle?.id) return;
+      if (!vehicle?.id) {
+        $('scheduleEnabled').checked = false;
+        $('scheduleEnabled').disabled = true;
+        $('allowedFrom').disabled = true;
+        $('allowedTo').disabled = true;
+        $('saveSchedule').disabled = true;
+        $('complianceTitle').textContent = 'Nenhuma regra ativa';
+        $('complianceCopy').textContent = 'Selecione um veículo para consultar a regra de uso.';
+        $('complianceSchedule').textContent = 'Não configurado';
+        return;
+      }
       const response = await fetch(`/api/vehicles/${vehicle.id}/schedule`),
         data = await response.json();
+      $('scheduleEnabled').disabled = false;
+      $('allowedFrom').disabled = false;
+      $('allowedTo').disabled = false;
+      $('saveSchedule').disabled = false;
       if (data.schedule) {
         $('scheduleEnabled').checked = data.schedule.enabled;
         $('allowedFrom').value = data.schedule.from;
         $('allowedTo').value = data.schedule.to;
+        $('complianceTitle').textContent = data.schedule.enabled
+          ? 'Regra de horário ativa'
+          : 'Regra de horário desativada';
+        $('complianceCopy').textContent = data.schedule.enabled
+          ? 'Os alertas seguem a configuração salva para este veículo.'
+          : 'Ative a regra para receber alertas fora do horário.';
+        $('complianceSchedule').textContent = data.schedule.enabled
+          ? `${data.schedule.from} às ${data.schedule.to}`
+          : 'Desativado';
       }
     }
     async function saveSchedule() {
@@ -2909,6 +3053,7 @@ window.RastroMap.ready
         }),
         data = await response.json();
       if (!response.ok) return toast(data.error);
+      await loadSchedule();
       toast('Horário autorizado salvo para este veículo.');
       checkSchedule();
     }
@@ -3104,137 +3249,6 @@ window.RastroMap.ready
         );
       }
     }
-    function startSimulation() {
-      if (!sessionId) return toast('Crie uma sessão primeiro.');
-      if (!plannedRoutes.length) return toast('Calcule uma rota antes de simular.');
-      if (simulationTimer) {
-        clearInterval(simulationTimer);
-        simulationTimer = null;
-        $('simulateBtn').textContent = 'Simular percurso';
-        return;
-      }
-      if (!tripStart) startTrip();
-      const geometry = plannedRoutes[selectedRoute].geometry;
-      $('simulateBtn').textContent = 'Parar simulação';
-      simulationTimer = setInterval(() => {
-        const current = geometry[simIndex % geometry.length],
-          next = geometry[(simIndex + 1) % geometry.length] || current,
-          speed = 10 + Math.random() * 7,
-          heading =
-            ((Math.atan2(next[1] - current[1], next[0] - current[0]) * 180) / Math.PI + 360) % 360;
-        socket.emit('position:update', {
-          deviceId: 'dashboard-simulation',
-          latitude: current[0],
-          longitude: current[1],
-          accuracy: 7 + Math.random() * 5,
-          speed,
-          heading,
-          altitude: null,
-          timestamp: Date.now(),
-          source: 'simulation',
-          sequence: ++simulationSequence
-        });
-        simIndex++;
-        if (simIndex >= geometry.length) {
-          clearInterval(simulationTimer);
-          simulationTimer = null;
-          $('simulateBtn').textContent = 'Simular percurso';
-        }
-      }, 700);
-    }
-    function ensureSimulationControls() {
-      if ($('simulationScenarios')) return;
-      const box = document.createElement('div');
-      box.id = 'simulationScenarios';
-      box.className = 'simulation-scenarios';
-      box.innerHTML =
-        '<button id="simulateOfflineBtn" class="secondary">Testar offline</button><button id="simulateGeofenceBtn" class="secondary">Testar saída</button><button id="simulateScheduleBtn" class="secondary">Testar horário</button>';
-      const side = document.querySelector('.map-side-panel');
-      side
-        ? side.append(box)
-        : document.querySelector('.map-legend').insertAdjacentElement('afterend', box);
-      $('simulateOfflineBtn').onclick = simulateOfflineScenario;
-      $('simulateGeofenceBtn').onclick = simulateGeofenceExit;
-      $('simulateScheduleBtn').onclick = simulateOutsideSchedule;
-    }
-    async function simulateOfflineScenario() {
-      if (!sessionId || !plannedRoutes.length) return toast('Crie a sessão e calcule uma rota.');
-      const geometry = plannedRoutes[selectedRoute].geometry,
-        step = Math.max(1, Math.floor(geometry.length / 5)),
-        now = Date.now(),
-        points = Array.from({ length: 5 }, (_, index) => {
-          const point = geometry[Math.min(geometry.length - 1, index * step)];
-          return {
-            latitude: point[0],
-            longitude: point[1],
-            accuracy: 10,
-            speed: 10,
-            heading: 0,
-            timestamp: now + index * 15000,
-            source: 'simulation',
-            sequence: now * 1000 + index
-          };
-        }),
-        response = await fetch('/api/simulations/offline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, points, lostAt: now, reconnectedAt: now + 60000 })
-        }),
-        data = await response.json();
-      toast(response.ok ? `${data.received} pontos de queda simulada sincronizados.` : data.error);
-    }
-    async function simulateGeofenceExit() {
-      if (!sessionId || !vehicle?.id) return toast('Crie a sessão e selecione um veículo.');
-      const response = await fetch(`/api/vehicles/${vehicle.id}/geofences`),
-        data = await response.json(),
-        fence = data.geofences?.[0];
-      if (!fence) return toast('Crie uma área de cobertura primeiro.');
-      const latitude = fence.centerLat + (fence.radiusMeters * 2.2) / 111320,
-        send = () =>
-          socket.emit('position:update', {
-            deviceId: 'dashboard-simulation',
-            latitude,
-            longitude: fence.centerLng,
-            accuracy: 6,
-            speed: 8,
-            heading: 0,
-            timestamp: Date.now(),
-            source: 'simulation',
-            sequence: ++simulationSequence
-          });
-      send();
-      setTimeout(send, 350);
-      toast('Duas leituras externas enviadas para confirmar a saída.');
-    }
-    async function simulateOutsideSchedule() {
-      if (!sessionId || !vehicle?.id) return toast('Crie uma sessão e selecione um veículo.');
-      const now = new Date(),
-        anotherDay = (now.getDay() + 1) % 7;
-      await fetch(`/api/vehicles/${vehicle.id}/schedule`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          enabled: true,
-          days: [anotherDay],
-          from: '07:00',
-          to: '19:00',
-          timezone: 'America/Sao_Paulo'
-        })
-      });
-      const point = positions.at(-1) || origin || { latitude: -19.47, longitude: -42.54 };
-      socket.emit('position:update', {
-        deviceId: 'dashboard-simulation',
-        latitude: point.latitude,
-        longitude: point.longitude,
-        accuracy: 8,
-        speed: 8,
-        heading: 0,
-        timestamp: Date.now(),
-        source: 'simulation',
-        sequence: ++simulationSequence
-      });
-      toast('Movimentação fora do dia autorizado enviada para validar o alerta.');
-    }
     function clearHistory() {
       positions = [];
       confirmedMeters = rebuiltMeters = movingMs = stoppedMs = offlineMs = 0;
@@ -3264,7 +3278,6 @@ window.RastroMap.ready
       sessionId = null;
       pairingId = null;
       clearInterval(pairingTimer);
-      if (simulationTimer) clearInterval(simulationTimer);
       $('sessionActive').classList.add('hidden');
       $('sessionEmpty').classList.remove('hidden');
       $('clearBtn').disabled = $('closeBtn').disabled = true;
@@ -3514,6 +3527,11 @@ window.RastroMap.ready
       }
     }
     async function ensureSpeedRulePanel() {
+      if ($('garageSpeedRulePanel')) {
+        $('saveGarageSpeedRule').onclick = saveGarageSpeedRule;
+        await loadGarageSpeedRule();
+        return;
+      }
       const page = document.querySelector('#vehiclesView .page-content');
       if (!page || $('speedRulePanel')) return;
       const card = document.createElement('section');
@@ -3595,13 +3613,13 @@ window.RastroMap.ready
           map.invalidateSize();
         }, 60);
     });
-    window.addEventListener('rastreon:community-map', event => {
+    const renderCommunityMap = event => {
       layers.community.clearLayers();
       const payload = event.detail || {},
         icon = symbol =>
           L.divIcon({
-            className: 'map-symbol-marker',
-            html: `<svg aria-hidden="true"><use href="/images/map-icons.svg#${symbol}"></use></svg>`,
+            className: 'map-symbol-marker-host',
+            html: `<span class="map-symbol-marker map-symbol-marker--${symbol}"><svg aria-hidden="true"><use href="/images/map-icons.svg#${symbol}"></use></svg></span>`,
             iconSize: [34, 34],
             iconAnchor: [17, 28],
             popupAnchor: [0, -26]
@@ -3637,7 +3655,10 @@ window.RastroMap.ready
           )
           .addTo(layers.community);
       }
-    });
+    };
+    window.addEventListener('rastreon:community-map', renderCommunityMap);
+    if (window.rastreonCommunityMapState)
+      renderCommunityMap({ detail: window.rastreonCommunityMapState });
     bindAddressAutocomplete('originInput', 'originResults', 'origin');
     bindAddressAutocomplete('destinationInput', 'destinationResults', 'destination');
     window.addEventListener('rastreon:swap-route-points', () => {
@@ -3694,7 +3715,6 @@ window.RastroMap.ready
     });
     $('createBtn').onclick = createSession;
     $('startTripBtn').onclick = startTrip;
-    $('simulateBtn').onclick = startSimulation;
     $('clearBtn').onclick = clearHistory;
     $('closeBtn').onclick = closeSession;
     $('copyBtn').onclick = async () => {
@@ -3704,6 +3724,15 @@ window.RastroMap.ready
     $('saveSchedule').onclick = saveSchedule;
     $('applyFilter').onclick = () => loadTripHistory();
     $('connectPhoneBtn').onclick = connectSelectedPhone;
+    $('garageVehicleFilter').onchange = () => {
+      renderVehicleCards();
+      loadDevices();
+    };
+    $('saveGarageSpeedRule').onclick = saveGarageSpeedRule;
+    $('openDocumentsBtn').onclick = () => {
+      document.querySelector('[data-view="profile"]')?.click();
+      setTimeout(() => $('driverDocumentStatus')?.scrollIntoView({ behavior: 'smooth' }), 100);
+    };
     $('saveRanking').onclick = saveRankingPreference;
     $('saveFuelPrice').onclick = saveFuelPrice;
     $('replayTripBtn').onclick = playTripHistory;
@@ -3848,7 +3877,6 @@ window.RastroMap.ready
         $('dataSource').className = 'badge online';
       }
     });
-    ensureSimulationControls();
     ensureTrackerPairing();
     ensureWeatherCard();
     ensureMapControls();

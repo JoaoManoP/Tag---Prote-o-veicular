@@ -233,7 +233,9 @@ function safePhoto(buffer, mime) {
 function serializeStation(database, row, userId) {
   const latest = database
     .prepare(
-      `SELECT fuel_type AS fuelType,price_cents AS priceCents,status,source,observed_at AS observedAt FROM fuel_prices WHERE station_id=? AND status!='REJECTED' ORDER BY observed_at DESC`
+      `SELECT id,fuel_type AS fuelType,price_cents AS priceCents,status,source,observed_at AS observedAt,
+      (SELECT COUNT(*) FROM fuel_price_confirmations confirmations WHERE confirmations.price_id=fuel_prices.id) AS confirmations
+      FROM fuel_prices WHERE station_id=? AND status!='REJECTED' ORDER BY observed_at DESC`
     )
     .all(row.id);
   const prices = [];
@@ -255,6 +257,7 @@ function serializeStation(database, row, userId) {
   );
   return {
     id: row.id,
+    providerPlaceId: row.provider_place_id || null,
     name: row.name,
     brand: row.brand,
     address: row.address,
@@ -577,6 +580,24 @@ function createPlatformRouter({
     });
   });
 
+  router.put('/stations/:id/prices/:priceId/confirm', requireAuth, writes, csrf, (req, res) => {
+    const price = database
+      .prepare("SELECT id FROM fuel_prices WHERE id=? AND station_id=? AND status!='REJECTED'")
+      .get(req.params.priceId, req.params.id);
+    if (!price) return res.status(404).json({ error: 'Preço não encontrado.' });
+    database
+      .prepare(
+        'INSERT OR IGNORE INTO fuel_price_confirmations (price_id,user_id,created_at) VALUES (?,?,?)'
+      )
+      .run(price.id, req.session.userId, Date.now());
+    const confirmations = database
+      .prepare('SELECT COUNT(*) AS total FROM fuel_price_confirmations WHERE price_id=?')
+      .get(price.id).total;
+    if (confirmations >= 2)
+      database.prepare("UPDATE fuel_prices SET status='CONFIRMED' WHERE id=?").run(price.id);
+    res.json({ confirmations, status: confirmations >= 2 ? 'CONFIRMED' : 'COMMUNITY' });
+  });
+
   router.post('/stations/:id/favorite', requireAuth, writes, csrf, (req, res) => {
     if (!database.prepare('SELECT 1 FROM fuel_stations WHERE id=?').get(req.params.id))
       return res.status(404).json({ error: 'Posto não encontrado.' });
@@ -650,11 +671,29 @@ function createPlatformRouter({
     const latitude = coordinate(req.query.latitude, 90),
       longitude = coordinate(req.query.longitude, 180),
       radius = Math.min(30000, Math.max(100, Number(req.query.radiusMeters) || 10000));
+    const category = cleanText(req.query.category, 30).toUpperCase(),
+      severity = cleanText(req.query.severity, 10).toUpperCase(),
+      sinceHours = Math.min(24, Math.max(1, Number(req.query.sinceHours) || 24));
     let rows = database
       .prepare(
-        `SELECT reports.*,users.name AS author_name,users.avatar_data,users.public_contact_id,users.chat_enabled,(SELECT COUNT(*) FROM road_report_votes votes WHERE votes.report_id=reports.id AND vote='CONFIRM') AS confirmations,(SELECT COUNT(*) FROM road_report_votes votes WHERE votes.report_id=reports.id AND vote='DENY') AS denials FROM road_reports reports JOIN users ON users.id=reports.user_id WHERE reports.status='OPEN' ORDER BY reports.created_at DESC LIMIT 300`
+        `SELECT reports.*,users.name AS author_name,users.avatar_data,users.public_contact_id,users.chat_enabled,
+        (SELECT COUNT(*) FROM road_report_votes votes WHERE votes.report_id=reports.id AND vote='CONFIRM') AS confirmations,
+        (SELECT COUNT(*) FROM road_report_votes votes WHERE votes.report_id=reports.id AND vote='DENY') AS denials,
+        (SELECT MAX(created_at) FROM road_report_votes votes WHERE votes.report_id=reports.id AND vote='CONFIRM') AS last_confirmation_at,
+        (SELECT vote FROM road_report_votes votes WHERE votes.report_id=reports.id AND votes.user_id=?) AS my_vote
+        FROM road_reports reports JOIN users ON users.id=reports.user_id
+        WHERE reports.status='OPEN' AND reports.created_at>=?
+        AND (?='' OR reports.category=?) AND (?='' OR reports.severity=?)
+        ORDER BY reports.created_at DESC LIMIT 300`
       )
-      .all();
+      .all(
+        req.session.userId,
+        Date.now() - sinceHours * 3600000,
+        REPORT_CATEGORIES.has(category) ? category : '',
+        REPORT_CATEGORIES.has(category) ? category : '',
+        ['LOW', 'MEDIUM', 'HIGH'].includes(severity) ? severity : '',
+        ['LOW', 'MEDIUM', 'HIGH'].includes(severity) ? severity : ''
+      );
     if (latitude !== null && longitude !== null)
       rows = rows
         .map(row => ({
@@ -676,6 +715,8 @@ function createPlatformRouter({
         createdAt: row.created_at,
         confirmations: row.confirmations,
         denials: row.denials,
+        lastConfirmationAt: row.last_confirmation_at,
+        myVote: row.my_vote || null,
         distanceMeters: row.distanceMeters ?? null,
         author: publicUser(row),
         mine: Number(row.user_id) === Number(req.session.userId)
@@ -774,7 +815,7 @@ function createPlatformRouter({
       details = cleanText(req.body?.details, 500);
     if (
       !entityId ||
-      !['ROAD_REPORT', 'COMMENT', 'PX_MESSAGE', 'PHOTO'].includes(entityType) ||
+      !['ROAD_REPORT', 'COMMENT', 'PX_MESSAGE', 'PHOTO', 'CONVERSATION'].includes(entityType) ||
       reason.length < 3
     )
       return res.status(400).json({ error: 'Conteúdo e motivo válidos são obrigatórios.' });
@@ -1126,15 +1167,35 @@ function createPlatformRouter({
   router.get('/conversations', requireAuth, (req, res) => {
     const rows = database
       .prepare(
-        `SELECT conversations.*,CASE WHEN user_a_id=? THEN b.name ELSE a.name END AS peer_name FROM conversations JOIN users a ON a.id=user_a_id JOIN users b ON b.id=user_b_id WHERE (user_a_id=? OR user_b_id=?) ORDER BY updated_at DESC`
+        `SELECT conversations.*,
+        CASE WHEN user_a_id=? THEN b.name ELSE a.name END AS peer_name,
+        CASE WHEN user_a_id=? THEN b.public_contact_id ELSE a.public_contact_id END AS peer_contact_id,
+        state.archived_at,
+        (SELECT body FROM conversation_messages m WHERE m.conversation_id=conversations.id ORDER BY m.created_at DESC LIMIT 1) AS last_message,
+        (SELECT created_at FROM conversation_messages m WHERE m.conversation_id=conversations.id ORDER BY m.created_at DESC LIMIT 1) AS last_message_at,
+        (SELECT COUNT(*) FROM conversation_messages m WHERE m.conversation_id=conversations.id AND m.sender_user_id<>? AND m.created_at>COALESCE(state.last_read_at,0)) AS unread_count
+        FROM conversations JOIN users a ON a.id=user_a_id JOIN users b ON b.id=user_b_id
+        LEFT JOIN conversation_user_state state ON state.conversation_id=conversations.id AND state.user_id=?
+        WHERE (user_a_id=? OR user_b_id=?) ORDER BY state.archived_at IS NOT NULL,updated_at DESC`
       )
-      .all(req.session.userId, req.session.userId, req.session.userId);
+      .all(
+        req.session.userId,
+        req.session.userId,
+        req.session.userId,
+        req.session.userId,
+        req.session.userId,
+        req.session.userId
+      );
     res.json({
       conversations: rows.map(row => ({
         id: row.id,
         status: row.status,
-        peer: { displayName: alias(row.peer_name) },
-        updatedAt: row.updated_at
+        peer: { displayName: alias(row.peer_name), contactId: row.peer_contact_id },
+        updatedAt: row.updated_at,
+        lastMessage: row.last_message || null,
+        lastMessageAt: row.last_message_at || null,
+        unreadCount: row.unread_count,
+        archived: Boolean(row.archived_at)
       }))
     });
   });
@@ -1143,9 +1204,20 @@ function createPlatformRouter({
       .prepare('SELECT * FROM conversations WHERE id=? AND (user_a_id=? OR user_b_id=?)')
       .get(req.params.id, req.session.userId, req.session.userId);
     if (!conversation) return res.status(404).json({ error: 'Conversa não encontrada.' });
+    const openedAt = Date.now();
+    database
+      .prepare(
+        'INSERT INTO conversation_user_state (conversation_id,user_id,last_read_at) VALUES (?,?,?) ON CONFLICT(conversation_id,user_id) DO UPDATE SET last_read_at=excluded.last_read_at'
+      )
+      .run(conversation.id, req.session.userId, openedAt);
+    database
+      .prepare(
+        'UPDATE conversation_messages SET delivered_at=COALESCE(delivered_at,?),read_at=COALESCE(read_at,?) WHERE conversation_id=? AND sender_user_id<>?'
+      )
+      .run(openedAt, openedAt, conversation.id, req.session.userId);
     const rows = database
       .prepare(
-        "SELECT id,sender_user_id AS senderUserId,body,created_at AS createdAt FROM conversation_messages WHERE conversation_id=? AND status='SENT' ORDER BY created_at DESC LIMIT 100"
+        "SELECT id,sender_user_id AS senderUserId,body,message_type AS messageType,latitude,longitude,expires_at AS expiresAt,delivered_at AS deliveredAt,read_at AS readAt,created_at AS createdAt FROM conversation_messages WHERE conversation_id=? AND status='SENT' ORDER BY created_at DESC LIMIT 100"
       )
       .all(conversation.id)
       .reverse();
@@ -1163,9 +1235,17 @@ function createPlatformRouter({
           "SELECT * FROM conversations WHERE id=? AND status='ACTIVE' AND (user_a_id=? OR user_b_id=?)"
         )
         .get(req.params.id, req.session.userId, req.session.userId),
+      messageType = cleanText(req.body?.messageType, 20).toUpperCase() || 'TEXT',
+      latitude = coordinate(req.body?.latitude, 90),
+      longitude = coordinate(req.body?.longitude, 180),
       body = cleanText(req.body?.body, 800);
     if (!conversation) return res.status(404).json({ error: 'Conversa ativa não encontrada.' });
-    if (body.length < 1) return res.status(400).json({ error: 'Mensagem vazia.' });
+    if (!['TEXT', 'LOCATION'].includes(messageType))
+      return res.status(400).json({ error: 'Tipo de mensagem inválido.' });
+    if (messageType === 'TEXT' && body.length < 1)
+      return res.status(400).json({ error: 'Mensagem vazia.' });
+    if (messageType === 'LOCATION' && (latitude === null || longitude === null))
+      return res.status(400).json({ error: 'Localização inválida.' });
     const id = uuid(),
       now = Date.now(),
       recipient =
@@ -1174,9 +1254,19 @@ function createPlatformRouter({
           : conversation.user_a_id;
     database
       .prepare(
-        'INSERT INTO conversation_messages (id,conversation_id,sender_user_id,body,created_at) VALUES (?,?,?,?,?)'
+        'INSERT INTO conversation_messages (id,conversation_id,sender_user_id,body,message_type,latitude,longitude,expires_at,created_at) VALUES (?,?,?,?,?,?,?,?,?)'
       )
-      .run(id, conversation.id, req.session.userId, body, now);
+      .run(
+        id,
+        conversation.id,
+        req.session.userId,
+        messageType === 'LOCATION' ? 'Localização temporária compartilhada' : body,
+        messageType,
+        latitude,
+        longitude,
+        messageType === 'LOCATION' ? now + 60 * 60000 : null,
+        now
+      );
     database.prepare('UPDATE conversations SET updated_at=? WHERE id=?').run(now, conversation.id);
     notify(
       database,
@@ -1187,11 +1277,59 @@ function createPlatformRouter({
       'CONVERSATION',
       conversation.id
     );
-    res.status(201).json({ message: { id, body, mine: true, createdAt: now } });
+    res.status(201).json({
+      message: {
+        id,
+        body: messageType === 'LOCATION' ? 'Localização temporária compartilhada' : body,
+        messageType,
+        latitude,
+        longitude,
+        expiresAt: messageType === 'LOCATION' ? now + 60 * 60000 : null,
+        mine: true,
+        createdAt: now
+      }
+    });
   });
 
-  router.get('/px/channels', requireAuth, (_req, res) =>
+  router.patch('/conversations/:id', requireAuth, writes, csrf, (req, res) => {
+    const conversation = database
+      .prepare('SELECT * FROM conversations WHERE id=? AND (user_a_id=? OR user_b_id=?)')
+      .get(req.params.id, req.session.userId, req.session.userId);
+    if (!conversation) return res.status(404).json({ error: 'Conversa não encontrada.' });
+    const action = cleanText(req.body?.action, 20).toUpperCase(),
+      now = Date.now();
+    if (action === 'ARCHIVE') {
+      database
+        .prepare(
+          'INSERT INTO conversation_user_state (conversation_id,user_id,archived_at) VALUES (?,?,?) ON CONFLICT(conversation_id,user_id) DO UPDATE SET archived_at=excluded.archived_at'
+        )
+        .run(conversation.id, req.session.userId, now);
+    } else if (action === 'UNARCHIVE') {
+      database
+        .prepare(
+          'INSERT INTO conversation_user_state (conversation_id,user_id,archived_at) VALUES (?,?,NULL) ON CONFLICT(conversation_id,user_id) DO UPDATE SET archived_at=NULL'
+        )
+        .run(conversation.id, req.session.userId);
+    } else if (action === 'BLOCK') {
+      const peer =
+        Number(conversation.user_a_id) === Number(req.session.userId)
+          ? conversation.user_b_id
+          : conversation.user_a_id;
+      database
+        .prepare(
+          'INSERT OR IGNORE INTO user_blocks (blocker_user_id,blocked_user_id,created_at) VALUES (?,?,?)'
+        )
+        .run(req.session.userId, peer, now);
+      database.prepare("UPDATE conversations SET status='BLOCKED',updated_at=? WHERE id=?").run(now, conversation.id);
+    } else return res.status(400).json({ error: 'Ação inválida.' });
+    res.json({ action, ok: true });
+  });
+
+  router.get('/px/channels', requireAuth, (req, res) =>
     res.json({
+      canModerate:
+        database.prepare('SELECT role FROM users WHERE id=?').get(req.session.userId)?.role ===
+        ROLES.ADMIN,
       channels: database
         .prepare(
           'SELECT id,kind,slug,name,description FROM px_channels WHERE enabled=1 ORDER BY name'
@@ -1200,16 +1338,47 @@ function createPlatformRouter({
     })
   );
   router.get('/px/channels/:id/messages', requireAuth, (req, res) => {
+    const latitude = coordinate(req.query.latitude, 90),
+      longitude = coordinate(req.query.longitude, 180),
+      now = Date.now();
     const rows = database
       .prepare(
-        `SELECT messages.id,messages.body,messages.created_at,users.name AS author_name,users.avatar_data FROM px_messages messages JOIN users ON users.id=messages.user_id WHERE messages.channel_id=? AND messages.status='PUBLISHED' ORDER BY messages.created_at DESC LIMIT 100`
+        `SELECT messages.id,messages.user_id,messages.body,messages.parent_id,messages.latitude,messages.longitude,messages.expires_at,messages.pinned_at,messages.created_at,
+        users.name AS author_name,users.avatar_data,
+        parent.body AS parent_body,
+        (SELECT COUNT(*) FROM px_message_reactions reactions WHERE reactions.message_id=messages.id AND reaction='CONFIRM') AS confirms,
+        (SELECT COUNT(*) FROM px_message_reactions reactions WHERE reactions.message_id=messages.id AND reaction='THANKS') AS thanks
+        FROM px_messages messages JOIN users ON users.id=messages.user_id
+        LEFT JOIN px_messages parent ON parent.id=messages.parent_id
+        WHERE messages.channel_id=? AND messages.status='PUBLISHED'
+        AND (messages.expires_at IS NULL OR messages.expires_at>?)
+        AND NOT EXISTS (SELECT 1 FROM user_blocks blocks WHERE blocks.blocker_user_id=? AND blocks.blocked_user_id=messages.user_id)
+        AND NOT EXISTS (SELECT 1 FROM user_mutes mutes WHERE mutes.user_id=? AND mutes.muted_user_id=messages.user_id)
+        ORDER BY messages.pinned_at IS NULL,messages.pinned_at DESC,messages.created_at DESC LIMIT 100`
       )
-      .all(req.params.id);
+      .all(req.params.id, now, req.session.userId, req.session.userId);
     res.json({
       messages: rows.map(row => ({
         id: row.id,
         body: row.body,
-        author: { displayName: alias(row.author_name), avatar: row.avatar_data || null },
+        author: { displayName: alias(row.author_name), avatar: row.avatar_data || null, userId: row.user_id },
+        replyTo: row.parent_id ? { id: row.parent_id, body: row.parent_body } : null,
+        distanceMeters:
+          latitude !== null && longitude !== null && row.latitude !== null
+            ? Math.max(
+                500,
+                Math.round(
+                  distanceMeters(
+                    { latitude, longitude },
+                    { latitude: row.latitude, longitude: row.longitude }
+                  ) / 500
+                ) * 500
+              )
+            : null,
+        reactions: { confirm: row.confirms, thanks: row.thanks },
+        pinned: Boolean(row.pinned_at),
+        mine: Number(row.user_id) === Number(req.session.userId),
+        expiresAt: row.expires_at,
         createdAt: row.created_at
       }))
     });
@@ -1218,7 +1387,10 @@ function createPlatformRouter({
     const channel = database
         .prepare('SELECT id FROM px_channels WHERE id=? AND enabled=1')
         .get(req.params.id),
-      body = cleanText(req.body?.body, 300);
+      body = cleanText(req.body?.body, 300),
+      parentId = validId(req.body?.parentId),
+      latitude = coordinate(req.body?.latitude, 90),
+      longitude = coordinate(req.body?.longitude, 180);
     if (!channel || body.length < 2)
       return res.status(400).json({ error: 'Canal ou mensagem inválidos.' });
     if (
@@ -1228,13 +1400,85 @@ function createPlatformRouter({
     )
       return res.status(400).json({ error: 'Não publique telefone ou e-mail no PX.' });
     const id = uuid(),
-      now = Date.now();
+      now = Date.now(),
+      expiresAt = now + 24 * 3600000;
+    if (
+      parentId &&
+      !database
+        .prepare("SELECT 1 FROM px_messages WHERE id=? AND channel_id=? AND status='PUBLISHED'")
+        .get(parentId, channel.id)
+    )
+      return res.status(400).json({ error: 'Mensagem respondida não encontrada.' });
     database
       .prepare(
-        "INSERT INTO px_messages (id,channel_id,user_id,body,status,created_at) VALUES (?,?,?,?,'PUBLISHED',?)"
+        "INSERT INTO px_messages (id,channel_id,user_id,body,status,parent_id,latitude,longitude,expires_at,created_at) VALUES (?,?,?,?,'PUBLISHED',?,?,?,?,?)"
       )
-      .run(id, channel.id, req.session.userId, body, now);
-    res.status(201).json({ message: { id, body, createdAt: now } });
+      .run(id, channel.id, req.session.userId, body, parentId, latitude, longitude, expiresAt, now);
+    res.status(201).json({ message: { id, body, expiresAt, createdAt: now } });
+  });
+
+  router.put('/px/messages/:id/reactions', requireAuth, messages, csrf, (req, res) => {
+    const reaction = cleanText(req.body?.reaction, 20).toUpperCase();
+    if (!['CONFIRM', 'THANKS'].includes(reaction))
+      return res.status(400).json({ error: 'Reação inválida.' });
+    if (!database.prepare("SELECT 1 FROM px_messages WHERE id=? AND status='PUBLISHED'").get(req.params.id))
+      return res.status(404).json({ error: 'Mensagem não encontrada.' });
+    database
+      .prepare(
+        'INSERT OR IGNORE INTO px_message_reactions (message_id,user_id,reaction,created_at) VALUES (?,?,?,?)'
+      )
+      .run(req.params.id, req.session.userId, reaction, Date.now());
+    res.json({ reaction });
+  });
+
+  router.patch('/px/messages/:id/pin', admin, writes, csrf, twoFactorGuard, (req, res) => {
+    const result = database
+      .prepare("UPDATE px_messages SET pinned_at=? WHERE id=? AND status='PUBLISHED'")
+      .run(req.body?.pinned === false ? null : Date.now(), req.params.id);
+    if (!result.changes) return res.status(404).json({ error: 'Mensagem não encontrada.' });
+    res.json({ pinned: req.body?.pinned !== false });
+  });
+
+  router.post('/px/users/:id/:action', requireAuth, writes, csrf, (req, res) => {
+    const target = Number(req.params.id),
+      action = cleanText(req.params.action, 10).toUpperCase();
+    if (!Number.isInteger(target) || target === Number(req.session.userId))
+      return res.status(400).json({ error: 'Usuário inválido.' });
+    if (action === 'MUTE')
+      database
+        .prepare('INSERT OR IGNORE INTO user_mutes (user_id,muted_user_id,created_at) VALUES (?,?,?)')
+        .run(req.session.userId, target, Date.now());
+    else if (action === 'BLOCK')
+      database
+        .prepare('INSERT OR IGNORE INTO user_blocks (blocker_user_id,blocked_user_id,created_at) VALUES (?,?,?)')
+        .run(req.session.userId, target, Date.now());
+    else return res.status(400).json({ error: 'Ação inválida.' });
+    res.status(204).end();
+  });
+
+  router.get('/shared-routes', requireAuth, (_req, res) => {
+    const routes = database
+      .prepare(
+        "SELECT id,title,origin_label AS originLabel,destination_label AS destinationLabel,stops_json AS stops,alerts_json AS alerts,sponsored,updated_at AS updatedAt FROM shared_routes WHERE status='PUBLISHED' ORDER BY updated_at DESC LIMIT 100"
+      )
+      .all()
+      .map(route => ({ ...route, stops: json(route.stops), alerts: json(route.alerts), sponsored: Boolean(route.sponsored) }));
+    res.json({ routes });
+  });
+
+  router.get('/benefits', requireAuth, (_req, res) => {
+    const now = Date.now();
+    const benefits = database
+      .prepare(
+        `SELECT benefits.id,benefits.description,benefits.rules,benefits.coupon,benefits.redemption,
+        benefits.valid_until AS validUntil,stations.id AS stationId,stations.name AS partnerName,stations.address,
+        stations.latitude,stations.longitude
+        FROM partner_benefits benefits JOIN fuel_stations stations ON stations.id=benefits.station_id
+        WHERE benefits.enabled=1 AND benefits.valid_from<=? AND benefits.valid_until>?
+        ORDER BY benefits.valid_until`
+      )
+      .all(now, now);
+    res.json({ benefits });
   });
 
   router.get('/notifications', requireAuth, (req, res) =>

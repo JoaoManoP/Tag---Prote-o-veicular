@@ -1220,7 +1220,13 @@ document.addEventListener('click', event => {
   document
     .querySelectorAll('.nav-pill[data-view]')
     .forEach(item => item.classList.toggle('active', item === button));
-  document.querySelectorAll('.view').forEach(item => item.classList.remove('active'));
-  document.getElementById(`${view}View`)?.classList.add('active');
+  const tracking = document.getElementById('trackingView');
+  tracking?.classList.add('active');
+  document
+    .querySelectorAll('.view:not(#trackingView)')
+    .forEach(item =>
+      item.classList.toggle('active', view !== 'tracking' && item.id === `${view}View`)
+    );
   document.body.classList.toggle('floating-nav-open', view !== 'tracking');
+  if (view === 'tracking') setTimeout(() => window.rastreonMap?.map.invalidateSize(), 50);
 });

@@ -9,6 +9,7 @@
     scannerControls = null,
     scannerStream = null,
     scannerTimer = null,
+    presenceTimer = null,
     scannerTarget = 'connection';
   const markers = new Map();
   const escape = value =>
@@ -46,6 +47,24 @@
   function card(title, content, className = '') {
     return `<section class="card convoy-card ${className}"><h2>${title}</h2>${content}</section>`;
   }
+  function distanceBetween(a, b) {
+    if (a?.latitude == null || b?.latitude == null) return null;
+    const radians = value => (value * Math.PI) / 180,
+      dLat = radians(b.latitude - a.latitude),
+      dLng = radians(b.longitude - a.longitude),
+      value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLng / 2) ** 2;
+    return 6371000 * 2 * Math.asin(Math.sqrt(value));
+  }
+  function convoyMemberRows() {
+    return state.convoy.members
+      .map((member, index, members) => {
+        const previous = members[index - 1],
+          distance = distanceBetween(previous, member),
+          online = member.lastSeenAt && Date.now() - member.lastSeenAt < 30000;
+        return `<li data-convoy-member="${member.userId}"><b>${index + 1}. ${escape(member.name)}${member.userId === state.convoy.ownerId ? ' · Líder' : ''}</b><small>${online ? 'online' : 'posição aguardando'}${distance == null ? '' : ` · ${Math.round(distance)} m do veículo anterior`}</small></li>`;
+      })
+      .join('');
+  }
   function render() {
     const pendingReceived = state.connections.filter(
       item => item.status === 'PENDING' && item.requesterId !== state.profile.userId
@@ -67,13 +86,20 @@
       state.convoy
         ? card(
             'Comboio ativo',
-            `<p>Localização compartilhada somente enquanto esta sessão estiver ativa.</p><div class="convoy-members">${state.convoy.members.map(member => `<span>${escape(member.name)}</span>`).join('')}</div>${state.convoy.ownerId === state.profile.userId ? `<form data-invite-form class="convoy-inline"><label>ID da conexão<input name="contactId" required placeholder="RT-..." minlength="35" maxlength="35" autocomplete="off" spellcheck="false"></label><button>Convidar</button></form><button data-end class="danger wide">Encerrar comboio</button>` : '<button data-leave class="danger wide">Sair do comboio</button>'}`
+            `<p>Localização compartilhada somente enquanto esta sessão estiver ativa.</p><div class="convoy-route-summary"><strong>Destino: ${escape(state.convoy.destinationLabel || 'não definido')}</strong><small>Rota: ${escape(state.convoy.routeLabel || 'não definida')}</small></div><ol class="convoy-order">${convoyMemberRows()}</ol><div class="convoy-quick-actions"><button type="button" data-signal="STOPPED" class="secondary">Parei</button><button type="button" data-signal="HELP" class="danger">Preciso de ajuda</button><button type="button" data-signal="LEAVING" class="secondary">Vou sair</button></div>${state.convoy.ownerId === state.profile.userId ? `<form data-route-form class="convoy-inline"><label>Destino<input name="destinationLabel" maxlength="160" value="${escape(state.convoy.destinationLabel || '')}" placeholder="Destino do comboio"></label><label>Rota compartilhada<input name="routeLabel" maxlength="240" value="${escape(state.convoy.routeLabel || '')}" placeholder="Rodovia e pontos de parada"></label><button>Salvar rota</button></form><form data-invite-form class="convoy-inline"><label>ID da conexão<input name="contactId" required placeholder="RT-..." minlength="35" maxlength="35" autocomplete="off" spellcheck="false"></label><button>Convidar</button></form><p class="muted-copy">Convites são temporários e expiram automaticamente em 30 minutos.</p><button data-end class="danger wide">Encerrar comboio</button>` : '<button data-leave class="danger wide">Sair do comboio</button>'}`
           )
         : card(
             'Viagem em comboio',
             '<p>Crie uma sessão temporária para compartilhar a posição ao vivo com administradores convidados.</p><button data-create class="wide">Iniciar comboio</button>'
           )
     ].join('');
+    const count = document.getElementById('communityConvoyCount');
+    const summary = document.getElementById('communityConvoySummary');
+    if (count) count.textContent = state.convoy ? '1' : '0';
+    if (summary)
+      summary.textContent = state.convoy
+        ? `Comboio ativo com ${state.convoy.members.length} participante(s).`
+        : 'Nenhum comboio ativo nesta conta.';
     const identityCard = root.querySelector('.convoy-card');
     if (identityCard && state.contactCard?.qrCode) {
       const qr = document.createElement('img');
@@ -199,6 +225,8 @@
   function stopSharing() {
     if (watchId !== null) navigator.geolocation?.clearWatch(watchId);
     watchId = null;
+    clearInterval(presenceTimer);
+    presenceTimer = null;
     markers.forEach(marker => window.rastreonMap?.layers?.community?.removeLayer(marker));
     markers.clear();
   }
@@ -231,7 +259,32 @@
           .bindTooltip(position.name, { permanent: true });
         markers.set(position.userId, marker);
       } else marker.setLatLng([position.latitude, position.longitude]);
+      const member = state?.convoy?.members.find(value => value.userId === position.userId);
+      if (member) {
+        member.latitude = position.latitude;
+        member.longitude = position.longitude;
+        member.lastSeenAt = position.timestamp;
+      }
+      const row = root.querySelector(`[data-convoy-member="${position.userId}"] small`);
+      if (row) row.textContent = 'online · posição atualizada agora';
     });
+    socket.off('convoy:signal');
+    socket.on('convoy:signal', signal => {
+      const labels = { STOPPED: 'parou', HELP: 'precisa de ajuda', LEAVING: 'vai sair do comboio' };
+      notify(`${signal.name} ${labels[signal.signal] || 'enviou um aviso'}.`);
+    });
+    clearInterval(presenceTimer);
+    presenceTimer = setInterval(() => {
+      for (const member of state?.convoy?.members || []) {
+        if (member.userId === state.profile.userId || !member.lastSeenAt) continue;
+        const offline = Date.now() - member.lastSeenAt > 30000;
+        if (offline && !member.offlineNotified) {
+          member.offlineNotified = true;
+          notify(`${member.name} ficou offline ou se afastou do comboio.`);
+        }
+        if (!offline) member.offlineNotified = false;
+      }
+    }, 15000);
   }
   root.addEventListener('submit', async event => {
     event.preventDefault();
@@ -244,6 +297,16 @@
           method: 'POST',
           body: { contactId }
         });
+      if (event.target.matches('[data-route-form]')) {
+        const form = new FormData(event.target);
+        await api(`/api/convoy/sessions/${state.convoy.id}/details`, {
+          method: 'PATCH',
+          body: {
+            destinationLabel: form.get('destinationLabel'),
+            routeLabel: form.get('routeLabel')
+          }
+        });
+      }
       await load();
     } catch (error) {
       notify(error.message);
@@ -262,6 +325,14 @@
       return;
     }
     try {
+      if (button.dataset.signal) {
+        window.rastreonSocket?.emit('convoy:signal', { signal: button.dataset.signal }, result => {
+          if (!result?.ok) notify(result?.error || 'Não foi possível enviar o aviso.');
+        });
+        if (button.dataset.signal === 'LEAVING' && state.convoy.ownerId !== state.profile.userId)
+          await api(`/api/convoy/sessions/${state.convoy.id}/leave`, { method: 'POST', body: {} });
+        return;
+      }
       if (button.matches('[data-copy-id]'))
         await navigator.clipboard.writeText(state.profile.contactId);
       if (button.dataset.connection)

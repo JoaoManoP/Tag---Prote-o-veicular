@@ -23,6 +23,7 @@
   color: #fff;
   box-shadow: 0 8px 20px rgba(255, 90, 31, 0.22);
 }
+.platform-more-select { display: none; }
 .platform-pane.hidden {
   display: none !important;
 }
@@ -99,6 +100,121 @@
 .platform-feed {
   max-width: 900px;
   margin: 0 auto;
+}
+.platform-filterbar,
+.chat-toolbar,
+.coordinate-fields,
+.view-toggle {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.platform-filterbar {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line, #dce2e8);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+}
+.platform-filterbar label,
+.coordinate-fields label {
+  display: grid;
+  flex: 1 1 140px;
+  gap: 5px;
+  color: var(--muted, #607080);
+  font-size: .78rem;
+  font-weight: 700;
+}
+.community-mini-map {
+  position: relative;
+  min-height: 220px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid #cad8e3;
+  border-radius: 18px;
+  background:
+    linear-gradient(30deg, transparent 48%, #cbd9cf 49% 51%, transparent 52%),
+    linear-gradient(120deg, transparent 45%, #d8e0d1 46% 49%, transparent 50%),
+    repeating-linear-gradient(0deg, #edf2e9 0 36px, #e4ecdf 37px 38px),
+    repeating-linear-gradient(90deg, transparent 0 50px, #d3dfd6 51px 52px);
+}
+.community-mini-map > span {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: #314457;
+  font-size: .72rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px #10243822;
+}
+.mini-map-marker {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 5px;
+  background: #da3745;
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 6px 15px #10243844;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.mini-map-marker.station { background: #ee6a25; }
+.station-featured-price { font-size: 1.05rem; }
+.reply-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-left: 4px solid #ff5a1f;
+  border-radius: 8px;
+  background: #fff3ed;
+  color: #733213;
+}
+.reply-preview button { min-height: 30px; padding: 3px 9px; }
+.reply-context {
+  padding: 6px 8px;
+  border-left: 3px solid #ff8a50;
+  background: #fff7f2;
+}
+.platform-item.is-pinned { border-color: #ef9b31; box-shadow: 0 6px 18px #ef9b3122; }
+.chat-toolbar {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.chat-toolbar input { width: min(440px, 100%); }
+.chat-toolbar span { color: var(--muted, #607080); font-size: .8rem; }
+.chat-layout { grid-template-columns: minmax(280px, .75fr) minmax(420px, 1.5fr); }
+.sponsored-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff0d9;
+  color: #884d00;
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.community-privacy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #cbd9e4;
+  border-radius: 14px;
+  background: #f4f8fb;
+  color: #41566a;
+  font-size: .8rem;
+  line-height: 1.5;
 }
 .platform-messages {
   max-height: 360px;
@@ -206,6 +322,64 @@
   line-height: 20px;
   text-align: center;
 }
+
+/* Marcadores da camada Comunidade. O adaptador Mapbox não aplica iconSize do
+   Leaflet, portanto o contêiner e o SVG precisam de dimensões explícitas. */
+.map-symbol-marker-host {
+  display: grid !important;
+  width: 34px !important;
+  height: 34px !important;
+  place-items: center;
+  overflow: visible !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.map-symbol-marker {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 7px;
+  background: #10283b;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(4, 22, 38, 0.3);
+  transform: rotate(-45deg);
+  transform-origin: center;
+}
+.map-symbol-marker svg {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  fill: none;
+  stroke: currentColor;
+  transform: rotate(45deg);
+}
+.map-symbol-marker--fuel {
+  background: #e85a24;
+}
+.map-symbol-marker--accident,
+.map-symbol-marker--blockage,
+.map-symbol-marker--hazard {
+  background: #d83c45;
+}
+.map-symbol-marker--roadwork {
+  background: #e48b18;
+}
+.map-symbol-marker--flood {
+  background: #1977bd;
+}
+.map-symbol-marker--camera {
+  background: #5847b8;
+}
+.map-symbol-marker-host:hover .map-symbol-marker {
+  z-index: 20;
+  filter: brightness(1.08);
+}
 @media (max-width: 920px) {
   .platform-grid {
     grid-template-columns: 1fr;
@@ -233,6 +407,18 @@
   .platform-tabs button {
     min-width: 104px;
   }
+  .platform-tabs [data-platform-more] { display: none; }
+  .platform-more-select {
+    display: grid;
+    min-width: 120px;
+    color: var(--muted, #607080);
+    font-size: .68rem;
+    font-weight: 800;
+  }
+  .platform-more-select select { min-height: 34px; padding: 3px 7px; }
+  .platform-filterbar { align-items: stretch; }
+  .platform-filterbar label { flex-basis: calc(50% - 8px); }
+  .community-privacy { grid-template-columns: 1fr; }
 }
 .convoy-grid {
   display: grid;
@@ -340,6 +526,39 @@
   background: #e6f2fb;
   color: #135b91;
   font-weight: 700;
+}
+.convoy-route-summary,
+.convoy-route-summary small {
+  display: grid;
+  gap: 4px;
+}
+.convoy-route-summary {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #eef5fa;
+}
+.convoy-order {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+.convoy-order li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #dce5ec;
+  border-radius: 10px;
+}
+.convoy-order small { color: var(--muted, #607080); }
+.convoy-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
 }
 
 @media (max-width: 780px) {
