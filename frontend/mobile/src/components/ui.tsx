@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, usePathname } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -66,16 +67,35 @@ export function Header({
   title,
   subtitle,
   action,
-  eyebrow
+  eyebrow,
+  back
 }: {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
   eyebrow?: string;
+  back?: boolean;
 }) {
   const { theme } = useApp();
+  const pathname = usePathname();
+  const tabRoutes = ['/', '/map', '/trips', '/tracking', '/community', '/profile', '/auth'];
+  const showBack = back ?? !tabRoutes.includes(pathname);
   return (
     <View style={styles.header}>
+      {showBack && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Voltar para a tela anterior"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+          style={({ pressed }) => ({
+            width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border,
+            opacity: pressed ? 0.65 : 1
+          })}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.text} />
+        </Pressable>
+      )}
       <View style={{ flex: 1 }}>
         {!!eyebrow && (
           <Text style={[styles.eyebrow, { color: theme.colors.primaryBright }]}>{eyebrow}</Text>

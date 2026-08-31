@@ -1,4 +1,19 @@
-const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+function webLocalUrl(configuredUrl: string) {
+  if (typeof window === 'undefined') return configuredUrl;
+  const browserHost = window.location.hostname;
+  if (browserHost !== 'localhost' && browserHost !== '127.0.0.1') return configuredUrl;
+  try {
+    const url = new URL(configuredUrl);
+    url.hostname = browserHost;
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return configuredUrl;
+  }
+}
+
+const API_URL = webLocalUrl(
+  (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '')
+);
 export class ApiError extends Error {
   constructor(
     message: string,

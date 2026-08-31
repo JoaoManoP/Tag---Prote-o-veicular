@@ -1,10 +1,23 @@
 import { io, Socket } from 'socket.io-client';
 import type { Position, TrackingSession } from '../types';
-const SOCKET_URL = (
+function webLocalUrl(configuredUrl: string) {
+  if (typeof window === 'undefined') return configuredUrl;
+  const browserHost = window.location.hostname;
+  if (browserHost !== 'localhost' && browserHost !== '127.0.0.1') return configuredUrl;
+  try {
+    const url = new URL(configuredUrl);
+    url.hostname = browserHost;
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return configuredUrl;
+  }
+}
+
+const SOCKET_URL = webLocalUrl((
   process.env.EXPO_PUBLIC_SOCKET_URL ||
   process.env.EXPO_PUBLIC_API_URL ||
   'http://localhost:3000'
-).replace(/\/$/, '');
+).replace(/\/$/, ''));
 export class SocketService {
   private socket: Socket | null = null;
   connect(onPosition: (p: Position) => void, onState: (state: string) => void) {

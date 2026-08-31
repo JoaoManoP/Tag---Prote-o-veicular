@@ -39,6 +39,10 @@ export default function TabsLayout() {
       />
       <Tabs.Screen name="trips" options={{ title: 'Viagens', tabBarIcon: tabIcon('routes') }} />
       <Tabs.Screen
+        name="tracking"
+        options={{ title: 'Rastreio', tabBarIcon: tabIcon('crosshairs-gps') }}
+      />
+      <Tabs.Screen
         name="map"
         options={{
           title: 'Mapa',

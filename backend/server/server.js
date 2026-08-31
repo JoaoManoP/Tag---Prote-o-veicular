@@ -619,7 +619,22 @@ function createApplication(options = {}) {
   const app = express();
   app.set('trust proxy', 'loopback');
   const server = http.createServer(app);
-  const io = new Server(server, { cors: { origin: false }, maxHttpBufferSize: 256 * 1024 });
+  const isAllowedDevelopmentOrigin = origin => {
+    if (!origin || process.env.NODE_ENV === 'production') return false;
+    try {
+      const hostname = new URL(origin).hostname;
+      return hostname === 'localhost' || hostname === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  };
+  const io = new Server(server, {
+    cors: {
+      origin: (origin, callback) => callback(null, isAllowedDevelopmentOrigin(origin)),
+      credentials: true
+    },
+    maxHttpBufferSize: 256 * 1024
+  });
   const projectRoot = path.join(__dirname, '..', '..');
   const publicDir = path.join(projectRoot, 'frontend', 'web');
   const revisionFiles = [
@@ -730,6 +745,20 @@ function createApplication(options = {}) {
 
   app.disable('x-powered-by');
   app.use((req, res, next) => {
+    const origin = req.get('origin');
+    if (!isAllowedDevelopmentOrigin(origin)) return next();
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Vary', 'Origin');
+    if (req.method !== 'OPTIONS') return next();
+    res.set('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.set(
+      'Access-Control-Allow-Headers',
+      req.get('access-control-request-headers') || 'Content-Type, X-CSRF-Token, X-Request-Id'
+    );
+    return res.sendStatus(204);
+  });
+  app.use((req, res, next) => {
     const supplied = String(req.get('x-request-id') || '');
     req.requestId = /^[A-Za-z0-9._-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
     res.set('X-Request-Id', req.requestId);
@@ -802,6 +831,7 @@ function createApplication(options = {}) {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     const origin = req.get('origin');
     if (!origin) return next();
+    if (isAllowedDevelopmentOrigin(origin)) return next();
     try {
       if (new URL(origin).host === req.get('host')) return next();
     } catch {}
@@ -3256,6 +3286,21 @@ function createApplication(options = {}) {
     } catch (error) {
       next(error);
     }
+  });
+  app.get('/api/vehicles/:id/tracking-session', requireAuth, (req, res) => {
+    const vehicle = database
+      .prepare('SELECT id FROM vehicles WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.session.userId);
+    if (!vehicle) return res.status(404).json({ error: 'Veículo não encontrado.' });
+    const tracking = [...sessions.values()]
+      .filter(
+        item =>
+          item.ownerId === req.session.userId &&
+          !item.closed &&
+          String(item.vehicle?.id) === String(vehicle.id)
+      )
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+    res.json({ session: tracking ? publicSession(tracking) : null });
   });
   app.get('/api/sessions/:id', requireAuth, (req, res) => {
     const tracking = ownedSession(req.params.id, req.session.userId);

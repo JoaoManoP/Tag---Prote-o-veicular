@@ -51,13 +51,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ]);
     setUser(me.user);
     setVehicles(garage.vehicles);
-    setSelected(
-      current =>
-        garage.vehicles.find(v => v.id === current?.id) ||
-        garage.vehicles.find(v => v.selected) ||
-        garage.vehicles[0] ||
-        null
-    );
+    const activeVehicle =
+      garage.vehicles.find(v => v.id === selectedVehicle?.id) ||
+      garage.vehicles.find(v => v.selected) ||
+      garage.vehicles[0] ||
+      null;
+    setSelected(activeVehicle);
+    if (activeVehicle) {
+      const tracking = await api.get<{ session: TrackingSession | null }>(
+        `/api/vehicles/${activeVehicle.id}/tracking-session`
+      );
+      setSession(tracking.session);
+    } else {
+      setSession(null);
+    }
     setTrips(history.trips);
     setAlerts(notifications.alerts);
   };
