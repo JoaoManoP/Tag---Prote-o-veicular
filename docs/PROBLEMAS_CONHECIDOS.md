@@ -18,6 +18,6 @@
 
 ## Baixo
 
-- `[~]` `client/dist` é um artefato legado sem fonte/build associado confirmado.
+- `[~]` `frontend/client/dist` é um artefato legado sem fonte/build associado confirmado.
 - `[~]` Arquivos locais de runtime existem no workspace, embora ignorados pelo Git.
 - `[~]` Alguns documentos históricos ainda usam o nome antigo; a identidade atual do produto é Rastreon.

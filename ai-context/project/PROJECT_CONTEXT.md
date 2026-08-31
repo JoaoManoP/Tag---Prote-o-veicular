@@ -21,7 +21,7 @@
 ## 3. Arquitetura
 
 - Monólito modular local: páginas estáticas, API REST e canal Socket.IO no mesmo processo.
-- `server/database.js`: schema e persistência; `server/auth.js`: validação/autenticação; `server/server.js`: HTTP, API e tempo real.
+- `database/database.js`: schema e persistência; `backend/server/auth.js`: validação/autenticação; `backend/server/server.js`: HTTP, API e tempo real.
 - Serviços externos: Nominatim para geocodificação, OSRM para roteamento e tiles OpenStreetMap.
 - Dados de runtime e presença de sockets têm cache em memória; dados de negócio são persistidos no SQLite.
 

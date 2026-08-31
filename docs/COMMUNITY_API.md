@@ -1,6 +1,6 @@
 # Comunidade de locais
 
-O módulo `server/community.js` fornece comentários e avaliações de locais sem
+O módulo `backend/server/community.js` fornece comentários e avaliações de locais sem
 acoplar a funcionalidade ao servidor principal. Ele usa o mesmo SQLite e a mesma
 sessão autenticada da aplicação.
 
@@ -25,10 +25,13 @@ fallback `app.use('/api', ...)`:
 ```js
 const { createCommunityRouter } = require('./community');
 
-app.use('/api/community', createCommunityRouter({
-  database,
-  enabled: process.env.COMMUNITY_PLACES_ENABLED
-}));
+app.use(
+  '/api/community',
+  createCommunityRouter({
+    database,
+    enabled: process.env.COMMUNITY_PLACES_ENABLED
+  })
+);
 ```
 
 Também inclua `community: parseFeatureFlag(process.env.COMMUNITY_PLACES_ENABLED)`
@@ -52,18 +55,18 @@ createCommunityRouter({
 
 Todos os endpoints abaixo, exceto `/status`, exigem sessão autenticada.
 
-| Método | Caminho | Uso |
-| --- | --- | --- |
-| `GET` | `/api/community/status` | Consulta a feature flag. |
-| `GET` | `/api/community/places/:placeId/reviews` | Lista avaliações publicadas, resumo e distribuição das notas. Aceita `limit` e `offset`. |
-| `POST` | `/api/community/places/:placeId/reviews` | Cria uma avaliação. |
-| `PATCH` | `/api/community/reviews/:reviewId` | Altera a própria avaliação. |
-| `DELETE` | `/api/community/reviews/:reviewId` | Remove logicamente a própria avaliação. |
-| `POST` | `/api/community/reviews/:reviewId/reports` | Denuncia conteúdo publicado. |
-| `GET` | `/api/community/moderation/reviews` | Fila de avaliações para administrador. |
-| `PATCH` | `/api/community/moderation/reviews/:reviewId` | Oculta ou restaura uma avaliação. |
-| `GET` | `/api/community/moderation/reports` | Lista denúncias para administrador. |
-| `PATCH` | `/api/community/moderation/reports/:reportId` | Resolve ou descarta uma denúncia. |
+| Método   | Caminho                                       | Uso                                                                                      |
+| -------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `GET`    | `/api/community/status`                       | Consulta a feature flag.                                                                 |
+| `GET`    | `/api/community/places/:placeId/reviews`      | Lista avaliações publicadas, resumo e distribuição das notas. Aceita `limit` e `offset`. |
+| `POST`   | `/api/community/places/:placeId/reviews`      | Cria uma avaliação.                                                                      |
+| `PATCH`  | `/api/community/reviews/:reviewId`            | Altera a própria avaliação.                                                              |
+| `DELETE` | `/api/community/reviews/:reviewId`            | Remove logicamente a própria avaliação.                                                  |
+| `POST`   | `/api/community/reviews/:reviewId/reports`    | Denuncia conteúdo publicado.                                                             |
+| `GET`    | `/api/community/moderation/reviews`           | Fila de avaliações para administrador.                                                   |
+| `PATCH`  | `/api/community/moderation/reviews/:reviewId` | Oculta ou restaura uma avaliação.                                                        |
+| `GET`    | `/api/community/moderation/reports`           | Lista denúncias para administrador.                                                      |
+| `PATCH`  | `/api/community/moderation/reports/:reportId` | Resolve ou descarta uma denúncia.                                                        |
 
 Exemplo de criação:
 

@@ -67,7 +67,7 @@ Data: 17/08/2026
 - Crítico: nenhum confirmado no código versionado após as correções desta fase.
 - Alto: credenciais externas sem validação real e VPS não auditada.
 - Médio: dependência de instâncias públicas OSRM/Overpass; navegação web interrompida em background; prazos jurídicos de retenção ainda não aprovados.
-- Baixo: documentação incompleta, arquivos de runtime locais e artefato legado `client/dist` sem fonte associada.
+- Baixo: documentação incompleta, arquivos de runtime locais e artefato legado `frontend/client/dist` sem fonte associada.
 
 ## Ordem de correção
 

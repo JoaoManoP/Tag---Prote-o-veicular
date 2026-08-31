@@ -51,7 +51,7 @@ jobs:
           BASE_SHA="$(jq -r --arg head "$CANDIDATE_SHA" '[.workflow_runs[] | select(.head_sha != $head)][0].head_sha // empty' <<<"$RUNS")"
           test -n "$BASE_SHA"
           git cat-file -e "${BASE_SHA}^{commit}"
-          DATABASE_IMPACT="$(node scripts/release-manifest.mjs create \
+          DATABASE_IMPACT="$(node deploy/release-manifest.mjs create \
             --root "$GITHUB_WORKSPACE" \
             --base "$BASE_SHA" \
             --head "$CANDIDATE_SHA" \
@@ -59,7 +59,7 @@ jobs:
           BASE_DIR="$(mktemp -d)"
           trap 'git worktree remove --force "$BASE_DIR" >/dev/null 2>&1 || true' EXIT
           git worktree add --detach "$BASE_DIR" "$BASE_SHA"
-          node scripts/release-manifest.mjs create \
+          node deploy/release-manifest.mjs create \
             --root "$BASE_DIR" \
             --base "$BASE_SHA" \
             --head "$BASE_SHA" \
@@ -174,21 +174,24 @@ jobs:
           trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH" "$STAFF_PATH" "$MANIFEST_PATH" "$PUBLISHED_MANIFEST_PATH"' EXIT
           tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
           if test -f .rastreon-release-manifest.json; then
-            node "$RELEASE_DIR/scripts/release-manifest.mjs" verify \
+            node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
               --root "$APP_PATH" \
               --manifest "$APP_PATH/.rastreon-release-manifest.json"
           else
             echo "Primeira release com manifesto: conferindo a VPS contra o último deploy bem-sucedido."
-            node "$RELEASE_DIR/scripts/release-manifest.mjs" verify \
+            node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
               --root "$APP_PATH" \
               --manifest "$PUBLISHED_MANIFEST_PATH"
           fi
           rsync -a \
+            --delete \
             --exclude=.env \
             --exclude=.git/ \
             --exclude=.rastreon-release-manifest.json \
             --exclude=backups/ \
             --exclude=data/ \
+            --exclude=database/backups/ \
+            --exclude=database/data/ \
             --exclude=node_modules/ \
             "$RELEASE_DIR/" "$APP_PATH/"
           npm ci --ignore-scripts
@@ -207,8 +210,7 @@ jobs:
             echo "Provisionamento da equipe ignorado; nenhuma conta será alterada."
           fi
           npm prune --omit=dev --ignore-scripts
-          # Remove metadados de releases antigas para que PM2 não preserve
-          # caminhos obsoletos como backend/server/server.js.
+          # Recria o processo para que o PM2 sempre use o caminho organizado.
           pm2 delete protec-veicular >/dev/null 2>&1 || true
           pm2 delete rastreon >/dev/null 2>&1 || true
           pm2 start deploy/ecosystem.config.cjs --update-env

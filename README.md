@@ -87,7 +87,7 @@ Este cliente móvel é web e funciona em primeiro plano. GPS contínuo com tela 
 
 ## Estrutura
 
-O Express serve os arquivos de `public/`, faz proxy controlado para geocodificação/roteamento e mantém sessões temporárias. O dashboard usa Haversine apenas entre coordenadas GPS para medir o percurso realizado; a distância rodoviária planejada sempre vem do roteador. `mobile.js` controla `watchPosition()`, consentimento e fila offline.
+O Express serve os arquivos de `frontend/web/`, faz proxy controlado para geocodificação/roteamento e mantém sessões temporárias. O dashboard usa Haversine apenas entre coordenadas GPS para medir o percurso realizado; a distância rodoviária planejada sempre vem do roteador. `mobile.js` controla `watchPosition()`, consentimento e fila offline.
 
 ## Provedores de geocodificação e rotas
 

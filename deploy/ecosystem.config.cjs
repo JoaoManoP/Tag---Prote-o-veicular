@@ -5,7 +5,7 @@ module.exports = {
     {
       name: 'protec-veicular',
       cwd: path.resolve(__dirname, '..'),
-      script: 'server/server.js',
+      script: 'backend/server/server.js',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
