@@ -19,6 +19,11 @@ cookies.txt
 out.txt
 releases/*.apk
 
+# Legacy local runtime data, backups and Android build workspace
+/backups/
+/data/
+/mobile/
+
 # Local Android build toolchains and generated artifacts
 frontend/mobile/android/.gradle-user-home/
 frontend/mobile/android/.jdk17/
