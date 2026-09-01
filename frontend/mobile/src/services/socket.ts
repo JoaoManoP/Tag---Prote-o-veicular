@@ -1,17 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { Position, TrackingSession } from '../types';
-function webLocalUrl(configuredUrl: string) {
-  if (typeof window === 'undefined') return configuredUrl;
-  const browserHost = window.location.hostname;
-  if (browserHost !== 'localhost' && browserHost !== '127.0.0.1') return configuredUrl;
-  try {
-    const url = new URL(configuredUrl);
-    url.hostname = browserHost;
-    return url.toString().replace(/\/$/, '');
-  } catch {
-    return configuredUrl;
-  }
-}
+import { webLocalUrl } from './runtimeUrl';
 
 const SOCKET_URL = webLocalUrl(
   (
