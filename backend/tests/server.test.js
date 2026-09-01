@@ -394,6 +394,24 @@ test('sessão de rastreamento é persistida e isolada por proprietário', async 
   await owner.get(`/api/sessions/${created.body.id}`).expect(200);
   await stranger.get(`/api/sessions/${created.body.id}`).expect(404);
 });
+test('aplicativo recupera a sessão ativa pelo veículo selecionado', async t => {
+  const { app } = setup(t);
+  const owner = request.agent(app);
+  const stranger = request.agent(app);
+  await register(owner).expect(201);
+  await register(stranger, { email: 'outro@example.com' }).expect(201);
+  const savedVehicle = await owner
+    .post('/api/vehicles')
+    .send({ ...vehicle, type: 'car', dataSource: 'manual' })
+    .expect(201);
+  const vehicleId = savedVehicle.body.vehicle.id;
+  const empty = await owner.get(`/api/vehicles/${vehicleId}/tracking-session`).expect(200);
+  assert.equal(empty.body.session, null);
+  const created = await owner.post('/api/sessions').send({ vehicleId }).expect(201);
+  const active = await owner.get(`/api/vehicles/${vehicleId}/tracking-session`).expect(200);
+  assert.equal(active.body.session.id, created.body.id);
+  await stranger.get(`/api/vehicles/${vehicleId}/tracking-session`).expect(404);
+});
 test('pareamento manual é autenticado, cria credencial própria e aceita uso único', async t => {
   const { app, database } = setup(t),
     owner = request.agent(app);

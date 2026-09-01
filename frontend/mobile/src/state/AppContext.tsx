@@ -58,10 +58,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       null;
     setSelected(activeVehicle);
     if (activeVehicle) {
-      const tracking = await api.get<{ session: TrackingSession | null }>(
-        `/api/vehicles/${activeVehicle.id}/tracking-session`
-      );
-      setSession(tracking.session);
+      try {
+        const tracking = await api.get<{ session: TrackingSession | null }>(
+          `/api/vehicles/${activeVehicle.id}/tracking-session`
+        );
+        setSession(tracking.session);
+      } catch (error) {
+        // Compatibilidade defensiva durante atualizações graduais do backend:
+        // a ausência desta rota auxiliar não pode invalidar login, garagem e viagens.
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+        setSession(null);
+      }
     } else {
       setSession(null);
     }
