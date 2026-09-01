@@ -1,7 +1,15 @@
 import { router } from 'expo-router';
 import React from 'react';
 import { Text, View } from 'react-native';
-import { Button, Card, EmptyState, Header, Icon, Screen, StatusBadge } from '../../src/components/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Header,
+  Icon,
+  Screen,
+  StatusBadge
+} from '../../src/components/ui';
 import { useApp } from '../../src/state/AppContext';
 
 export default function Tracking() {
@@ -32,7 +40,8 @@ export default function Tracking() {
                   {selectedVehicle.nickname || `${selectedVehicle.brand} ${selectedVehicle.model}`}
                 </Text>
                 <Text style={{ color: theme.colors.muted }}>
-                  {selectedVehicle.plate || 'Sem placa'} · {selectedVehicle.brand} {selectedVehicle.model}
+                  {selectedVehicle.plate || 'Sem placa'} · {selectedVehicle.brand}{' '}
+                  {selectedVehicle.model}
                 </Text>
               </View>
               <StatusBadge status={session ? 'CONFIGURADO' : 'SEM DISPOSITIVO'} />
@@ -51,7 +60,8 @@ export default function Tracking() {
           />
           {!session && (
             <Text style={{ color: theme.colors.muted, textAlign: 'center' }}>
-              Selecione um dispositivo uma única vez; depois o app recuperará este veículo e o rastreio automaticamente.
+              Selecione um dispositivo uma única vez; depois o app recuperará este veículo e o
+              rastreio automaticamente.
             </Text>
           )}
         </>

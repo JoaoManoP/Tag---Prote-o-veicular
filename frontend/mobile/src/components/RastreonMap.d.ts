@@ -24,6 +24,4 @@ export type RastreonMapProps = {
   onMapError?: () => void;
 };
 
-export const RastreonMap: ForwardRefExoticComponent<
-  RastreonMapProps & RefAttributes<any>
->;
+export const RastreonMap: ForwardRefExoticComponent<RastreonMapProps & RefAttributes<any>>;

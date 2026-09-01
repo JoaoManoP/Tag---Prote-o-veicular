@@ -14,7 +14,9 @@ export default function MapScreen() {
     setPosition(session?.positions?.at(-1));
     const socket = socketService.connect(setPosition, setConnection);
     if (session?.id) socketService.joinDashboard(session.id).catch(() => setConnection('OFFLINE'));
-    return () => { socket.off('position:update'); };
+    return () => {
+      socket.off('position:update');
+    };
   }, [session?.id, setConnection]);
 
   return (
@@ -28,10 +30,7 @@ export default function MapScreen() {
         track={session?.positions || []}
         perspective
       />
-      <View
-        pointerEvents="box-none"
-        style={{ position: 'absolute', top: 12, left: 12, right: 12 }}
-      >
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: 12, left: 12, right: 12 }}>
         <Card style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '900' }}>
@@ -57,7 +56,9 @@ export default function MapScreen() {
           {position && (
             <Text style={{ color: theme.colors.muted }}>
               {position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}
-              {position.speed != null ? ` · ${Math.max(0, position.speed * 3.6).toFixed(0)} km/h` : ''}
+              {position.speed != null
+                ? ` · ${Math.max(0, position.speed * 3.6).toFixed(0)} km/h`
+                : ''}
             </Text>
           )}
         </Card>

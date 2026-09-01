@@ -13,11 +13,13 @@ function webLocalUrl(configuredUrl: string) {
   }
 }
 
-const SOCKET_URL = webLocalUrl((
-  process.env.EXPO_PUBLIC_SOCKET_URL ||
-  process.env.EXPO_PUBLIC_API_URL ||
-  'http://localhost:3000'
-).replace(/\/$/, ''));
+const SOCKET_URL = webLocalUrl(
+  (
+    process.env.EXPO_PUBLIC_SOCKET_URL ||
+    process.env.EXPO_PUBLIC_API_URL ||
+    'http://localhost:3000'
+  ).replace(/\/$/, '')
+);
 export class SocketService {
   private socket: Socket | null = null;
   connect(onPosition: (p: Position) => void, onState: (state: string) => void) {

@@ -88,8 +88,14 @@ export function Header({
           accessibilityLabel="Voltar para a tela anterior"
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
           style={({ pressed }) => ({
-            width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border,
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.card,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
             opacity: pressed ? 0.65 : 1
           })}
         >
