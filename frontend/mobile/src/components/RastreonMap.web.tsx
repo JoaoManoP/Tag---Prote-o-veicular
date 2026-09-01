@@ -72,7 +72,7 @@ export const RastreonMap = forwardRef<unknown, RastreonMapProps>(function Rastre
               id: 'rastreon-track-line',
               type: 'line',
               source: 'rastreon-track',
-              paint: { 'line-color': '#24A0FF', 'line-width': 6 }
+              paint: { 'line-color': '#FF5A0A', 'line-width': 5 }
             });
             const bounds = new mapboxgl.LngLatBounds();
             track.forEach(item => bounds.extend([item.longitude, item.latitude]));
@@ -122,8 +122,8 @@ export const RastreonMap = forwardRef<unknown, RastreonMapProps>(function Rastre
           .addTo(map)
       );
     };
-    if (phonePosition) add(phonePosition.longitude, phonePosition.latitude, '#24A0FF');
-    if (vehiclePosition) add(vehiclePosition.longitude, vehiclePosition.latitude, '#FFC400');
+    if (phonePosition) add(phonePosition.longitude, phonePosition.latitude, '#1478C9');
+    if (vehiclePosition) add(vehiclePosition.longitude, vehiclePosition.latitude, '#FF5A0A');
     points.forEach(point => {
       const color =
         point.kind === 'convoy' ? '#35D07F' : point.kind === 'radar' ? '#F04444' : '#FF9F1C';

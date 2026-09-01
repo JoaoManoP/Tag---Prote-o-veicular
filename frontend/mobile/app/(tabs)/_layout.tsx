@@ -1,7 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
 import { useApp } from '../../src/state/AppContext';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const tabIcon =
@@ -16,56 +15,40 @@ export default function TabsLayout() {
       initialRouteName="map"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primaryBright,
+        tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.muted,
         tabBarShowLabel: true,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 1 },
+        tabBarLabelStyle: { fontSize: 9, fontWeight: '700' },
         tabBarStyle: {
           position: 'absolute',
-          height: 76,
-          paddingBottom: 10,
-          paddingTop: 8,
+          height: 64,
+          paddingBottom: 7,
+          paddingTop: 6,
           backgroundColor: theme.colors.backgroundElevated,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: 1,
-          elevation: 12
+          borderTopColor: 'transparent',
+          borderTopWidth: 0,
+          shadowColor: '#080A0D',
+          shadowOpacity: 0.12,
+          shadowRadius: 18,
+          shadowOffset: { width: 0, height: -6 },
+          elevation: 10
         },
         sceneStyle: { backgroundColor: theme.colors.background }
       }}
     >
+      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen
-        name="index"
-        options={{ title: 'Início', tabBarIcon: tabIcon('home-variant-outline') }}
+        name="map"
+        options={{
+          title: 'Mapa',
+          tabBarLabelStyle: { fontSize: 9, fontWeight: '900' },
+          tabBarIcon: tabIcon('map-marker-radius-outline')
+        }}
       />
       <Tabs.Screen name="trips" options={{ title: 'Viagens', tabBarIcon: tabIcon('routes') }} />
       <Tabs.Screen
         name="tracking"
         options={{ title: 'Rastreio', tabBarIcon: tabIcon('crosshairs-gps') }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'Mapa',
-          tabBarLabelStyle: { fontSize: 10, fontWeight: '900', marginTop: 5 },
-          tabBarIcon: ({ color }) => (
-            <View
-              style={{
-                width: 54,
-                height: 54,
-                marginTop: -24,
-                borderRadius: 27,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.colors.primary,
-                borderWidth: 4,
-                borderColor: theme.colors.backgroundElevated,
-                elevation: 10
-              }}
-            >
-              <MaterialCommunityIcons name="navigation-variant" color="#FFFFFF" size={27} />
-            </View>
-          )
-        }}
       />
       <Tabs.Screen
         name="community"

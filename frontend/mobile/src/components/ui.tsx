@@ -169,7 +169,7 @@ export function Button({
   compact?: boolean;
 }) {
   const { theme } = useApp();
-  const foreground = secondary ? theme.colors.text : danger ? palette.white : palette.ink950;
+  const foreground = secondary ? theme.colors.text : palette.white;
   return (
     <Pressable
       accessibilityRole="button"

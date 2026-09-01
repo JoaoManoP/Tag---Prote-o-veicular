@@ -1,11 +1,11 @@
 export const palette = {
-  ink950: '#030B12',
-  navy950: '#06131F',
-  navy900: '#081824',
-  navy850: '#0B1C2B',
-  navy800: '#0D2232',
-  navy700: '#10293B',
-  navy600: '#173A50',
+  ink950: '#080A0D',
+  navy950: '#080A0D',
+  navy900: '#0B0D10',
+  navy850: '#101216',
+  navy800: '#111318',
+  navy700: '#1A1D22',
+  navy600: '#2A2E35',
   blue600: '#1378D4',
   blue500: '#178CE5',
   blue400: '#24A0FF',
@@ -14,16 +14,16 @@ export const palette = {
   green500: '#13C982',
   green400: '#1DDB91',
   red500: '#F04444',
-  orange500: '#FF9F1C',
+  orange500: '#FF5A0A',
   violet500: '#A855F7',
   white: '#FFFFFF',
   textSoft: '#DDE8F2',
   muted: '#8FA5B8',
-  lightBackground: '#F2F6FA',
+  lightBackground: '#F5F6F7',
   lightCard: '#FFFFFF',
-  lightText: '#0A2031',
-  lightMuted: '#607589',
-  lightBorder: '#D9E4EC'
+  lightText: '#111317',
+  lightMuted: '#69717C',
+  lightBorder: '#E1E4E8'
 } as const;
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 } as const;
 export const radius = { sm: 10, md: 14, lg: 18, xl: 24, round: 999 } as const;
@@ -41,21 +41,21 @@ export function makeTheme(dark: boolean) {
     dark,
     colors: {
       background: dark ? palette.navy950 : palette.lightBackground,
-      backgroundElevated: dark ? palette.navy900 : '#EAF1F6',
+      backgroundElevated: dark ? palette.navy900 : '#FFFFFF',
       card: dark ? palette.navy800 : palette.lightCard,
-      cardElevated: dark ? palette.navy700 : '#F8FBFD',
+      cardElevated: dark ? palette.navy700 : '#FAFAFA',
       text: dark ? palette.white : palette.lightText,
-      textSoft: dark ? palette.textSoft : '#294356',
+      textSoft: dark ? palette.textSoft : '#45494F',
       muted: dark ? palette.muted : palette.lightMuted,
       border: dark ? palette.navy600 : palette.lightBorder,
-      primary: palette.blue500,
-      primaryBright: palette.blue400,
-      accent: palette.yellow500,
+      primary: '#FF5A0A',
+      primaryBright: '#FF7208',
+      accent: '#FF5A0A',
       success: palette.green500,
       danger: palette.red500,
       warning: palette.orange500,
       violet: palette.violet500,
-      mapOverlay: dark ? 'rgba(6,19,31,0.94)' : 'rgba(255,255,255,0.94)'
+      mapOverlay: dark ? 'rgba(8,10,13,0.92)' : 'rgba(255,255,255,0.94)'
     }
   };
 }

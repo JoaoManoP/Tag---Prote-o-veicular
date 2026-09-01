@@ -8,10 +8,10 @@ import React, {
   useRef,
   useState
 } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import type { CameraRef } from '@maplibre/maplibre-react-native';
 import { RastreonMap, type MapPoint } from '../components/RastreonMap';
-import { Card, Icon, IconButton, Screen, StatusBadge, styles } from '../components/ui';
+import { Card, Icon, IconButton, Screen, StatusBadge } from '../components/ui';
 import { api } from '../services/api';
 import { convoyMapPoints, type ConvoyState, updateConvoyPosition } from '../services/convoy';
 import { currentLocation, requestLocationPermission, watchLocation } from '../services/location';
@@ -208,7 +208,7 @@ export default function MapScreen() {
       : 0;
 
   return (
-    <Screen scroll={false} style={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 76 }}>
+    <Screen scroll={false} style={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 64 }}>
       <View style={{ flex: 1, overflow: 'hidden' }}>
         <MapErrorBoundary
           resetKey={mapResetKey}
@@ -281,48 +281,53 @@ export default function MapScreen() {
         <View
           style={{
             position: 'absolute',
-            left: 16,
-            right: 16,
-            top: 14,
+            left: 10,
+            right: 10,
+            top: 10,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 10
+            justifyContent: 'space-between'
           }}
         >
           <View
             style={{
-              flex: 1,
-              padding: 12,
-              borderRadius: 16,
+              width: 40,
+              height: 40,
+              borderRadius: 13,
               backgroundColor: theme.colors.mapOverlay,
               borderWidth: 1,
-              borderColor: theme.colors.border
+              borderColor: theme.colors.border,
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
+            <Image
+              source={require('../../assets/rastreon-app-icon.png')}
+              style={{ width: 27, height: 27, borderRadius: 8 }}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                padding: 5,
+                borderRadius: 999,
+                backgroundColor: theme.colors.mapOverlay,
+                borderWidth: 1,
+                borderColor: theme.colors.border
               }}
             >
-              <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '900' }}>
-                {selectedVehicle?.nickname || 'Meu veículo'}
-              </Text>
               <StatusBadge status={vehiclePosition ? 'AO VIVO' : 'SEM RASTREADOR'} />
             </View>
-            <Text numberOfLines={1} style={[styles.caption, { color: theme.colors.muted }]}>
-              {message}
-            </Text>
+            <IconButton
+              name="bell-outline"
+              label="Alertas"
+              onPress={() => router.push('/notifications')}
+            />
           </View>
-          <IconButton
-            name="bell-outline"
-            label="Alertas"
-            onPress={() => router.push('/notifications')}
-          />
         </View>
 
-        <View style={{ position: 'absolute', right: 14, top: 122, gap: 10 }}>
+        <View style={{ position: 'absolute', right: 10, top: 68, gap: 8 }}>
           <IconButton
             name="crosshairs-gps"
             label="Centralizar no veículo"
@@ -348,72 +353,38 @@ export default function MapScreen() {
           />
         </View>
 
-        <View style={{ position: 'absolute', left: 12, right: 12, bottom: 14 }}>
-          <Card style={{ backgroundColor: theme.colors.mapOverlay }}>
-            <View
-              style={{
-                width: 44,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: theme.colors.border,
-                alignSelf: 'center'
-              }}
-            />
+        <View style={{ position: 'absolute', left: 8, right: 8, bottom: 8 }}>
+          <Card
+            style={{
+              padding: 10,
+              gap: 6,
+              backgroundColor: theme.colors.mapOverlay,
+              borderLeftWidth: 3,
+              borderLeftColor: theme.colors.primary
+            }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '900' }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ color: theme.colors.text, fontSize: 14, fontWeight: '900' }}
+                >
                   {selectedVehicle
                     ? `${selectedVehicle.brand} ${selectedVehicle.model}`
                     : 'Veículo não selecionado'}
                 </Text>
-                <Text style={{ color: theme.colors.muted }}>
+                <Text numberOfLines={1} style={{ color: theme.colors.muted, fontSize: 10 }}>
                   {vehiclePosition
                     ? `Rastreador • ${new Date(vehiclePosition.timestamp).toLocaleTimeString('pt-BR')}`
-                    : 'Telefone apenas como referência'}
+                    : message}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: theme.colors.text, fontSize: 28, fontWeight: '900' }}>
+                <Text style={{ color: theme.colors.text, fontSize: 21, fontWeight: '900' }}>
                   {speed}
                 </Text>
                 <Text style={{ color: theme.colors.muted, fontSize: 10 }}>km/h</Text>
               </View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable
-                onPress={() => router.push('/trip/new')}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  borderRadius: 12,
-                  backgroundColor: theme.colors.accent,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 7
-                }}
-              >
-                <Icon name="navigation-variant" color="#030B12" />
-                <Text style={{ color: '#030B12', fontWeight: '900' }}>Navegar</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/geofences')}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  borderRadius: 12,
-                  backgroundColor: theme.colors.cardElevated,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 7
-                }}
-              >
-                <Icon name="shield-home-outline" />
-                <Text style={{ color: theme.colors.text, fontWeight: '900' }}>Proteção</Text>
-              </Pressable>
             </View>
           </Card>
         </View>
