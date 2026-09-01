@@ -3074,6 +3074,7 @@ window.RastroMap.ready
       movingMs += segment.moving;
       stoppedMs += segment.stopped;
       positions.push(p);
+      window.dispatchEvent(new CustomEvent('rastreon:vehicle-position', { detail: p }));
       layers.confirmed.clearLayers();
       layers.rebuilt.clearLayers();
       layers.alternatives.clearLayers();

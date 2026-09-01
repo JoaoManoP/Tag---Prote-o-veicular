@@ -359,6 +359,8 @@ test('comboio exibe os participantes no mapa web em tempo real', () => {
   assert.match(convoyClient, /convoy-map-vehicle/);
   assert.match(convoyClient, /socket\.on\('convoy:position'/);
   assert.match(convoyClient, /state\.convoy\.members\.forEach\(showConvoyMarker\)/);
+  assert.match(convoyClient, /rastreon:vehicle-position/);
+  assert.match(dashboard, /new CustomEvent\('rastreon:vehicle-position'/);
 });
 
 test('preço de combustível é separado do cadastro do veículo e mostra fonte', () => {

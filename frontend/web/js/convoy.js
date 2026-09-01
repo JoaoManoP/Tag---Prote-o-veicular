@@ -10,6 +10,7 @@
     scannerStream = null,
     scannerTimer = null,
     presenceTimer = null,
+    latestVehiclePosition = null,
     scannerTarget = 'connection';
   const markers = new Map();
   const escape = value =>
@@ -257,14 +258,26 @@
       if (!result?.ok)
         return notify(result?.error || 'Não foi possível entrar na sala do comboio.');
       state.convoy.members.forEach(showConvoyMarker);
+      if (latestVehiclePosition)
+        socket.emit('convoy:position', {
+          latitude: latestVehiclePosition.latitude,
+          longitude: latestVehiclePosition.longitude,
+          heading: latestVehiclePosition.heading
+        });
       if (!navigator.geolocation) return notify('Geolocalização indisponível.');
       watchId = navigator.geolocation.watchPosition(
-        position =>
+        position => {
+          if (
+            latestVehiclePosition?.timestamp &&
+            Date.now() - latestVehiclePosition.timestamp < 30000
+          )
+            return;
           socket.emit('convoy:position', {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             heading: position.coords.heading
-          }),
+          });
+        },
         () => notify('Autorize a localização para participar do comboio.'),
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
       );
@@ -371,6 +384,15 @@
   });
   window.addEventListener('rastreon:map-ready', () => {
     state?.convoy?.members.forEach(showConvoyMarker);
+  });
+  window.addEventListener('rastreon:vehicle-position', event => {
+    latestVehiclePosition = event.detail;
+    if (!state?.convoy || !latestVehiclePosition) return;
+    window.rastreonSocket?.emit('convoy:position', {
+      latitude: latestVehiclePosition.latitude,
+      longitude: latestVehiclePosition.longitude,
+      heading: latestVehiclePosition.heading
+    });
   });
   fetch('/api/auth/me')
     .then(response => response.json())
