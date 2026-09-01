@@ -12,6 +12,11 @@ on:
         required: false
         default: false
         type: boolean
+      approve_manifest_bootstrap:
+        description: Confirmo a substituição única da estrutura legada pelo primeiro manifesto da release
+        required: false
+        default: false
+        type: boolean
       provision_staff:
         description: Atualizar explicitamente as contas administrativas nesta publicação
         required: false
@@ -121,10 +126,11 @@ jobs:
           VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
           VPS_PORT: ${{ vars.VPS_PORT || '22' }}
           PROVISION_STAFF: ${{ inputs.provision_staff || false }}
+          MANIFEST_BOOTSTRAP_APPROVED: ${{ inputs.approve_manifest_bootstrap || false }}
         run: |
           test -n "$VPS_APP_PATH"
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" "/tmp/rastreon-staff-${GITHUB_RUN_ID}.json" "/tmp/rastreon-release-manifest-${GITHUB_RUN_ID}.json" "$PROVISION_STAFF" "/tmp/rastreon-published-manifest-${GITHUB_RUN_ID}.json" <<'REMOTE'
+            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" "/tmp/rastreon-staff-${GITHUB_RUN_ID}.json" "/tmp/rastreon-release-manifest-${GITHUB_RUN_ID}.json" "$PROVISION_STAFF" "/tmp/rastreon-published-manifest-${GITHUB_RUN_ID}.json" "$MANIFEST_BOOTSTRAP_APPROVED" <<'REMOTE'
           set -Eeuo pipefail
           APP_PATH="$1"
           ARCHIVE_PATH="$2"
@@ -132,6 +138,7 @@ jobs:
           MANIFEST_PATH="$4"
           PROVISION_STAFF="$5"
           PUBLISHED_MANIFEST_PATH="$6"
+          MANIFEST_BOOTSTRAP_APPROVED="$7"
           export NVM_DIR=/www/server/nvm
           test -s "$NVM_DIR/nvm.sh"
           . "$NVM_DIR/nvm.sh"
@@ -179,9 +186,16 @@ jobs:
               --manifest "$APP_PATH/.rastreon-release-manifest.json"
           else
             echo "Primeira release com manifesto: conferindo a VPS contra o último deploy bem-sucedido."
-            node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
+            if node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
               --root "$APP_PATH" \
-              --manifest "$PUBLISHED_MANIFEST_PATH"
+              --manifest "$PUBLISHED_MANIFEST_PATH"; then
+              echo "Estrutura legada coincide com a última release publicada."
+            elif test "$MANIFEST_BOOTSTRAP_APPROVED" = true; then
+              echo "Bootstrap do primeiro manifesto aprovado; banco, backups e .env serão preservados."
+            else
+              echo "A estrutura legada diverge; execute manualmente com approve_manifest_bootstrap=true." >&2
+              exit 2
+            fi
           fi
           rsync -a \
             --delete \
