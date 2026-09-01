@@ -24,4 +24,6 @@ frontend/mobile/android/.gradle-user-home/
 frontend/mobile/android/.jdk17/
 frontend/mobile/android/temurin17-jdk.zip
 frontend/mobile/android/app/debug.keystore
+frontend/mobile/android/app/*-release.keystore
+frontend/mobile/android/keystore.properties
 frontend/mobile/dist/
