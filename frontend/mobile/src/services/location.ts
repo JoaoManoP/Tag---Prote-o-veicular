@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import type { Position } from '../types';
-let subscription: Location.LocationSubscription | null = null;
+const subscriptions = new Set<Location.LocationSubscription>();
 export async function requestLocationPermission(background = false) {
   const foreground = await Location.requestForegroundPermissionsAsync();
   if (foreground.status !== 'granted') return false;
@@ -15,16 +15,21 @@ export async function currentLocation() {
   return mapLocation(value);
 }
 export async function watchLocation(onPosition: (position: Position) => void) {
-  subscription?.remove();
-  subscription = await Location.watchPositionAsync(
+  const subscription = await Location.watchPositionAsync(
     { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
     value => onPosition(mapLocation(value))
   );
-  return subscription;
+  subscriptions.add(subscription);
+  return {
+    remove() {
+      subscription.remove();
+      subscriptions.delete(subscription);
+    }
+  };
 }
 export function stopLocation() {
-  subscription?.remove();
-  subscription = null;
+  subscriptions.forEach(subscription => subscription.remove());
+  subscriptions.clear();
 }
 function mapLocation(value: Location.LocationObject): Position {
   return {

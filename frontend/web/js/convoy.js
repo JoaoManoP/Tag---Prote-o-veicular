@@ -232,12 +232,31 @@
     markers.forEach(marker => window.rastreonMap?.layers?.community?.removeLayer(marker));
     markers.clear();
   }
+  function showConvoyMarker(position) {
+    const map = window.rastreonMap;
+    if (!map || !Number.isFinite(position?.latitude) || !Number.isFinite(position?.longitude))
+      return;
+    let marker = markers.get(position.userId);
+    if (!marker) {
+      const leader = position.userId === state?.convoy?.ownerId;
+      marker = map.L.marker([position.latitude, position.longitude], {
+        icon: map.L.divIcon({
+          className: 'convoy-map-vehicle',
+          html: `<span>${escape(position.name)}${leader ? ' · Líder' : ''}</span><i aria-hidden="true">◆</i>`,
+          iconSize: [96, 52],
+          iconAnchor: [48, 45]
+        })
+      }).addTo(map.layers.community);
+      markers.set(position.userId, marker);
+    } else marker.setLatLng([position.latitude, position.longitude]);
+  }
   function startSharing(convoyId) {
     const socket = window.rastreonSocket;
     if (!socket || watchId !== null) return;
     socket.emit('convoy:join', { convoyId }, result => {
       if (!result?.ok)
         return notify(result?.error || 'Não foi possível entrar na sala do comboio.');
+      state.convoy.members.forEach(showConvoyMarker);
       if (!navigator.geolocation) return notify('Geolocalização indisponível.');
       watchId = navigator.geolocation.watchPosition(
         position =>
@@ -252,15 +271,7 @@
     });
     socket.off('convoy:position');
     socket.on('convoy:position', position => {
-      const map = window.rastreonMap;
-      if (!map) return;
-      let marker = markers.get(position.userId);
-      if (!marker) {
-        marker = map.L.marker([position.latitude, position.longitude])
-          .addTo(map.layers.community)
-          .bindTooltip(position.name, { permanent: true });
-        markers.set(position.userId, marker);
-      } else marker.setLatLng([position.latitude, position.longitude]);
+      showConvoyMarker(position);
       const member = state?.convoy?.members.find(value => value.userId === position.userId);
       if (member) {
         member.latitude = position.latitude;
@@ -358,11 +369,15 @@
       notify(error.message);
     }
   });
+  window.addEventListener('rastreon:map-ready', () => {
+    state?.convoy?.members.forEach(showConvoyMarker);
+  });
   fetch('/api/auth/me')
     .then(response => response.json())
     .then(data => {
       if (data.user?.role !== 'ADMIN') return;
       tab.classList.remove('hidden');
       tab.addEventListener('click', () => load().catch(error => notify(error.message)));
+      load().catch(error => notify(error.message));
     });
 })();

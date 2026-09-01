@@ -8,7 +8,7 @@ import {
   type LngLat
 } from '@maplibre/maplibre-react-native';
 import React, { forwardRef, useEffect, useMemo, useState, type ComponentProps } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { api } from '../services/api';
 import { useApp } from '../state/AppContext';
 import type { Geofence, Position } from '../types';
@@ -293,21 +293,62 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
         <Marker key={point.id} id={point.id} lngLat={[point.longitude, point.latitude]}>
           <View
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: theme.colors.card,
-              borderWidth: 2,
-              borderColor: point.kind === 'radar' ? theme.colors.danger : theme.colors.warning,
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <Icon
-              name={point.kind === 'radar' ? 'speedometer' : 'map-marker-alert'}
-              size={17}
-              color={point.kind === 'radar' ? theme.colors.danger : theme.colors.warning}
-            />
+            {point.kind === 'convoy' && point.label && (
+              <View
+                style={{
+                  backgroundColor: theme.colors.mapOverlay,
+                  borderRadius: 8,
+                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                  marginBottom: 3,
+                  borderWidth: 1,
+                  borderColor: theme.colors.success
+                }}
+              >
+                <Text style={{ color: theme.colors.text, fontSize: 10, fontWeight: '900' }}>
+                  {point.label}
+                </Text>
+              </View>
+            )}
+            <View
+              style={{
+                width: point.kind === 'convoy' ? 40 : 32,
+                height: point.kind === 'convoy' ? 40 : 32,
+                borderRadius: point.kind === 'convoy' ? 20 : 16,
+                backgroundColor: theme.colors.card,
+                borderWidth: 2,
+                borderColor:
+                  point.kind === 'convoy'
+                    ? theme.colors.success
+                    : point.kind === 'radar'
+                      ? theme.colors.danger
+                      : theme.colors.warning,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Icon
+                name={
+                  point.kind === 'convoy'
+                    ? 'car'
+                    : point.kind === 'radar'
+                      ? 'speedometer'
+                      : 'map-marker-alert'
+                }
+                size={point.kind === 'convoy' ? 22 : 17}
+                color={
+                  point.kind === 'convoy'
+                    ? theme.colors.success
+                    : point.kind === 'radar'
+                      ? theme.colors.danger
+                      : theme.colors.warning
+                }
+              />
+            </View>
           </View>
         </Marker>
       ))}

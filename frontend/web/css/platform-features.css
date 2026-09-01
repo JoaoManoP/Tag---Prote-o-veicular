@@ -586,6 +586,38 @@
 .convoy-order small {
   color: var(--muted, #607080);
 }
+.convoy-map-vehicle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 5px 10px rgb(0 0 0 / 45%));
+}
+.convoy-map-vehicle span {
+  max-width: 130px;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid #35d07f;
+  border-radius: 8px;
+  background: rgb(5 18 29 / 92%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.convoy-map-vehicle i {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  margin-top: 3px;
+  place-items: center;
+  border: 3px solid #35d07f;
+  border-radius: 50% 50% 50% 8px;
+  background: #07131f;
+  color: #35d07f;
+  font-style: normal;
+  transform: rotate(-45deg);
+}
 .convoy-quick-actions {
   display: flex;
   gap: 8px;

@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { Position, TrackingSession } from '../types';
+import type { ConvoyPosition } from './convoy';
 import { webLocalUrl } from './runtimeUrl';
 
 const SOCKET_URL = webLocalUrl(
@@ -12,7 +13,11 @@ const SOCKET_URL = webLocalUrl(
 export class SocketService {
   private socket: Socket | null = null;
   connect(onPosition: (p: Position) => void, onState: (state: string) => void) {
-    if (this.socket) return this.socket;
+    if (this.socket) {
+      this.socket.on('position:update', onPosition);
+      onState(this.socket.connected ? 'ONLINE' : 'RECONNECTING');
+      return this.socket;
+    }
     const socket = io(SOCKET_URL, {
       transports: ['websocket'],
       withCredentials: true,
@@ -57,10 +62,44 @@ export class SocketService {
       { points, lostAt }
     );
   }
-  private emit<T = any>(event: string, payload: unknown) {
+  joinConvoy(convoyId: string) {
+    return this.emit<{ ok: boolean; error?: string }>('convoy:join', { convoyId });
+  }
+  sendConvoyPosition(position: Position) {
+    return this.emit<{ ok: boolean; error?: string }>('convoy:position', {
+      latitude: position.latitude,
+      longitude: position.longitude,
+      heading: position.heading
+    });
+  }
+  sendConvoySignal(signal: 'STOPPED' | 'HELP' | 'LEAVING') {
+    return this.emit<{ ok: boolean; error?: string }>('convoy:signal', { signal });
+  }
+  onConvoyPosition(listener: (position: ConvoyPosition) => void) {
+    this.socket?.on('convoy:position', listener);
+    return () => this.socket?.off('convoy:position', listener);
+  }
+  onConvoySignal(listener: (signal: { userId: number; name: string; signal: string }) => void) {
+    this.socket?.on('convoy:signal', listener);
+    return () => this.socket?.off('convoy:signal', listener);
+  }
+  private async emit<T = any>(event: string, payload: unknown) {
+    const socket = this.socket;
+    if (!socket) throw new Error('Sem conexão com o servidor.');
+    if (!socket.connected)
+      await new Promise<void>((resolve, reject) => {
+        const connected = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        const timeout = setTimeout(() => {
+          socket.off('connect', connected);
+          reject(new Error('Tempo esgotado ao conectar com o servidor.'));
+        }, 12000);
+        socket.once('connect', connected);
+      });
     return new Promise<T>((resolve, reject) => {
-      if (!this.socket?.connected) return reject(new Error('Sem conexão com o servidor.'));
-      this.socket
+      socket
         .timeout(12000)
         .emit(event, payload, (error: Error | null, result: T) =>
           error ? reject(error) : resolve(result)

@@ -354,6 +354,13 @@ test('perfil e comboio oferecem ID por QR Code e leitura pela câmera', () => {
   assert.match(convoyClient, /dataset\.scanId/);
 });
 
+test('comboio exibe os participantes no mapa web em tempo real', () => {
+  assert.match(convoyClient, /showConvoyMarker/);
+  assert.match(convoyClient, /convoy-map-vehicle/);
+  assert.match(convoyClient, /socket\.on\('convoy:position'/);
+  assert.match(convoyClient, /state\.convoy\.members\.forEach\(showConvoyMarker\)/);
+});
+
 test('preço de combustível é separado do cadastro do veículo e mostra fonte', () => {
   assert.doesNotMatch(html, /id="vPrice"/);
   assert.match(html, /id="fuelPriceInput"/);

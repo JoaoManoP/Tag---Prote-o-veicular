@@ -101,16 +101,39 @@ export const RastreonMap = forwardRef<unknown, RastreonMapProps>(function Rastre
     if (!map || !mapboxgl) return;
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
-    const add = (longitude: number, latitude: number, color: string) => {
+    const add = (longitude: number, latitude: number, color: string, label?: string) => {
+      const element = label ? document.createElement('div') : undefined;
+      if (element) {
+        element.style.cssText =
+          'display:flex;flex-direction:column;align-items:center;color:#fff;font:700 11px system-ui;white-space:nowrap';
+        const caption = document.createElement('span');
+        caption.textContent = label || '';
+        caption.style.cssText =
+          'background:#07131fdd;border:1px solid #35d07f;border-radius:7px;padding:3px 6px;margin-bottom:3px';
+        const car = document.createElement('span');
+        car.textContent = '●';
+        car.style.cssText =
+          'display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#07131f;border:3px solid #35d07f;color:#35d07f';
+        element.append(caption, car);
+      }
       markersRef.current.push(
-        new mapboxgl.Marker({ color }).setLngLat([longitude, latitude]).addTo(map)
+        new mapboxgl.Marker(element ? { element } : { color })
+          .setLngLat([longitude, latitude])
+          .addTo(map)
       );
     };
     if (phonePosition) add(phonePosition.longitude, phonePosition.latitude, '#24A0FF');
     if (vehiclePosition) add(vehiclePosition.longitude, vehiclePosition.latitude, '#FFC400');
-    points.forEach(point =>
-      add(point.longitude, point.latitude, point.kind === 'radar' ? '#F04444' : '#FF9F1C')
-    );
+    points.forEach(point => {
+      const color =
+        point.kind === 'convoy' ? '#35D07F' : point.kind === 'radar' ? '#F04444' : '#FF9F1C';
+      add(
+        point.longitude,
+        point.latitude,
+        color,
+        point.kind === 'convoy' ? point.label : undefined
+      );
+    });
     if (position && follow)
       map.easeTo({
         center: [position.longitude, position.latitude],

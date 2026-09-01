@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Card, Screen, StatusBadge, styles } from '../components/ui';
 import { RastreonMap } from '../components/RastreonMap';
+import { api } from '../services/api';
+import { convoyMapPoints, type ConvoyState, updateConvoyPosition } from '../services/convoy';
 import { socketService } from '../services/socket';
 import { useApp } from '../state/AppContext';
 import type { Position } from '../types';
 
 export default function MapScreen() {
-  const { session, setConnection, connection, selectedVehicle, theme } = useApp();
+  const { session, setConnection, connection, selectedVehicle, theme, user } = useApp();
   const [position, setPosition] = useState<Position | undefined>(session?.positions?.at(-1));
+  const [convoyState, setConvoyState] = useState<ConvoyState>();
 
   useEffect(() => {
     setPosition(session?.positions?.at(-1));
@@ -18,6 +21,33 @@ export default function MapScreen() {
       socket.off('position:update');
     };
   }, [session?.id, setConnection]);
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
+    let active = true;
+    const removePositionListener = socketService.onConvoyPosition(value => {
+      if (active)
+        setConvoyState(current => (current ? updateConvoyPosition(current, value) : current));
+    });
+    api
+      .get<ConvoyState>('/api/convoy')
+      .then(async state => {
+        if (!active) return;
+        setConvoyState(state);
+        if (state.convoy) await socketService.joinConvoy(state.convoy.id);
+      })
+      .catch(() => {
+        if (active) setConvoyState(undefined);
+      });
+    return () => {
+      active = false;
+      removePositionListener();
+    };
+  }, [user?.role]);
+  useEffect(() => {
+    if (!convoyState?.convoy || !position) return;
+    socketService.sendConvoyPosition(position).catch(() => {});
+  }, [convoyState?.convoy?.id, position?.latitude, position?.longitude, position?.heading]);
+  const convoyPoints = useMemo(() => convoyMapPoints(convoyState), [convoyState]);
 
   return (
     <Screen
@@ -28,6 +58,7 @@ export default function MapScreen() {
         focus={position}
         vehiclePosition={position}
         track={session?.positions || []}
+        points={convoyPoints}
         perspective
       />
       <View pointerEvents="box-none" style={{ position: 'absolute', top: 12, left: 12, right: 12 }}>

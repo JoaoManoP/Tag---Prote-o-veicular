@@ -4,6 +4,7 @@ import React, {
   type ErrorInfo,
   type ReactNode,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react';
@@ -12,6 +13,7 @@ import type { CameraRef } from '@maplibre/maplibre-react-native';
 import { RastreonMap, type MapPoint } from '../components/RastreonMap';
 import { Card, Icon, IconButton, Screen, StatusBadge, styles } from '../components/ui';
 import { api } from '../services/api';
+import { convoyMapPoints, type ConvoyState, updateConvoyPosition } from '../services/convoy';
 import { currentLocation, requestLocationPermission, watchLocation } from '../services/location';
 import { socketService } from '../services/socket';
 import { useApp } from '../state/AppContext';
@@ -50,7 +52,7 @@ class MapErrorBoundary extends Component<
 }
 
 export default function MapScreen() {
-  const { session, setConnection, connection, selectedVehicle, theme } = useApp();
+  const { session, setConnection, connection, selectedVehicle, theme, user } = useApp();
   const cameraRef = useRef<CameraRef | null>(null);
   const [vehiclePosition, setVehiclePosition] = useState<Position | undefined>(
     session?.positions?.at(-1)
@@ -58,6 +60,7 @@ export default function MapScreen() {
   const [phonePosition, setPhonePosition] = useState<Position>();
   const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
+  const [convoyState, setConvoyState] = useState<ConvoyState>();
   const [follow, setFollow] = useState(true);
   const [perspective, setPerspective] = useState(true);
   const [roadLayers, setRoadLayers] = useState(false);
@@ -75,6 +78,34 @@ export default function MapScreen() {
       socket.off('position:update');
     };
   }, [session?.id, setConnection]);
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') {
+      setConvoyState(undefined);
+      return;
+    }
+    let active = true;
+    const removePositionListener = socketService.onConvoyPosition(position => {
+      if (active)
+        setConvoyState(current => (current ? updateConvoyPosition(current, position) : current));
+    });
+    api
+      .get<ConvoyState>('/api/convoy')
+      .then(async state => {
+        if (!active) return;
+        setConvoyState(state);
+        if (state.convoy) {
+          const joined = await socketService.joinConvoy(state.convoy.id);
+          if (!joined.ok) throw new Error(joined.error || 'Comboio indisponível.');
+        }
+      })
+      .catch(() => {
+        if (active) setConvoyState(undefined);
+      });
+    return () => {
+      active = false;
+      removePositionListener();
+    };
+  }, [user?.role]);
   useEffect(() => {
     if (!selectedVehicle) return;
     api
@@ -108,6 +139,19 @@ export default function MapScreen() {
   }, []);
 
   const liveFocusPosition = vehiclePosition || phonePosition;
+  useEffect(() => {
+    if (!convoyState?.convoy || !liveFocusPosition) return;
+    socketService.sendConvoyPosition(liveFocusPosition).catch(() => {});
+  }, [
+    convoyState?.convoy?.id,
+    liveFocusPosition?.latitude,
+    liveFocusPosition?.longitude,
+    liveFocusPosition?.heading
+  ]);
+  const visibleMapPoints = useMemo(
+    () => [...mapPoints, ...convoyMapPoints(convoyState)],
+    [mapPoints, convoyState]
+  );
   const focusPosition = liveFocusPosition || DEFAULT_MAP_POSITION;
   useEffect(() => {
     if (!liveFocusPosition || !roadLayers) {
@@ -198,7 +242,7 @@ export default function MapScreen() {
             phonePosition={phonePosition}
             track={session?.positions}
             geofences={geofences}
-            points={mapPoints}
+            points={visibleMapPoints}
             perspective={liveFocusPosition ? perspective : false}
             follow={follow}
             onUserInteraction={() => setFollow(false)}
