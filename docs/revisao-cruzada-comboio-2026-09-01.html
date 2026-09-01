@@ -1,0 +1,187 @@
+<title>Revisão Cruzada do Comboio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F2F5F7; --surface: #FFFFFF; --ink: #15212B; --ink-2: #4B5B68; --line: #D6DEE4;
+    --accent: #0E6F7A; --accent-soft: #DCEFF1;
+    --alta: #B3261E; --alta-soft: #FBE4E2; --media: #A85A00; --media-soft: #FDEBD4; --baixa: #536270; --baixa-soft: #E5EAEE;
+    --ok: #1E7A4A; --ok-soft: #DDF2E5; --parcial: #7A5B00; --parcial-soft: #F5ECC8;
+    --claude: #6B3FA0; --codex: #0B6E4F;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F161B; --surface: #172028; --ink: #E6EDF1; --ink-2: #A3B1BC; --line: #2A3740;
+      --accent: #5CC3CE; --accent-soft: #123B41;
+      --alta: #FF8A80; --alta-soft: #4A1F1C; --media: #FFB74D; --media-soft: #4A3212; --baixa: #B0BEC9; --baixa-soft: #29343C;
+      --ok: #6FD39A; --ok-soft: #173A27; --parcial: #E8CB6A; --parcial-soft: #3E3413;
+      --claude: #C7A6F0; --codex: #7ED4B4;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F161B; --surface: #172028; --ink: #E6EDF1; --ink-2: #A3B1BC; --line: #2A3740;
+    --accent: #5CC3CE; --accent-soft: #123B41;
+    --alta: #FF8A80; --alta-soft: #4A1F1C; --media: #FFB74D; --media-soft: #4A3212; --baixa: #B0BEC9; --baixa-soft: #29343C;
+    --ok: #6FD39A; --ok-soft: #173A27; --parcial: #E8CB6A; --parcial-soft: #3E3413;
+    --claude: #C7A6F0; --codex: #7ED4B4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin-top: 48px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 17px; margin-top: 24px; color: var(--ink-2); }
+  .eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .lede { max-width: 68ch; color: var(--ink-2); margin: 12px 0 0; }
+  code, .path { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12.5px; }
+  .path { color: var(--ink-2); word-break: break-all; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 28px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .tile b { display: block; font-size: 28px; font-family: "IBM Plex Sans Condensed", sans-serif; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tile span { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .tile.alta b { color: var(--alta); } .tile.media b { color: var(--media); } .tile.baixa b { color: var(--baixa); }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 12px; align-items: center; }
+  .filters button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 860px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  th { border-top: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); background: var(--bg); }
+  td.id { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; white-space: nowrap; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .sev-alta { background: var(--alta-soft); color: var(--alta); } .sev-media { background: var(--media-soft); color: var(--media); } .sev-baixa { background: var(--baixa-soft); color: var(--baixa); }
+  .st-ok { background: var(--ok-soft); color: var(--ok); } .st-parcial { background: var(--parcial-soft); color: var(--parcial); }
+  .who { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .who.claude { color: var(--claude); } .who.codex { color: var(--codex); } .who.ambos { color: var(--accent); }
+  tr[hidden] { display: none; }
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 16px 0; max-width: 78ch; }
+  ol.plan { max-width: 78ch; padding-left: 22px; } ol.plan li { margin: 8px 0; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; max-width: 78ch; margin: 12px 0; }
+  dt { font-weight: 600; } dd { margin: 0; color: var(--ink-2); }
+  .foot { margin-top: 48px; font-size: 13px; color: var(--ink-2); max-width: 78ch; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">RASTREON · revisão conjunta Claude + Codex · 1 set 2026</div>
+  <h1>Revisão Cruzada do Comboio</h1>
+  <p class="lede">Escopo: intervalo <code>3f84c80..fd468b8</code> (comboio no mapa web e mobile, prioridade do rastreador, socket, APK nativo) mais higiene de repositório e deploy. Dois revisores trabalharam de forma independente; cada achado de um foi verificado no código pelo outro. Nada foi corrigido ainda.</p>
+
+  <div class="summary">
+    <div class="tile"><b>52</b><span>achados únicos</span></div>
+    <div class="tile alta"><b>15</b><span>alta</span></div>
+    <div class="tile media"><b>24</b><span>média</span></div>
+    <div class="tile baixa"><b>13</b><span>baixa</span></div>
+    <div class="tile"><b>0</b><span>refutados</span></div>
+  </div>
+
+  <div class="note">Baseline antes de opinar: lint OK, 167 testes de backend passando, tsc e 9 testes Jest do mobile passando. Os testes existentes não cobrem nenhum dos achados de alta abaixo.</div>
+
+  <h2>Achados</h2>
+  <div class="filters" role="group" aria-label="Filtrar por severidade">
+    <button aria-pressed="true" data-f="all">Todos</button>
+    <button aria-pressed="false" data-f="alta">Alta</button>
+    <button aria-pressed="false" data-f="media">Média</button>
+    <button aria-pressed="false" data-f="baixa">Baixa</button>
+    <button aria-pressed="false" data-f="novo">Só do Codex</button>
+  </div>
+  <div class="tablewrap">
+  <table id="t">
+    <thead><tr><th>ID</th><th>Área</th><th>Local</th><th>Achado</th><th>Sev.</th><th>Apontou</th><th>Cruzamento</th></tr></thead>
+    <tbody>
+      <tr data-s="alta" data-w="ambos"><td class="id">A1</td><td>Mobile</td><td class="path">src/services/location.ts:30 · app/tracker.tsx:33,74</td><td><code>stopLocation()</code> limpa o Set global de watchers: sair da tela do rastreador mata o GPS do mapa e do comboio em silêncio.</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A2</td><td>Mobile</td><td class="path">app/convoy.tsx:59-78 · MapScreen.native.tsx:116-139</td><td>Watcher criado após <code>await</code> vaza se a tela desmonta antes; no comboio o callback não checa <code>active</code> e continua transmitindo a posição depois de sair da tela.</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A3</td><td>Mobile</td><td class="path">MapScreen.native.tsx:141 · app/convoy.tsx:66</td><td>Duas telas montadas emitem <code>convoy:position</code> no mesmo socket com regras diferentes (rastreador vs GPS do telefone); o rate limit de 900 ms decide por corrida o que os outros veem.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A4</td><td>Mobile</td><td class="path">MapScreen.native.tsx:77 · MapScreen.web.tsx:20 · src/services/socket.ts:15-32</td><td><code>socket.off('position:update')</code> sem handler apaga listeners de todos; <code>connect()</code> reentrante acumula listeners e prende o primeiro <code>onState</code> numa closure obsoleta.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A5</td><td>Web</td><td class="path">frontend/web/js/convoy.js:270-274</td><td>Prioridade rastreador × GPS compara <code>Date.now()</code> do navegador com o timestamp gerado no celular rastreador; um relógio adiantado suprime o GPS para sempre, um atrasado faz as duas fontes disputarem.</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A6</td><td>Web</td><td class="path">convoy.js:388-396 · dashboard.js:3077 · server.js:2829</td><td>Rajada de posições históricas (lote offline / simulação) é reemitida como posição ao vivo do comboio; só o ponto mais antigo passa no rate limit.</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A7</td><td>Web</td><td class="path">convoy.js:254-256, 385, 403 · dashboard.js:69</td><td><code>load()</code> automático corre antes de <code>window.rastreonSocket</code> existir; <code>startSharing</code> desiste e nunca é reagendado, então o comboio não inicia sem clique manual.</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="codex"><td class="id">A8</td><td>Backend</td><td class="path">backend/server/convoy.js:205-213, 264-306</td><td>Sair do comboio só muda o SQLite; o socket continua na sala e segue recebendo posições dos outros. A autorização é revalidada só para quem envia, não para quem recebe.</td><td><span class="pill sev-alta">alta</span></td><td class="who codex">Codex</td><td><span class="pill st-ok">Confirmado pelo Claude</span></td></tr>
+      <tr data-s="alta" data-w="codex"><td class="id">A9</td><td>Mobile</td><td class="path">src/services/backgroundLocation.ts:10-22 · server.js:3710-3725</td><td>Pontos capturados em segundo plano entram na fila sem <code>deviceId</code>; o servidor rejeita o lote inteiro se qualquer ponto não tiver o dispositivo do socket. Pré-existente ao diff.</td><td><span class="pill sev-alta">alta</span></td><td class="who codex">Codex</td><td><span class="pill st-ok">Confirmado pelo Claude</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A10</td><td>Mobile</td><td class="path">src/services/runtimeUrl.ts:9-20 · api.ts:3-5 · socket.ts:6-12</td><td><code>webLocalUrl</code> troca só o hostname (gera <code>https://localhost</code>); fallback <code>http://localhost:3000</code> silencioso em produção com <code>credentials: 'include'</code>.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A11</td><td>Backend</td><td class="path">backend/server/convoy.js:51-56 · convoy.ts:63-78 · web convoy.js:260</td><td>Lista de membros não filtra <code>status</code>: quem saiu (LEFT/ENDED) continua com última coordenada exposta e agora plotada no mapa web e mobile.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A12</td><td>Repo</td><td class="path">frontend/mobile/apk/ · deploy-vps.yml:85,200</td><td>Cinco APKs (275 MB) versionados sem nenhum consumidor no backend; vão no tarball e no rsync da VPS a cada deploy.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A13</td><td>Repo</td><td class="path">.gitignore:3 · frontend/mobile/.expo-*-check/</td><td>32 arquivos de build rastreados apesar do ignore (bundles de 2,8 MB e 1,2 MB); entram no manifesto e no deploy.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-parcial">Parcial: 32 arquivos, não 33</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A14</td><td>Deploy</td><td class="path">deploy/release-manifest.mjs:24,43</td><td>SHA-256 síncrono (<code>readFileSync</code>) de todos os arquivos rastreados, três vezes por deploy (~940 MB de I/O).</td><td><span class="pill sev-alta">alta</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="alta" data-w="ambos"><td class="id">A15</td><td>Mobile</td><td class="path">MapScreen.native.tsx:57-60, 141, 320</td><td><code>vehiclePosition</code> nunca expira nem é zerada ao trocar de sessão: badge "AO VIVO" e prioridade do rastreador ficam presos a uma posição antiga, até de outro veículo.</td><td><span class="pill sev-alta">alta</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+
+      <tr data-s="media" data-w="codex"><td class="id">M1</td><td>Mobile + Web</td><td class="path">socket.ts:21-30 · web convoy.js:254 · dashboard.js:3825</td><td>Após reconexão o servidor perde <code>socket.data.convoyId</code> e ninguém refaz <code>convoy:join</code>; na web o guard de <code>watchId</code> impede reiniciar.</td><td><span class="pill sev-media">média</span></td><td class="who codex">Codex</td><td><span class="pill st-ok">Confirmado pelo Claude</span></td></tr>
+      <tr data-s="media" data-w="codex"><td class="id">M2</td><td>Backend</td><td class="path">backend/server/convoy.js:309-323</td><td><code>convoy:signal</code> não tem limite de frequência: qualquer membro pode inundar o comboio de alertas.</td><td><span class="pill sev-media">média</span></td><td class="who codex">Codex</td><td><span class="pill st-ok">Confirmado pelo Claude</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M3</td><td>Mobile</td><td class="path">src/services/socket.ts:78-85</td><td><code>onConvoyPosition/Signal</code> com socket nulo não registram nada e o cleanup é no-op; o <code>off</code> atua no socket atual, não no de registro.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M4</td><td>Mobile</td><td class="path">RastreonMap.web.tsx:32-96</td><td>Efeito de inicialização com <code>[]</code> lê <code>track</code> e <code>onUserInteraction</code>: rota só desenhada no <code>load</code>, callback congelado.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M5</td><td>Mobile</td><td class="path">RastreonMap.web.tsx:98-153</td><td>Todos os markers destruídos e recriados a cada tick de GPS; <code>points</code> muda a cada <code>convoy:position</code>.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M6</td><td>Mobile</td><td class="path">RastreonMap.native.tsx:37-49 · server.js:960-970</td><td>Token Mapbox na query das tiles sem checar prefixo <code>pk.</code>. Codex acrescenta: o backend ainda aceita <code>MAPBOX_ACCESS_TOKEN</code> legado sem barrar token privado.</td><td><span class="pill sev-media">média</span></td><td class="who ambos">Ambos</td><td><span class="pill st-parcial">Parcial: normal para pk., risco real está no backend</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M7</td><td>Mobile</td><td class="path">RastreonMap.native.tsx:41-44 · RastreonMap.web.tsx:41-53</td><td><code>styleUrl</code> da API usado sem validar esquema/host (aceita <code>http://</code>).</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-parcial">Parcial: valor vem do servidor autenticado</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M8</td><td>Mobile</td><td class="path">src/services/socket.ts:86-108</td><td><code>emit</code> pode esperar 24 s; N handlers <code>once('connect')</code> enfileirados; a UI usa <code>void</code> e não mostra erro.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M9</td><td>Mobile</td><td class="path">app/convoy.tsx:59-72</td><td>Falha no <code>convoy:join</code> descarta <code>joined.error</code>; botões de sinal seguem ativos e falham em silêncio.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M10</td><td>Mobile</td><td class="path">src/services/convoy.ts:42-60</td><td><code>updateConvoyPosition</code> descarta posição de membro ausente na lista local: quem entra depois do último GET só aparece após reload.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M11</td><td>Web</td><td class="path">convoy.js:236-253</td><td>Markers nunca são removidos individualmente; sobrevivem a <code>load()</code>.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M12</td><td>Web</td><td class="path">convoy.js:262, 275, 391</td><td><code>convoy:position</code> emitido sem ack; erros do backend (rate limit, posição inválida, não autorizado) somem em silêncio.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M13</td><td>Web</td><td class="path">convoy.js:397-404 · backend convoy.js:76</td><td>Boot sem <code>.catch</code>; admin com 2FA pendente recebe toast de erro em todo carregamento por causa do <code>load()</code> automático.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-parcial">Parcial: o TypeError alegado não ocorre nesse cenário</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M14</td><td>Web</td><td class="path">convoy.js:403 → 138 → 268</td><td><code>load()</code> automático inicia <code>watchPosition</code> (prompt de geolocalização e compartilhamento) sem gesto do usuário.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M15</td><td>Web</td><td class="path">convoy.js:261-266</td><td>No callback do join, <code>latestVehiclePosition</code> é reemitida sem checar idade.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M16</td><td>Testes</td><td class="path">backend/tests/ux-contract.test.js:357-365 · convoy.test.ts:18-42</td><td>Teste web faz <code>assert.match</code> no código-fonte; mobile só testa transformação de objetos. Nada cobre autorização, saída da sala, reconexão, prioridade de fontes.</td><td><span class="pill sev-media">média</span></td><td class="who ambos">Ambos</td><td><span class="pill st-parcial">Parcial: backend tem cobertura em convoy.test.js e socket-security</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M17</td><td>Repo</td><td class="path">frontend/mobile/app.json:20-31 · build.gradle:102-162</td><td><code>versionCode</code> ausente em app.json; um <code>expo prebuild --clean</code> regrediria a versão e apagaria a assinatura de release.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M18</td><td>Repo</td><td class="path">.prettierignore:2-8 · ci.yml:25</td><td>Caminhos pré-migração (<code>mobile/...</code>); bundles rastreados entram no <code>format:check</code>.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M19</td><td>Deploy</td><td class="path">deploy-vps.yml:112-116, 220</td><td>Senhas de staff copiadas para <code>/tmp</code> da VPS mesmo com <code>provision_staff=false</code>; o trap de limpeza só é instalado depois.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M20</td><td>Deploy</td><td class="path">database/reference-assets/ · release-manifest.mjs:9</td><td>Vídeo de 15 MB e PNG de 2,6 MB duplicados dentro de <code>database/</code>; mexer neles classifica a release como crítica de banco.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M21</td><td>Deploy</td><td class="path">deploy-vps.yml:55-57</td><td><code>BASE_SHA</code> vazio (sem run anterior ou 30 redeploys iguais) trava o deploy sem fallback.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="media" data-w="codex"><td class="id">M22</td><td>CI</td><td class="path">ci.yml:34-37 · build.gradle:98-103</td><td>CI não compila o Android nem valida paridade <code>app.json</code> ↔ Gradle ↔ nome do APK.</td><td><span class="pill sev-media">média</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="media" data-w="codex"><td class="id">M23</td><td>Mobile</td><td class="path">app/(tabs)/_layout.tsx:39 · app/index.tsx · auth.tsx:21</td><td>Tela inicial (<code>(tabs)/index</code>) escondida da barra (<code>href: null</code>) mas ainda é o destino do login e do botão voltar: usuário cai numa tela sem aba selecionada.</td><td><span class="pill sev-media">média</span></td><td class="who codex">Codex</td><td><span class="pill st-parcial">Parcial: mapa principal foi intencional, mas as rotas não acompanharam</span></td></tr>
+      <tr data-s="media" data-w="ambos"><td class="id">M24</td><td>Mobile</td><td class="path">MapScreen.web.tsx:57-63, 131</td><td>Tela web rotula a posição do rastreador como "GPS" e não usa posição do telefone.</td><td><span class="pill sev-media">média</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+
+      <tr data-s="baixa" data-w="codex"><td class="id">B1</td><td>Mobile</td><td class="path">RastreonMap.web.tsx:98-153</td><td>Efeito de markers retorna cedo se o mapa assíncrono ainda não existe; sem dependência de "mapa pronto". Impacto pequeno porque as posições chegam com frequência.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who codex">Codex</td><td><span class="pill st-parcial">Confirmado, rebaixado de média para baixa</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B2</td><td>Web</td><td class="path">convoy.js:260, 287</td><td>Próprio usuário recebe marker de comboio por cima do marker do seu veículo.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who ambos">Ambos</td><td><span class="pill st-ok">Confirmado</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B3</td><td>Web</td><td class="path">convoy.js:252</td><td>Label e liderança do marker nunca atualizados; <code>heading</code> do payload ignorado.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B4</td><td>Web</td><td class="path">convoy.js:285-313</td><td><code>startSharing</code> reentrante quando geolocalização indisponível: re-join e re-handlers a cada <code>load()</code>.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B5</td><td>Web</td><td class="path">convoy.js:294</td><td><code>userId</code> interpolado em seletor CSS sem <code>CSS.escape</code>. Hoje é inteiro; latente.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-parcial">Parcial: sem vetor explorável hoje</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B6</td><td>Web</td><td class="path">platform-features.css:589-619</td><td>Glifo rotacionado sem contra-rotação; cor fixa <code>#35d07f</code> fora dos tokens.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-parcial">Parcial: max-width vs iconSize não demonstrado</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B7</td><td>Mobile</td><td class="path">MapScreen.web.tsx:24-25</td><td>Early return sem <code>setConvoyState(undefined)</code> (nativo faz).</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B8</td><td>Mobile</td><td class="path">app/convoy.tsx:36-40, 211-217</td><td>Badge ONLINE com clock de 15 s e limiar 30 s (até 45 s de atraso); regra não extraída para função testável.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B9</td><td>Mobile</td><td class="path">MapScreen.native.tsx:55</td><td><code>connection</code> desestruturado e nunca usado; estado do socket não aparece na tela.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B10</td><td>CI</td><td class="path">ci.yml:19-21, 35</td><td>Cache npm sem <code>cache-dependency-path</code> do lockfile mobile.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B11</td><td>Repo</td><td class="path">raiz node_modules~3cc9… · .gitignore:19</td><td>Arquivo residual de 2 bytes rastreado; padrão com barra final não casa arquivo.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B12</td><td>Deploy</td><td class="path">release-manifest.mjs:56-66</td><td><code>verify</code> não detecta arquivos extras na VPS.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+      <tr data-s="baixa" data-w="ambos"><td class="id">B13</td><td>Repo</td><td class="path">frontend/mobile/apk/RASTREON-teste-arm64.apk</td><td>Artefato de teste de 81,7 MB sem versão nem procedência.</td><td><span class="pill sev-baixa">baixa</span></td><td class="who claude">Claude</td><td><span class="pill st-ok">Confirmado pelo Codex</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Onde os dois revisores divergiram</h2>
+  <dl>
+    <dt>M6 token Mapbox</dt><dd>Claude apontou o token na URL; Codex considera normal para token público e move o risco para o backend, que aceita a variável legada sem impedir um token privado. Recomendação: seguir o Codex e validar no servidor.</dd>
+    <dt>M7 styleUrl</dt><dd>Codex lembra que o valor vem de configuração autenticada do servidor. Mantido como média por defesa em profundidade, mas não é urgente.</dd>
+    <dt>M13 boot sem catch</dt><dd>Codex refutou o TypeError específico; o toast de 2FA em todo carregamento continua válido.</dd>
+    <dt>M16 testes</dt><dd>Codex mostrou que o backend tem cobertura real em <code>convoy.test.js</code> e <code>socket-security.test.js</code>. O que falta é teste de comportamento no cliente e dos cenários de saída/reconexão.</dd>
+    <dt>B1 mapa não pronto</dt><dd>Codex classificou como média; Claude rebaixou para baixa porque o efeito roda de novo no próximo tick de GPS.</dd>
+  </dl>
+
+  <h2>Ordem de correção sugerida</h2>
+  <ol class="plan">
+    <li><b>Backend do comboio</b> (A8, A11, M2): filtrar <code>status='ACCEPTED'</code>, tirar o socket da sala no leave/end, zerar coordenadas ao sair, rate limit em <code>convoy:signal</code>. Pequeno e resolve a exposição de dados.</li>
+    <li><b>Socket e localização no mobile</b> (A1, A2, A3, A4, A15, M1, M3, M8): dar ao <code>socketService</code> unsubscribe por chamador e um único broadcaster de posição do comboio com regra de frescor; <code>stopLocation</code> por handle; re-join no <code>connect</code>. Uma raiz, oito sintomas.</li>
+    <li><b>Comboio web</b> (A5, A6, A7, M11 a M15, B2 a B5): <code>receivedAt</code> local, filtro de <code>capturedOffline</code>, <code>startSharing</code> no <code>map-ready</code>, acks, reconciliação de markers, geolocalização só após gesto.</li>
+    <li><b>Fila em segundo plano</b> (A9): incluir <code>deviceId</code> nos pontos do background task.</li>
+    <li><b>Repositório e deploy</b> (A12, A13, A14, M17 a M21, B10 a B13): tirar APKs e <code>.expo-*-check</code> do índice, hashing em stream, <code>versionCode</code> no app.json, senhas só quando <code>provision_staff</code>, padrão crítico restrito a migrações.</li>
+    <li><b>Runtime URL</b> (A10) e <b>rotas do mobile</b> (M23), depois o restante.</li>
+  </ol>
+
+  <p class="foot">Método: baseline de testes, revisão independente de cada lado sobre <code>git diff 3f84c80..HEAD</code>, verificação cruzada item a item no código (Codex confirmou 39 dos 48 achados do Claude e marcou 8 como parciais; Claude confirmou os 13 do Codex e 4 dos 5 itens extras). Saídas do Codex em <code>.codex-out/</code>. Nenhuma correção foi aplicada.</p>
+</div>
+
+<script>
+  (function () {
+    var rows = document.querySelectorAll('#t tbody tr');
+    var buttons = document.querySelectorAll('.filters button');
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        buttons.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        var f = b.dataset.f;
+        rows.forEach(function (r) {
+          var show = f === 'all' || (f === 'novo' ? r.dataset.w === 'codex' : r.dataset.s === f);
+          r.hidden = !show;
+        });
+      });
+    });
+  })();
+</script>
