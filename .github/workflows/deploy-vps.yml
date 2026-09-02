@@ -22,6 +22,11 @@ on:
         required: false
         default: false
         type: boolean
+      approve_server_overwrite:
+        description: Confirmo que arquivos alterados diretamente na VPS após o último deploy podem ser sobrescritos por esta release (backup do banco é feito antes; .env, dados e backups são preservados)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -127,10 +132,11 @@ jobs:
           VPS_PORT: ${{ vars.VPS_PORT || '22' }}
           PROVISION_STAFF: ${{ inputs.provision_staff || false }}
           MANIFEST_BOOTSTRAP_APPROVED: ${{ inputs.approve_manifest_bootstrap || false }}
+          SERVER_OVERWRITE_APPROVED: ${{ inputs.approve_server_overwrite || false }}
         run: |
           test -n "$VPS_APP_PATH"
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" "/tmp/rastreon-staff-${GITHUB_RUN_ID}.json" "/tmp/rastreon-release-manifest-${GITHUB_RUN_ID}.json" "$PROVISION_STAFF" "/tmp/rastreon-published-manifest-${GITHUB_RUN_ID}.json" "$MANIFEST_BOOTSTRAP_APPROVED" <<'REMOTE'
+            bash -se -- "$VPS_APP_PATH" "/tmp/rastreon-release-${GITHUB_RUN_ID}.tar.gz" "/tmp/rastreon-staff-${GITHUB_RUN_ID}.json" "/tmp/rastreon-release-manifest-${GITHUB_RUN_ID}.json" "$PROVISION_STAFF" "/tmp/rastreon-published-manifest-${GITHUB_RUN_ID}.json" "$MANIFEST_BOOTSTRAP_APPROVED" "$SERVER_OVERWRITE_APPROVED" <<'REMOTE'
           set -Eeuo pipefail
           APP_PATH="$1"
           ARCHIVE_PATH="$2"
@@ -139,6 +145,7 @@ jobs:
           PROVISION_STAFF="$5"
           PUBLISHED_MANIFEST_PATH="$6"
           MANIFEST_BOOTSTRAP_APPROVED="$7"
+          SERVER_OVERWRITE_APPROVED="${8:-false}"
           export NVM_DIR=/www/server/nvm
           test -s "$NVM_DIR/nvm.sh"
           . "$NVM_DIR/nvm.sh"
@@ -181,9 +188,19 @@ jobs:
           trap 'rm -rf -- "$RELEASE_DIR"; rm -f -- "$ARCHIVE_PATH" "$STAFF_PATH" "$MANIFEST_PATH" "$PUBLISHED_MANIFEST_PATH"' EXIT
           tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
           if test -f .rastreon-release-manifest.json; then
-            node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
+            # Alterações feitas diretamente na VPS bloqueiam o deploy automático.
+            # Só uma execução manual com approve_server_overwrite=true publica
+            # por cima delas; o backup do banco já foi validado acima.
+            if node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
               --root "$APP_PATH" \
-              --manifest "$APP_PATH/.rastreon-release-manifest.json"
+              --manifest "$APP_PATH/.rastreon-release-manifest.json"; then
+              echo "Release publicada íntegra; nenhuma alteração fora do fluxo."
+            elif test "$SERVER_OVERWRITE_APPROVED" = true; then
+              echo "Sobrescrita aprovada manualmente: os arquivos listados acima serão substituídos pela release."
+            else
+              echo "Execute manualmente com approve_server_overwrite=true para sobrescrever as alterações feitas na VPS." >&2
+              exit 2
+            fi
           else
             echo "Primeira release com manifesto: conferindo a VPS contra o último deploy bem-sucedido."
             if node "$RELEASE_DIR/deploy/release-manifest.mjs" verify \
