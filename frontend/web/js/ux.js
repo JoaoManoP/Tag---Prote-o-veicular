@@ -736,6 +736,24 @@
         );
       };
   }
+  // Marcador de local (POI). O contêiner tem 0×0 px e a ponta do pino fica
+  // exatamente sobre a coordenada, independentemente do provedor de mapa.
+  function poiMarkerHtml({ iconId, tone, label, count, showLabel }) {
+    const badge = count > 1 ? `<b class="map-symbol__count">${count}</b>` : '';
+    const caption =
+      showLabel && label ? `<span class="map-symbol__label">${escapeHtml(label)}</span>` : '';
+    return `<span class="map-symbol map-symbol--${tone}${count > 1 ? ' map-symbol--cluster' : ''}" aria-label="${escapeHtml(label || tone)}"><span class="map-symbol__pin"><svg aria-hidden="true"><use href="/images/map-icons.svg#${iconId}"></use></svg>${badge}</span><span class="map-symbol__tip"></span>${caption}</span>`;
+  }
+  function poiMarkerIcon(api, options) {
+    return api.L.divIcon({
+      className: 'map-symbol-host',
+      html: poiMarkerHtml(options),
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+      popupAnchor: [0, -46]
+    });
+  }
+  window.rastreonPoiMarkerIcon = poiMarkerIcon;
   function renderPois(places, category) {
     const api = window.rastreonMap;
     if (!api) return;
@@ -743,51 +761,74 @@
     api.layers.pois.clearLayers();
     document.body.dataset.poiCount = String(places.length);
     const zoom = api.map.getZoom(),
-      cell = zoom >= 15 ? 0.002 : zoom >= 13 ? 0.008 : 0.025;
+      // Agrupa apenas quando o mapa está afastado; próximo ao nível de rua cada
+      // local fica na própria coordenada, sem deslocamento por média.
+      cell = zoom >= 16.5 ? 0 : zoom >= 15 ? 0.0006 : zoom >= 13 ? 0.006 : 0.02,
+      showLabel = zoom >= 14.5;
     const groups = new Map();
     for (const place of places) {
-      const key = `${Math.round(place.latitude / cell)}:${Math.round(place.longitude / cell)}`;
+      const key = cell
+        ? `${Math.round(place.latitude / cell)}:${Math.round(place.longitude / cell)}`
+        : place.placeKey || `${place.category}-${place.id}`;
       const group = groups.get(key) || [];
       group.push(place);
       groups.set(key, group);
     }
     for (const group of groups.values()) {
-      const lat = group.reduce((n, p) => n + p.latitude, 0) / group.length,
-        lng = group.reduce((n, p) => n + p.longitude, 0) / group.length;
-      const iconId = group.length > 1 ? 'comment' : poiIconId(group[0].category || category),
+      const cluster = group.length > 1,
+        place = group[0],
+        lat = cluster ? group.reduce((n, p) => n + p.latitude, 0) / group.length : place.latitude,
+        lng = cluster ? group.reduce((n, p) => n + p.longitude, 0) / group.length : place.longitude,
+        iconId = cluster ? 'pin' : poiIconId(place.category || category),
+        tone = cluster ? 'cluster' : iconId,
         marker = api.L.marker([lat, lng], {
-          icon: api.L.divIcon({
-            className: 'map-symbol-host',
-            html: `<span class="map-symbol ${group.length > 1 ? 'map-symbol--cluster' : ''}" aria-label="${group.length > 1 ? `${group.length} locais` : escapeHtml(group[0].categoryLabel || category)}"><svg aria-hidden="true"><use href="/images/map-icons.svg#${iconId}"></use></svg>${group.length > 1 ? `<b>${group.length}</b>` : ''}</span>`
+          icon: poiMarkerIcon(api, {
+            iconId,
+            tone,
+            label: cluster ? `${group.length} locais` : place.name,
+            count: group.length,
+            showLabel: showLabel || cluster
           })
         }).addTo(api.layers.pois);
-      marker.bindTooltip(group.length > 1 ? `${group.length} locais` : group[0].name, {
-        permanent: group.length > 1,
-        direction: 'center',
-        className: 'poi-cluster-label'
-      });
-      const popupName = group.length > 1 ? `${group.length} locais próximos` : group[0].name,
-        place = group[0],
-        details =
-          group.length === 1
-            ? [place.address, place.openingHours, place.phone]
-                .filter(Boolean)
-                .map(value => `<br><small>${escapeHtml(value)}</small>`)
-                .join('')
-            : '',
-        stopButton =
-          group.length === 1
-            ? `<br><button type="button" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Traçar rota</button>`
-            : '',
-        reviewButton =
-          group.length === 1
-            ? ` <button type="button" data-poi-review="true" data-place-key="${encodeURIComponent(`osm:${place.id}`)}" data-name="${encodeURIComponent(place.name)}" data-address="${encodeURIComponent(place.address || '')}" data-latitude="${place.latitude}" data-longitude="${place.longitude}">Comentários e avaliações</button>`
-            : '';
-      marker.bindPopup(
-        `<b>${escapeHtml(popupName)}</b><br><small>${escapeHtml(place.categoryLabel || category)} · OpenStreetMap</small>${details}${stopButton}${reviewButton}`
-      );
-      if (group.length > 1)
+      if (cluster) {
+        marker.bindPopup(
+          `<b>${group.length} locais próximos</b><br><small>Aproxime o mapa para ver cada local.</small>`
+        );
         marker.on('click', () => api.map.setView([lat, lng], Math.min(18, zoom + 2)));
+        continue;
+      }
+      const details = [place.address, place.openingHours, place.phone]
+          .filter(Boolean)
+          .map(value => `<br><small>${escapeHtml(value)}</small>`)
+          .join(''),
+        placeKey = place.placeKey || `osm:${place.id}`,
+        payload = encodeURIComponent(
+          JSON.stringify({
+            id: place.id,
+            placeKey,
+            name: place.name,
+            brand: place.brand || null,
+            address: place.address || '',
+            category: place.category || 'poi',
+            categoryLabel: place.categoryLabel || category,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            phone: place.phone || null,
+            openingHours: place.openingHours || null
+          })
+        ),
+        pricesButton =
+          place.category === 'fuel'
+            ? `<button type="button" data-poi-prices="${payload}">Preços</button>`
+            : '',
+        commentsButton = `<button type="button" class="secondary" data-poi-comments="${payload}">Comentários</button>`,
+        reviewButton = window.RastreonCommunity?.isEnabled?.()
+          ? `<button type="button" class="secondary" data-poi-review="true" data-place-key="${encodeURIComponent(placeKey)}" data-name="${encodeURIComponent(place.name)}" data-address="${encodeURIComponent(place.address || '')}" data-latitude="${place.latitude}" data-longitude="${place.longitude}">Avaliações</button>`
+          : '',
+        stopButton = `<button type="button" class="secondary" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Traçar rota</button>`;
+      marker.bindPopup(
+        `<div class="poi-popup"><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.categoryLabel || category)}${place.brand ? ` · ${escapeHtml(place.brand)}` : ''} · OpenStreetMap</small>${details}<div class="poi-popup__actions">${pricesButton}${commentsButton}${reviewButton}${stopButton}</div></div>`
+      );
     }
   }
 
@@ -960,6 +1001,21 @@
             }
           })
         );
+        return;
+      }
+      const poiAction = event.target.closest('[data-poi-prices],[data-poi-comments]');
+      if (poiAction) {
+        try {
+          const place = JSON.parse(
+            decodeURIComponent(poiAction.dataset.poiPrices || poiAction.dataset.poiComments)
+          );
+          window.dispatchEvent(
+            new CustomEvent(
+              poiAction.dataset.poiPrices ? 'rastreon:place-prices' : 'rastreon:place-comments',
+              { detail: place }
+            )
+          );
+        } catch {}
         return;
       }
       const poiReview = event.target.closest('[data-poi-review]');

@@ -12,6 +12,7 @@ import { Text, View } from 'react-native';
 import { api } from '../services/api';
 import { useApp } from '../state/AppContext';
 import type { Geofence, Position } from '../types';
+import { placeVisual } from './places';
 import { Icon } from './ui';
 
 export type MapPoint = {
@@ -20,7 +21,84 @@ export type MapPoint = {
   longitude: number;
   kind?: string;
   label?: string;
+  category?: string;
+  name?: string;
+  data?: unknown;
 };
+
+// Pino de local: círculo com ícone + ponta. A altura é fixa para que a âncora
+// do marcador fique exatamente na ponta, sobre a coordenada.
+const POI_PIN_SIZE = 34;
+const POI_TIP_SIZE = 12;
+const POI_PIN_HEIGHT = 42;
+const POI_LABEL_HEIGHT = 22;
+const POI_LABEL_WIDTH = 150;
+
+function PoiPin({ point }: { point: MapPoint }) {
+  const visual = placeVisual(point.category);
+  return (
+    <View
+      style={{
+        width: POI_LABEL_WIDTH,
+        height: point.name ? POI_PIN_HEIGHT + POI_LABEL_HEIGHT : POI_PIN_HEIGHT,
+        alignItems: 'center'
+      }}
+    >
+      <View
+        style={{
+          width: POI_PIN_SIZE,
+          height: POI_PIN_SIZE,
+          borderRadius: POI_PIN_SIZE / 2,
+          backgroundColor: visual.color,
+          borderWidth: 2.5,
+          borderColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#041626',
+          shadowOpacity: 0.32,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 5,
+          zIndex: 2
+        }}
+      >
+        <Icon name={visual.icon} size={18} color="#FFFFFF" />
+      </View>
+      <View
+        style={{
+          width: POI_TIP_SIZE,
+          height: POI_TIP_SIZE,
+          marginTop: -POI_TIP_SIZE / 2 - 1,
+          backgroundColor: visual.color,
+          borderRightWidth: 2.5,
+          borderBottomWidth: 2.5,
+          borderColor: '#FFFFFF',
+          transform: [{ rotate: '45deg' }],
+          zIndex: 1
+        }}
+      />
+      {!!point.name && (
+        <View
+          style={{
+            marginTop: 3,
+            height: POI_LABEL_HEIGHT - 3,
+            maxWidth: POI_LABEL_WIDTH,
+            paddingHorizontal: 8,
+            borderRadius: 999,
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            borderWidth: 1,
+            borderColor: 'rgba(16,40,59,0.14)'
+          }}
+        >
+          <Text numberOfLines={1} style={{ color: '#142B40', fontSize: 10.5, fontWeight: '900' }}>
+            {point.name}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 type MapConfig = {
   provider: 'maplibre' | 'mapbox';
@@ -132,6 +210,7 @@ export type RastreonMapProps = {
   perspective?: boolean;
   follow?: boolean;
   onUserInteraction?: () => void;
+  onPointPress?: (point: MapPoint) => void;
   showUserLocation?: boolean;
   onMapReady?: () => void;
   onMapError?: () => void;
@@ -148,6 +227,7 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
     perspective = true,
     follow = true,
     onUserInteraction,
+    onPointPress,
     showUserLocation = true,
     onMapReady,
     onMapError
@@ -289,69 +369,84 @@ export const RastreonMap = forwardRef<CameraRef, RastreonMapProps>(function Rast
           </View>
         </Marker>
       )}
-      {points.map(point => (
-        <Marker key={point.id} id={point.id} lngLat={[point.longitude, point.latitude]}>
-          <View
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+      {points.map(point =>
+        point.kind === 'poi' ? (
+          <Marker
+            key={point.id}
+            id={point.id}
+            lngLat={[point.longitude, point.latitude]}
+            anchor="bottom"
+            // Com rótulo abaixo do pino, desloca o marcador para que a ponta
+            // (e não a base do rótulo) fique sobre a coordenada.
+            offset={point.name ? [0, POI_LABEL_HEIGHT] : [0, 0]}
+            onPress={() => onPointPress?.(point)}
           >
-            {point.kind === 'convoy' && point.label && (
-              <View
-                style={{
-                  backgroundColor: theme.colors.mapOverlay,
-                  borderRadius: 8,
-                  paddingHorizontal: 7,
-                  paddingVertical: 3,
-                  marginBottom: 3,
-                  borderWidth: 1,
-                  borderColor: theme.colors.success
-                }}
-              >
-                <Text style={{ color: theme.colors.text, fontSize: 10, fontWeight: '900' }}>
-                  {point.label}
-                </Text>
-              </View>
-            )}
+            <PoiPin point={point} />
+          </Marker>
+        ) : (
+          <Marker key={point.id} id={point.id} lngLat={[point.longitude, point.latitude]}>
             <View
               style={{
-                width: point.kind === 'convoy' ? 40 : 32,
-                height: point.kind === 'convoy' ? 40 : 32,
-                borderRadius: point.kind === 'convoy' ? 20 : 16,
-                backgroundColor: theme.colors.card,
-                borderWidth: 2,
-                borderColor:
-                  point.kind === 'convoy'
-                    ? theme.colors.success
-                    : point.kind === 'radar'
-                      ? theme.colors.danger
-                      : theme.colors.warning,
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              <Icon
-                name={
-                  point.kind === 'convoy'
-                    ? 'car'
-                    : point.kind === 'radar'
-                      ? 'speedometer'
-                      : 'map-marker-alert'
-                }
-                size={point.kind === 'convoy' ? 22 : 17}
-                color={
-                  point.kind === 'convoy'
-                    ? theme.colors.success
-                    : point.kind === 'radar'
-                      ? theme.colors.danger
-                      : theme.colors.warning
-                }
-              />
+              {point.kind === 'convoy' && point.label && (
+                <View
+                  style={{
+                    backgroundColor: theme.colors.mapOverlay,
+                    borderRadius: 8,
+                    paddingHorizontal: 7,
+                    paddingVertical: 3,
+                    marginBottom: 3,
+                    borderWidth: 1,
+                    borderColor: theme.colors.success
+                  }}
+                >
+                  <Text style={{ color: theme.colors.text, fontSize: 10, fontWeight: '900' }}>
+                    {point.label}
+                  </Text>
+                </View>
+              )}
+              <View
+                style={{
+                  width: point.kind === 'convoy' ? 40 : 32,
+                  height: point.kind === 'convoy' ? 40 : 32,
+                  borderRadius: point.kind === 'convoy' ? 20 : 16,
+                  backgroundColor: theme.colors.card,
+                  borderWidth: 2,
+                  borderColor:
+                    point.kind === 'convoy'
+                      ? theme.colors.success
+                      : point.kind === 'radar'
+                        ? theme.colors.danger
+                        : theme.colors.warning,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Icon
+                  name={
+                    point.kind === 'convoy'
+                      ? 'car'
+                      : point.kind === 'radar'
+                        ? 'speedometer'
+                        : 'map-marker-alert'
+                  }
+                  size={point.kind === 'convoy' ? 22 : 17}
+                  color={
+                    point.kind === 'convoy'
+                      ? theme.colors.success
+                      : point.kind === 'radar'
+                        ? theme.colors.danger
+                        : theme.colors.warning
+                  }
+                />
+              </View>
             </View>
-          </View>
-        </Marker>
-      ))}
+          </Marker>
+        )
+      )}
     </Map>
   );
 });

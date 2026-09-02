@@ -54,7 +54,7 @@ const { acceptTelemetryPoint, validateTelemetryPoint } = require('./telemetry');
 const { smoothTrackForDisplay } = require('./trajectory');
 const { calculateTrackMetrics } = require('./trip-metrics');
 const { createCommunityRouter, parseFeatureFlag } = require('./community');
-const { createPlatformRouter } = require('./platform');
+const { createPlatformRouter, serializeStation } = require('./platform');
 const { createTwoFactorRouter, createTwoFactorGuard } = require('./two-factor');
 const { createAccountSecurityRouter } = require('./account-security');
 const { createConvoyRouter, installConvoySocket } = require('./convoy');
@@ -130,6 +130,33 @@ const POI_DEFINITIONS = Object.freeze({
   },
   dentist: { filter: 'amenity=dentist', match: tags => tags.amenity === 'dentist' },
   veterinary: { filter: 'amenity=veterinary', match: tags => tags.amenity === 'veterinary' }
+});
+const POI_LABELS = Object.freeze({
+  fuel: 'Postos',
+  hospital: 'Hospitais e clínicas',
+  pharmacy: 'Farmácias',
+  restaurant: 'Restaurantes',
+  cafe: 'Cafeterias',
+  bakery: 'Padarias',
+  bar: 'Bares',
+  supermarket: 'Mercados',
+  mechanic: 'Oficinas',
+  charge: 'Recarga elétrica',
+  parking: 'Estacionamentos',
+  hotel: 'Hotéis e pousadas',
+  school: 'Escolas',
+  university: 'Universidades',
+  library: 'Bibliotecas',
+  culture: 'Museus e galerias',
+  leisure: 'Parques e lazer',
+  tourism: 'Atrações',
+  camping: 'Campings',
+  worship: 'Templos',
+  police: 'Polícia',
+  fire_station: 'Bombeiros',
+  airport: 'Aeroportos',
+  dentist: 'Dentistas',
+  veterinary: 'Veterinários'
 });
 const serviceCache = new Map();
 const serviceInflight = new Map();
@@ -1053,158 +1080,327 @@ function createApplication(options = {}) {
     const result = validateTelemetryPoint({ ...req.body, source: 'simulation' }, { offline: true });
     res.status(result.ok ? 200 : 400).json(result);
   });
+  function parsePoiCategories(value) {
+    return [
+      ...new Set(
+        String(value || '')
+          .split(',')
+          .map(item => item.trim())
+          .filter(item => POI_DEFINITIONS[item])
+      )
+    ].slice(0, 25);
+  }
+  function validPoiCenter(latitude, longitude) {
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      Math.abs(latitude) <= 90 &&
+      Math.abs(longitude) <= 180
+    );
+  }
+  // Busca locais próximos no OpenStreetMap (Overpass) com cache e failover.
+  // As coordenadas são devolvidas exatamente como registradas no OSM — para
+  // áreas (ways/relations) usa-se o centro geométrico da feição.
+  async function loadNearbyPois({
+    latitude,
+    longitude,
+    categories,
+    route = [],
+    zoom,
+    radiusMeters
+  }) {
+    const requestedRadius = Number(radiusMeters),
+      radius = Number.isFinite(requestedRadius)
+        ? Math.min(6000, Math.max(100, requestedRadius))
+        : zoom >= 15
+          ? 2500
+          : zoom >= 13
+            ? 4000
+            : 6000,
+      routeKey = route.length
+        ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
+        : '',
+      categoryKey = [...categories].sort().join(','),
+      zoomScope = zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
+      key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${radius}:${routeKey}`,
+      cached = poiCache.get(key),
+      scope = route.length ? 'route-corridor' : 'nearby',
+      withDistance = list =>
+        list
+          .map(item => ({
+            ...item,
+            distanceMeters: Math.round(distanceBetween({ latitude, longitude }, item))
+          }))
+          .sort((a, b) => a.distanceMeters - b.distanceMeters);
+    if (cached && cached.expiresAt > Date.now())
+      return { places: withDistance(cached.places), cached: true, source: cached.source, scope };
+
+    const area = route.length
+        ? `(around:1200,${route.map(([lng, lat]) => `${lat},${lng}`).join(',')})`
+        : `(around:${radius},${latitude},${longitude})`,
+      clauses = categories
+        .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
+        .join(''),
+      query = `[out:json][timeout:14];(${clauses});out center 240;`,
+      configuredOverpassUrls = String(
+        process.env.OVERPASS_API_URLS || process.env.OVERPASS_API_URL || ''
+      ).split(','),
+      overpassUrls = [
+        ...new Set(
+          [
+            ...configuredOverpassUrls,
+            'https://overpass-api.de/api/interpreter',
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://z.overpass-api.de/api/interpreter'
+          ]
+            .map(value => value.trim().replace(/\/$/, ''))
+            .filter(value => /^https:\/\//.test(value))
+        )
+      ].slice(0, 5),
+      requestBody = `data=${encodeURIComponent(query)}`;
+    let data;
+    try {
+      data = await cachedServiceCall(
+        `overpass:${key}`,
+        async () => {
+          let lastStatus = null;
+          for (const overpassUrl of overpassUrls) {
+            try {
+              const response = await fetch(overpassUrl, {
+                method: 'POST',
+                body: requestBody,
+                signal: AbortSignal.timeout(12000),
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                  'User-Agent': 'Rastreon/1.0'
+                }
+              });
+              lastStatus = response.status;
+              if (response.ok) return response.json();
+            } catch {}
+          }
+          throw new Error(`Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`);
+        },
+        60000
+      );
+    } catch {}
+    if (!data && cached?.staleUntil > Date.now())
+      return {
+        places: withDistance(cached.places),
+        cached: true,
+        stale: true,
+        source: cached.source,
+        scope
+      };
+    let places = (Array.isArray(data?.elements) ? data.elements : [])
+      .slice(0, 240)
+      .map(item => {
+        const tags = item.tags || {},
+          category = categories.find(value => POI_DEFINITIONS[value].match(tags)),
+          id = `${item.type}-${item.id}`;
+        return {
+          id,
+          placeKey: `osm:${id}`,
+          name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
+          brand: String(tags.brand || tags.operator || '').slice(0, 100) || null,
+          address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
+            .filter(Boolean)
+            .join(', ')
+            .slice(0, 180),
+          category,
+          categoryLabel: POI_LABELS[category] || category,
+          latitude: Number(item.lat ?? item.center?.lat),
+          longitude: Number(item.lon ?? item.center?.lon),
+          openingHours: tags.opening_hours || null,
+          phone: tags.phone || tags['contact:phone'] || null,
+          website: tags.website || tags['contact:website'] || null
+        };
+      })
+      .filter(
+        item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+      );
+    places = withDistance(places).filter(item => route.length || item.distanceMeters <= radius);
+    let source = 'openstreetmap-overpass';
+    if (!places.length && !route.length && categories.includes('fuel')) {
+      const fallbackProviders = [
+        ['mapbox-search-fallback', mapboxGeocoder],
+        ['openstreetmap-photon-fallback', photonGeocoder]
+      ];
+      for (const [providerName, provider] of fallbackProviders) {
+        if (!provider?.nearbyFuelStations) continue;
+        try {
+          places = withDistance(await provider.nearbyFuelStations(latitude, longitude, radius)).map(
+            item => ({
+              ...item,
+              placeKey: item.placeKey || `${providerName.split('-')[0]}:${item.id}`,
+              category: item.category || 'fuel',
+              categoryLabel: POI_LABELS[item.category || 'fuel']
+            })
+          );
+          if (places.length) {
+            source = providerName;
+            break;
+          }
+        } catch {}
+      }
+    }
+    if (!data && !places.length) throw new Error('Serviço de locais indisponível.');
+    poiCache.set(key, {
+      places,
+      source,
+      expiresAt: Date.now() + 300000,
+      staleUntil: Date.now() + 86400000
+    });
+    return { places, cached: false, source, scope };
+  }
   app.get('/api/pois', requireAuth, serviceLimiter, async (req, res) => {
     try {
       const latitude = Number(req.query.lat),
         longitude = Number(req.query.lng),
-        categories = [
-          ...new Set(
-            String(req.query.categories || req.query.category || '')
-              .split(',')
-              .map(value => value.trim())
-              .filter(value => POI_DEFINITIONS[value])
-          )
-        ].slice(0, 25),
-        route = parsePoiRoute(req.query.route),
-        validCenter =
-          Number.isFinite(latitude) &&
-          Number.isFinite(longitude) &&
-          Math.abs(latitude) <= 90 &&
-          Math.abs(longitude) <= 180;
-      if (!validCenter || route === null || !categories.length)
+        categories = parsePoiCategories(req.query.categories || req.query.category),
+        route = parsePoiRoute(req.query.route);
+      if (!validPoiCenter(latitude, longitude) || route === null || !categories.length)
         return res.status(400).json({ error: 'Consulta de locais inválida.' });
-
-      const zoom = Number(req.query.zoom),
-        requestedRadius = Number(req.query.radiusMeters),
-        radius = Number.isFinite(requestedRadius)
-          ? Math.min(6000, Math.max(100, requestedRadius))
-          : zoom >= 15
-            ? 2500
-            : zoom >= 13
-              ? 4000
-              : 6000,
-        routeKey = route.length
-          ? crypto.createHash('sha256').update(JSON.stringify(route)).digest('hex').slice(0, 16)
-          : '',
-        categoryKey = [...categories].sort().join(','),
-        zoomScope = zoom >= 15 ? 'near' : zoom >= 13 ? 'city' : 'wide',
-        key = `${categoryKey}:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${zoomScope}:${radius}:${routeKey}`,
-        cached = poiCache.get(key);
-      if (cached && cached.expiresAt > Date.now())
-        return res.json({ places: cached.places, cached: true });
-
-      const area = route.length
-          ? `(around:1200,${route.map(([lng, lat]) => `${lat},${lng}`).join(',')})`
-          : `(around:${radius},${latitude},${longitude})`,
-        clauses = categories
-          .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
-          .join(''),
-        query = `[out:json][timeout:14];(${clauses});out center 240;`,
-        configuredOverpassUrls = String(
-          process.env.OVERPASS_API_URLS || process.env.OVERPASS_API_URL || ''
-        ).split(','),
-        overpassUrls = [
-          ...new Set(
-            [
-              ...configuredOverpassUrls,
-              'https://overpass-api.de/api/interpreter',
-              'https://lz4.overpass-api.de/api/interpreter',
-              'https://z.overpass-api.de/api/interpreter'
-            ]
-              .map(value => value.trim().replace(/\/$/, ''))
-              .filter(value => /^https:\/\//.test(value))
-          )
-        ].slice(0, 5),
-        requestBody = `data=${encodeURIComponent(query)}`;
-      let data;
-      try {
-        data = await cachedServiceCall(
-          `overpass:${key}`,
-          async () => {
-            let lastStatus = null;
-            for (const overpassUrl of overpassUrls) {
-              try {
-                const response = await fetch(overpassUrl, {
-                  method: 'POST',
-                  body: requestBody,
-                  signal: AbortSignal.timeout(12000),
-                  headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'User-Agent': 'Rastreon/1.0'
-                  }
-                });
-                lastStatus = response.status;
-                if (response.ok) return response.json();
-              } catch {}
-            }
-            throw new Error(
-              `Serviço de locais indisponível${lastStatus ? ` (${lastStatus})` : ''}.`
-            );
-          },
-          60000
-        );
-      } catch {}
-      if (!data && cached?.staleUntil > Date.now())
-        return res.json({ places: cached.places, cached: true, stale: true });
-      let places = (Array.isArray(data?.elements) ? data.elements : [])
-        .slice(0, 240)
-        .map(item => {
-          const tags = item.tags || {},
-            category = categories.find(value => POI_DEFINITIONS[value].match(tags));
-          return {
-            id: `${item.type}-${item.id}`,
-            name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
-            brand: String(tags.brand || tags.operator || '').slice(0, 100) || null,
-            address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
-              .filter(Boolean)
-              .join(', ')
-              .slice(0, 180),
-            category,
-            latitude: Number(item.lat ?? item.center?.lat),
-            longitude: Number(item.lon ?? item.center?.lon),
-            openingHours: tags.opening_hours || null,
-            phone: tags.phone || tags['contact:phone'] || null,
-            website: tags.website || tags['contact:website'] || null
-          };
+      res.json(
+        await loadNearbyPois({
+          latitude,
+          longitude,
+          categories,
+          route,
+          zoom: Number(req.query.zoom),
+          radiusMeters: req.query.radiusMeters
         })
-        .filter(
-          item => item.category && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+      );
+    } catch {
+      res.status(502).json({ error: 'Locais próximos indisponíveis no momento.' });
+    }
+  });
+  // Locais próximos enriquecidos para a área Comunidade: postos cadastrados
+  // (preços da comunidade), contagem de comentários e resumo de avaliações.
+  function communityReviewSummary(placeKey) {
+    try {
+      const row = database
+        .prepare(
+          "SELECT COUNT(*) AS count, AVG(rating) AS average FROM community_place_reviews WHERE place_id=? AND status='PUBLISHED'"
         )
-        .map(item => ({
-          ...item,
-          distanceMeters: Math.round(distanceBetween({ latitude, longitude }, item))
-        }))
-        .filter(item => route.length || item.distanceMeters <= radius)
-        .sort((a, b) => a.distanceMeters - b.distanceMeters);
-      let source = 'openstreetmap-overpass';
-      if (!places.length && !route.length && categories.includes('fuel')) {
-        const fallbackProviders = [
-          ['mapbox-search-fallback', mapboxGeocoder],
-          ['openstreetmap-photon-fallback', photonGeocoder]
-        ];
-        for (const [providerName, provider] of fallbackProviders) {
-          if (!provider?.nearbyFuelStations) continue;
-          try {
-            places = await provider.nearbyFuelStations(latitude, longitude, radius);
-            if (places.length) {
-              source = providerName;
-              break;
-            }
-          } catch {}
-        }
+        .get(placeKey);
+      return row?.count
+        ? { count: Number(row.count), average: Math.round(Number(row.average) * 10) / 10 }
+        : { count: 0, average: null };
+    } catch {
+      return { count: 0, average: null };
+    }
+  }
+  function commentCount(entityType, entityId) {
+    try {
+      return Number(
+        database
+          .prepare(
+            "SELECT COUNT(*) AS total FROM entity_comments WHERE entity_type=? AND entity_id=? AND status='PUBLISHED'"
+          )
+          .get(entityType, entityId).total
+      );
+    } catch {
+      return 0;
+    }
+  }
+  app.get('/api/places/nearby', requireAuth, serviceLimiter, async (req, res) => {
+    try {
+      const latitude = Number(req.query.lat ?? req.query.latitude),
+        longitude = Number(req.query.lng ?? req.query.longitude),
+        categories = parsePoiCategories(req.query.categories || req.query.category || 'fuel'),
+        radiusMeters = Math.min(6000, Math.max(300, Number(req.query.radiusMeters) || 3000)),
+        limit = Math.min(60, Math.max(1, Number(req.query.limit) || 24));
+      if (!validPoiCenter(latitude, longitude) || !categories.length)
+        return res.status(400).json({ error: 'Consulta de locais inválida.' });
+      let places = [],
+        source = 'openstreetmap-overpass',
+        stale = false;
+      try {
+        const result = await loadNearbyPois({ latitude, longitude, categories, radiusMeters });
+        places = result.places;
+        source = result.source;
+        stale = Boolean(result.stale);
+      } catch {
+        source = 'unavailable';
       }
-      if (!data && !places.length) throw new Error('Serviço de locais indisponível.');
-      poiCache.set(key, {
-        places,
-        expiresAt: Date.now() + 300000,
-        staleUntil: Date.now() + 86400000
-      });
+      const userId = req.session.userId,
+        stationRows = categories.includes('fuel')
+          ? database
+              .prepare('SELECT * FROM fuel_stations')
+              .all()
+              .map(row => ({
+                row,
+                distanceMeters: Math.round(distanceBetween({ latitude, longitude }, row))
+              }))
+              .filter(item => item.distanceMeters <= radiusMeters + 200)
+          : [],
+        matched = new Set(),
+        enrich = (place, station) => {
+          const entityType = station ? 'FUEL_STATION' : 'POI',
+            entityId = station ? station.id : place.placeKey;
+          return {
+            ...place,
+            registered: Boolean(station),
+            stationId: station?.id || null,
+            prices: station?.prices || [],
+            favorite: station?.favorite || false,
+            partnerBenefit: station?.partnerBenefit || null,
+            confidence: station?.confidence || null,
+            updatedAt: station?.updatedAt || null,
+            entityType,
+            entityId,
+            commentCount: commentCount(entityType, entityId),
+            rating: communityReviewSummary(place.placeKey)
+          };
+        },
+        result = places.map(place => {
+          let station = null;
+          if (place.category === 'fuel') {
+            const hit = stationRows.find(
+              item =>
+                item.row.provider_place_id === place.placeKey ||
+                item.row.provider_place_id === place.id ||
+                distanceBetween(item.row, place) <= 80
+            );
+            if (hit) {
+              matched.add(hit.row.id);
+              station = serializeStation(database, hit.row, userId);
+            }
+          }
+          return enrich(place, station);
+        });
+      for (const item of stationRows) {
+        if (matched.has(item.row.id) || item.distanceMeters > radiusMeters) continue;
+        const station = serializeStation(database, item.row, userId);
+        result.push(
+          enrich(
+            {
+              id: station.id,
+              placeKey: item.row.provider_place_id || `rastreon:${station.id}`,
+              name: station.name,
+              brand: station.brand,
+              address: station.address,
+              category: 'fuel',
+              categoryLabel: POI_LABELS.fuel,
+              latitude: station.latitude,
+              longitude: station.longitude,
+              openingHours: null,
+              phone: station.phone,
+              website: null,
+              distanceMeters: item.distanceMeters
+            },
+            station
+          )
+        );
+      }
       res.json({
-        places,
-        cached: false,
+        places: result.sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, limit),
         source,
-        scope: route.length ? 'route-corridor' : 'nearby'
+        stale,
+        radiusMeters,
+        categories
       });
     } catch {
       res.status(502).json({ error: 'Locais próximos indisponíveis no momento.' });

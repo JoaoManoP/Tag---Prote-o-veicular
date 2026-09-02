@@ -10,6 +10,16 @@ import React, {
 } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import type { CameraRef } from '@maplibre/maplibre-react-native';
+import {
+  MAP_PLACE_CATEGORIES,
+  PlaceBadge,
+  bestPrice,
+  distanceLabel,
+  money,
+  openPlace,
+  placeVisual,
+  type Place
+} from '../components/places';
 import { RastreonMap, type MapPoint } from '../components/RastreonMap';
 import { Card, Icon, IconButton, Screen, StatusBadge } from '../components/ui';
 import { api } from '../services/api';
@@ -60,6 +70,9 @@ export default function MapScreen() {
   const [phonePosition, setPhonePosition] = useState<Position>();
   const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [showPlaces, setShowPlaces] = useState(true);
+  const [selectedPlace, setSelectedPlace] = useState<Place>();
   const [convoyState, setConvoyState] = useState<ConvoyState>();
   const [follow, setFollow] = useState(true);
   const [perspective, setPerspective] = useState(true);
@@ -148,9 +161,48 @@ export default function MapScreen() {
     liveFocusPosition?.longitude,
     liveFocusPosition?.heading
   ]);
+  // Locais próximos (postos, hospitais, padarias…) na coordenada exata do OSM.
+  // A chave arredondada evita refazer a busca a cada metro percorrido.
+  const placesKey =
+    liveFocusPosition && showPlaces
+      ? `${liveFocusPosition.latitude.toFixed(3)}:${liveFocusPosition.longitude.toFixed(3)}`
+      : '';
+  useEffect(() => {
+    if (!placesKey || !liveFocusPosition) {
+      setPlaces([]);
+      return;
+    }
+    let active = true;
+    api
+      .get<{ places: Place[] }>(
+        `/api/places/nearby?lat=${liveFocusPosition.latitude}&lng=${liveFocusPosition.longitude}&categories=${MAP_PLACE_CATEGORIES.join(',')}&radiusMeters=2500&limit=60`
+      )
+      .then(data => {
+        if (active) setPlaces(data.places);
+      })
+      .catch(() => {
+        if (active) setPlaces([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [placesKey]);
+  const placePoints = useMemo<MapPoint[]>(
+    () =>
+      places.map(place => ({
+        id: `place-${place.placeKey}`,
+        kind: 'poi',
+        category: place.category,
+        name: place.name,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        data: place
+      })),
+    [places]
+  );
   const visibleMapPoints = useMemo(
-    () => [...mapPoints, ...convoyMapPoints(convoyState)],
-    [mapPoints, convoyState]
+    () => [...mapPoints, ...placePoints, ...convoyMapPoints(convoyState)],
+    [mapPoints, placePoints, convoyState]
   );
   const focusPosition = liveFocusPosition || DEFAULT_MAP_POSITION;
   useEffect(() => {
@@ -165,14 +217,12 @@ export default function MapScreen() {
       ),
       api.get<{ events: Array<MapPoint & { category?: string }> }>(
         `/api/road-events?${query}&radius=7000`
-      ),
-      api.get<{ places: MapPoint[] }>(`/api/pois?${query}&category=fuel`)
+      )
     ])
-      .then(([radars, events, places]) =>
+      .then(([radars, events]) =>
         setMapPoints([
           ...radars.radars.map(item => ({ ...item, id: `radar-${item.id}`, kind: 'radar' })),
-          ...events.events.map(item => ({ ...item, id: `event-${item.id}`, kind: 'event' })),
-          ...places.places.map(item => ({ ...item, id: `poi-${item.id}`, kind: 'poi' }))
+          ...events.events.map(item => ({ ...item, id: `event-${item.id}`, kind: 'event' }))
         ])
       )
       .catch(() => setMapPoints([]));
@@ -246,6 +296,11 @@ export default function MapScreen() {
             perspective={liveFocusPosition ? perspective : false}
             follow={follow}
             onUserInteraction={() => setFollow(false)}
+            onPointPress={point => {
+              if (point.kind !== 'poi' || !point.data) return;
+              setSelectedPlace(point.data as Place);
+              setFollow(false);
+            }}
             onMapReady={() => setMapFailed(false)}
             onMapError={() => setMapFailed(true)}
           />
@@ -347,13 +402,145 @@ export default function MapScreen() {
             active={roadLayers}
           />
           <IconButton
+            name="map-marker-multiple-outline"
+            label="Postos e locais próximos"
+            onPress={() => {
+              setSelectedPlace(undefined);
+              setShowPlaces(value => !value);
+            }}
+            active={showPlaces}
+          />
+          <IconButton
             name="layers-outline"
             label="Áreas e camadas"
             onPress={() => router.push('/geofences')}
           />
         </View>
 
-        <View style={{ position: 'absolute', left: 8, right: 8, bottom: 8 }}>
+        <View style={{ position: 'absolute', left: 8, right: 8, bottom: 8, gap: 8 }}>
+          {selectedPlace && (
+            <Card
+              style={{
+                padding: 12,
+                gap: 10,
+                backgroundColor: theme.colors.mapOverlay,
+                borderLeftWidth: 3,
+                borderLeftColor: placeVisual(selectedPlace.category).color
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <PlaceBadge category={selectedPlace.category} size={40} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: theme.colors.text, fontSize: 14, fontWeight: '900' }}
+                  >
+                    {selectedPlace.name}
+                  </Text>
+                  <Text numberOfLines={1} style={{ color: theme.colors.muted, fontSize: 11 }}>
+                    {[
+                      selectedPlace.brand || placeVisual(selectedPlace.category).label,
+                      distanceLabel(selectedPlace.distanceMeters),
+                      selectedPlace.commentCount
+                        ? `${selectedPlace.commentCount} comentário(s)`
+                        : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </View>
+                {selectedPlace.category === 'fuel' && (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    {(() => {
+                      const price = bestPrice(selectedPlace);
+                      return price ? (
+                        <>
+                          <Text
+                            style={{
+                              color: theme.colors.success,
+                              fontSize: 18,
+                              fontWeight: '900'
+                            }}
+                          >
+                            {money(price.price)}
+                          </Text>
+                          <Text style={{ color: theme.colors.muted, fontSize: 9 }}>
+                            {price.confirmations || 0} confirm.
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={{ color: theme.colors.muted, fontSize: 10 }}>Sem preço</Text>
+                      );
+                    })()}
+                  </View>
+                )}
+                <IconButton
+                  name="close"
+                  label="Fechar"
+                  onPress={() => setSelectedPlace(undefined)}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {selectedPlace.category === 'fuel' && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => openPlace(selectedPlace, 'prices')}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      minHeight: 38,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.accent,
+                      opacity: pressed ? 0.8 : 1
+                    })}
+                  >
+                    <Icon name="cash" size={16} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '900' }}>
+                      Preços
+                    </Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => openPlace(selectedPlace, 'comments')}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    minHeight: 38,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    backgroundColor:
+                      selectedPlace.category === 'fuel'
+                        ? theme.colors.cardElevated
+                        : theme.colors.accent,
+                    opacity: pressed ? 0.8 : 1
+                  })}
+                >
+                  <Icon
+                    name="comment-text-outline"
+                    size={16}
+                    color={selectedPlace.category === 'fuel' ? theme.colors.text : '#FFFFFF'}
+                  />
+                  <Text
+                    style={{
+                      color: selectedPlace.category === 'fuel' ? theme.colors.text : '#FFFFFF',
+                      fontSize: 12,
+                      fontWeight: '900'
+                    }}
+                  >
+                    Comentários
+                  </Text>
+                </Pressable>
+              </View>
+            </Card>
+          )}
           <Card
             style={{
               padding: 10,

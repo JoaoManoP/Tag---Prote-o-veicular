@@ -536,9 +536,8 @@ function createPlatformRouter({
     });
   });
 
-  router.post('/stations/:id/prices', requireAuth, writes, csrf, (req, res) => {
-    const station = database.prepare('SELECT id FROM fuel_stations WHERE id=?').get(req.params.id),
-      fuelType = cleanText(req.body?.fuelType, 30).toUpperCase(),
+  function submitFuelPrice(req, res, station) {
+    const fuelType = cleanText(req.body?.fuelType, 30).toUpperCase(),
       price = Number(req.body?.price),
       observedAt = Number(req.body?.observedAt || Date.now());
     if (!station) return res.status(404).json({ error: 'Posto não encontrado.' });
@@ -567,6 +566,7 @@ function createPlatformRouter({
         observedAt,
         now
       );
+    database.prepare('UPDATE fuel_stations SET updated_at=? WHERE id=?').run(now, station.id);
     audit(database, req.session.userId, 'FUEL_PRICE_SUBMITTED', 'FUEL_PRICE', id, fuelType);
     res.status(201).json({
       price: {
@@ -576,8 +576,56 @@ function createPlatformRouter({
         price: Math.round(price * 100) / 100,
         status: 'PENDING',
         observedAt
-      }
+      },
+      station: serializeStation(
+        database,
+        database.prepare('SELECT * FROM fuel_stations WHERE id=?').get(station.id),
+        req.session.userId
+      )
     });
+  }
+  router.post('/stations/:id/prices', requireAuth, writes, csrf, (req, res) => {
+    const station = database.prepare('SELECT id FROM fuel_stations WHERE id=?').get(req.params.id);
+    submitFuelPrice(req, res, station);
+  });
+  // Postos vindos do mapa (OpenStreetMap) ainda não cadastrados: o primeiro preço
+  // informado pela comunidade registra o posto usando o identificador do provedor.
+  router.post('/places/:placeKey/prices', requireAuth, writes, csrf, (req, res) => {
+    const placeKey = validId(req.params.placeKey);
+    if (!placeKey) return res.status(400).json({ error: 'Local inválido.' });
+    let station = database
+      .prepare('SELECT id FROM fuel_stations WHERE provider_place_id=? OR id=?')
+      .get(placeKey, placeKey);
+    if (!station) {
+      const place = req.body?.place || {},
+        name = cleanText(place.name, 160),
+        latitude = coordinate(place.latitude, 90),
+        longitude = coordinate(place.longitude, 180);
+      if (name.length < 2 || latitude === null || longitude === null)
+        return res.status(400).json({ error: 'Nome e coordenadas do posto são obrigatórios.' });
+      const id = uuid(),
+        now = Date.now();
+      database
+        .prepare(
+          "INSERT INTO fuel_stations (id,provider_place_id,name,brand,address,latitude,longitude,opening_hours_json,services_json,phone,source,confidence,verified_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'[]','[]',?,?,'COMMUNITY',NULL,?,?)"
+        )
+        .run(
+          id,
+          placeKey,
+          name,
+          cleanText(place.brand, 100) || null,
+          cleanText(place.address, 300) || 'Endereço não informado',
+          latitude,
+          longitude,
+          cleanText(place.phone, 30) || null,
+          cleanText(place.source, 120) || 'OpenStreetMap',
+          now,
+          now
+        );
+      audit(database, req.session.userId, 'FUEL_STATION_CREATED', 'FUEL_STATION', id, name);
+      station = { id };
+    }
+    submitFuelPrice(req, res, station);
   });
 
   router.put('/stations/:id/prices/:priceId/confirm', requireAuth, writes, csrf, (req, res) => {
@@ -1840,6 +1888,8 @@ function createPlatformRouter({
 
 module.exports = {
   createPlatformRouter,
+  serializeStation,
+  validId,
   cleanText,
   safePhoto,
   expireReports,

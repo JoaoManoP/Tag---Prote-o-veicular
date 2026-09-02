@@ -460,10 +460,17 @@
               border: `${this.options.weight || 2}px solid ${this.options.color || '#fff'}`
             });
           }
-          this.object = new maplibregl.Marker({
-            element,
-            anchor: this.options.icon?.options?.iconAnchor ? 'bottom' : 'center'
-          })
+          const iconOptions = this.options.icon?.options || {},
+            iconSize = iconOptions.iconSize,
+            iconAnchor = iconOptions.iconAnchor,
+            // Ícones com contêiner 0×0 desenham a ponta do pino na própria origem;
+            // ícones com tamanho declarado usam a âncora inferior (ponta do pino).
+            zeroSized = Array.isArray(iconSize) && iconSize[0] === 0 && iconSize[1] === 0,
+            anchor = zeroSized ? 'center' : iconAnchor ? 'bottom' : 'center',
+            popupOffset = Array.isArray(iconOptions.popupAnchor)
+              ? [Number(iconOptions.popupAnchor[0]) || 0, Number(iconOptions.popupAnchor[1]) || 0]
+              : 18;
+          this.object = new maplibregl.Marker({ element, anchor })
             .setLngLat(lngLat(this.value))
             .addTo(this.map);
           this.listeners.forEach(([name, handler]) =>
@@ -472,7 +479,9 @@
             )
           );
           if (this.popup)
-            this.object.setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(String(this.popup)));
+            this.object.setPopup(
+              new maplibregl.Popup({ offset: popupOffset }).setHTML(String(this.popup))
+            );
           return;
         }
         const feature = this._feature();

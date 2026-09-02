@@ -293,7 +293,13 @@ test('POIs acompanham a área visível, preservam essenciais e oferecem categori
   ])
     assert.match(ux, new RegExp(category));
   assert.match(ux, /Traçar rota/);
-  assert.match(ux, /escapeHtml\(popupName\)/);
+  assert.match(ux, /escapeHtml\(place\.name\)/);
+  // Pinos ficam na coordenada exata: sem média de posição no nível de rua e
+  // com contêiner 0×0 (ponta do pino na origem) para qualquer provedor.
+  assert.match(ux, /zoom >= 16\.5 \? 0/);
+  assert.match(ux, /iconSize: \[0, 0\]/);
+  assert.match(ux, /data-poi-prices/);
+  assert.match(ux, /data-poi-comments/);
 });
 
 test('design system centraliza tokens, overlays e foco responsivo', () => {

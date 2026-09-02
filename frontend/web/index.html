@@ -50,7 +50,7 @@
         ><button id="logoutBtn" class="icon-btn" title="Sair">Sair</button>
       </div>
     </header>
-    <link rel="stylesheet" href="/css/platform-features.css?v=20260901-convoy-map-1" />
+    <link rel="stylesheet" href="/css/platform-features.css?v=20260902-places-2" />
     <link rel="stylesheet" href="/css/navigation-redesign.css?v=20260827-community-nav-3" />
     <link rel="stylesheet" href="/css/design-system.css?v=20260827-public-launch-1" />
     <link rel="stylesheet" href="/css/profile-reference.css?v=20260831-settings-header-1" />
@@ -712,6 +712,29 @@
                     <div class="empty-state">
                       Autorize a localização para consultar postos em até 3 km.
                     </div>
+                  </div>
+                </section>
+                <section class="card community-places" data-discover-block="places">
+                  <div class="reference-card-title">
+                    <div>
+                      <h2>
+                        <svg aria-hidden="true"><use href="/images/ui-icons.svg#search"></use></svg
+                        >Perto de você
+                      </h2>
+                      <small
+                        >Padarias, mercados, farmácias e mais, com comentários da comunidade.</small
+                      >
+                    </div>
+                    <button id="reloadPlaces" type="button" class="text-btn">Atualizar</button>
+                  </div>
+                  <div
+                    id="communityPlaceChips"
+                    class="place-chips"
+                    role="group"
+                    aria-label="Categorias de locais"
+                  ></div>
+                  <div id="communityPlaceCarousel" class="reference-partners">
+                    <div class="empty-state">Autorize a localização para ver locais próximos.</div>
                   </div>
                 </section>
                 <section class="card" data-discover-block="px">
@@ -1554,16 +1577,16 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/map-config.js"></script>
     <script src="/js/maplibre-loader.js?v=4"></script>
-    <script src="/js/map-service.js?v=20260829-map-recovery-1"></script>
+    <script src="/js/map-service.js?v=20260902-places-1"></script>
     <script src="/js/navigation-state.js?v=20260826-navigation-clean-1"></script>
     <script src="/js/vehicle-images.js?v=3"></script>
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
     <script src="/js/community-places.js?v=20260825-1"></script>
-    <script src="/js/platform-features.js?v=20260831-community-hub-1"></script>
+    <script src="/js/platform-features.js?v=20260902-places-1"></script>
     <script src="/vendor/zxing/zxing-browser.min.js"></script>
     <script src="/js/convoy.js?v=20260901-convoy-map-2"></script>
-    <script src="/js/dashboard.js?v=20260901-convoy-map-2"></script>
-    <script src="/js/ux.js?v=20260829-pois-fallback-2"></script>
+    <script src="/js/dashboard.js?v=20260902-places-1"></script>
+    <script src="/js/ux.js?v=20260902-places-1"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>
     <script src="/js/reference-screens.js?v=20260831-faithful-2"></script>
   </body>

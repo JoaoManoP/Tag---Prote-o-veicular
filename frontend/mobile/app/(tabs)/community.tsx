@@ -1,12 +1,20 @@
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import {
+  CategoryChips,
+  PLACE_CATEGORIES,
+  PlaceCarousel,
+  type Place
+} from '../../src/components/places';
 import {
   Button,
   Card,
   EmptyState,
   Header,
+  Icon,
   Input,
+  LoadingState,
   Screen,
   StatusBadge,
   styles
@@ -14,16 +22,8 @@ import {
 import { api } from '../../src/services/api';
 import { currentLocation, requestLocationPermission } from '../../src/services/location';
 import { useApp } from '../../src/state/AppContext';
-type Station = {
-  id: string;
-  name: string;
-  address: string;
-  distanceMeters?: number;
-  confidence: string;
-  prices: { fuelType: string; price: number; status: string }[];
-  partnerBenefit?: { description: string };
-  favorite?: boolean;
-};
+import type { Position } from '../../src/types';
+
 type Report = {
   id: string;
   category: string;
@@ -34,42 +34,110 @@ type Report = {
   confirmations: number;
 };
 type PxMessage = { id: string; body: string; author: { displayName: string }; createdAt: number };
+type Tab = 'stations' | 'places' | 'reports' | 'px';
+const TABS: Array<{ key: Tab; label: string }> = [
+  { key: 'stations', label: 'Postos' },
+  { key: 'places', label: 'Locais' },
+  { key: 'reports', label: 'Ocorrências' },
+  { key: 'px', label: 'PX' }
+];
+const STATION_RADIUS = 3000;
+
 export default function Community() {
   const { theme } = useApp(),
-    [tab, setTab] = useState<'stations' | 'reports' | 'px'>('stations'),
-    [stations, setStations] = useState<Station[]>([]),
+    [tab, setTab] = useState<Tab>('stations'),
+    [position, setPosition] = useState<Position>(),
+    [stations, setStations] = useState<Place[]>([]),
+    [stationsLoading, setStationsLoading] = useState(true),
+    [places, setPlaces] = useState<Place[]>([]),
+    [placesLoading, setPlacesLoading] = useState(false),
+    [placeCategory, setPlaceCategory] = useState('bakery'),
     [reports, setReports] = useState<Report[]>([]),
     [px, setPx] = useState<PxMessage[]>([]),
     [description, setDescription] = useState(''),
     [pxBody, setPxBody] = useState(''),
     [message, setMessage] = useState('');
-  const load = async () => {
+
+  const locate = useCallback(async () => {
+    if (position) return position;
+    if (!(await requestLocationPermission())) return undefined;
+    const location = await currentLocation();
+    setPosition(location);
+    return location;
+  }, [position]);
+
+  const loadStations = useCallback(async () => {
+    setStationsLoading(true);
+    try {
+      const location = await locate();
+      if (!location) {
+        setStations([]);
+        setMessage('Autorize a localização para ver postos próximos.');
+        return;
+      }
+      const data = await api.get<{ places: Place[] }>(
+        `/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}&categories=fuel&radiusMeters=${STATION_RADIUS}&limit=30`
+      );
+      setStations(data.places);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Postos indisponíveis.');
+    } finally {
+      setStationsLoading(false);
+    }
+  }, [locate]);
+
+  const loadPlaces = useCallback(
+    async (category: string) => {
+      setPlacesLoading(true);
+      try {
+        const location = await locate();
+        if (!location) {
+          setPlaces([]);
+          setMessage('Autorize a localização para ver locais próximos.');
+          return;
+        }
+        const data = await api.get<{ places: Place[] }>(
+          `/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}&categories=${category}&radiusMeters=${STATION_RADIUS}&limit=24`
+        );
+        setPlaces(data.places);
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Locais indisponíveis.');
+      } finally {
+        setPlacesLoading(false);
+      }
+    },
+    [locate]
+  );
+
+  const loadFeed = useCallback(async () => {
     try {
       let query = '';
-      if (await requestLocationPermission()) {
-        const location = await currentLocation();
+      const location = await locate().catch(() => undefined);
+      if (location)
         query = `?latitude=${location.latitude}&longitude=${location.longitude}&radiusMeters=20000`;
-      }
-      const [stationData, reportData, pxData] = await Promise.all([
-        api.get<{ stations: Station[] }>(`/api/platform/stations${query}`),
+      const [reportData, pxData] = await Promise.all([
         api.get<{ reports: Report[] }>(`/api/platform/road-reports${query}`),
         api.get<{ messages: PxMessage[] }>('/api/platform/px/channels/px-geral/messages')
       ]);
-      setStations(stationData.stations);
       setReports(reportData.reports);
       setPx(pxData.messages);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Comunidade indisponível.');
     }
-  };
+  }, [locate]);
+
   useEffect(() => {
-    void load();
+    void loadStations();
+    void loadFeed();
   }, []);
+  useEffect(() => {
+    if (tab === 'places') void loadPlaces(placeCategory);
+  }, [tab, placeCategory]);
+
   const report = async () => {
     try {
-      if (!(await requestLocationPermission()))
-        return setMessage('Autorize a localização para informar o ponto do evento.');
-      const location = await currentLocation();
+      const location = await locate();
+      if (!location) return setMessage('Autorize a localização para informar o ponto do evento.');
       await api.securePost('/api/platform/road-reports', {
         category: 'HAZARD',
         severity: 'LOW',
@@ -79,7 +147,7 @@ export default function Community() {
       });
       setDescription('');
       setMessage('Ocorrência publicada como informação comunitária.');
-      await load();
+      await loadFeed();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível publicar.');
     }
@@ -88,11 +156,19 @@ export default function Community() {
     try {
       await api.securePost('/api/platform/px/channels/px-geral/messages', { body: pxBody });
       setPxBody('');
-      await load();
+      await loadFeed();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível enviar.');
     }
   };
+  const cheapest = stations
+    .filter(station => station.prices?.length)
+    .sort(
+      (a, b) =>
+        Math.min(...(a.prices || []).map(p => p.price)) -
+        Math.min(...(b.prices || []).map(p => p.price))
+    )[0];
+
   return (
     <Screen>
       <Header
@@ -100,24 +176,45 @@ export default function Community() {
         subtitle="Informações colaborativas, nunca oficiais"
         action={<StatusBadge status="PRIVACIDADE" />}
       />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            title="Postos"
-            secondary={tab !== 'stations'}
-            onPress={() => setTab('stations')}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            title="Ocorrências"
-            secondary={tab !== 'reports'}
-            onPress={() => setTab('reports')}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button title="PX" secondary={tab !== 'px'} onPress={() => setTab('px')} />
-        </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 4,
+          borderRadius: 14,
+          backgroundColor: theme.colors.card,
+          borderWidth: 1,
+          borderColor: theme.colors.border
+        }}
+      >
+        {TABS.map(item => {
+          const active = tab === item.key;
+          return (
+            <Pressable
+              key={item.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => setTab(item.key)}
+              style={{
+                flex: 1,
+                minHeight: 38,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 11,
+                backgroundColor: active ? theme.colors.accent : 'transparent'
+              }}
+            >
+              <Text
+                style={{
+                  color: active ? '#FFFFFF' : theme.colors.textSoft,
+                  fontSize: 12,
+                  fontWeight: '900'
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>
@@ -138,49 +235,62 @@ export default function Community() {
         </View>
       </View>
       {!!message && <Text style={{ color: theme.colors.muted }}>{message}</Text>}
-      {tab === 'stations' &&
-        (stations.length ? (
-          stations.map(station => (
-            <Card key={station.id}>
-              <Text style={[styles.subtitle, { color: theme.colors.text, textAlign: 'left' }]}>
-                {station.name}
-              </Text>
-              <Text style={{ color: theme.colors.muted }}>
-                {station.address}
-                {station.distanceMeters != null
-                  ? ` · ${(station.distanceMeters / 1000).toFixed(1)} km`
-                  : ''}
-              </Text>
-              <Text style={{ color: theme.colors.text }}>
-                {station.prices
-                  .map(price => `${price.fuelType}: R$ ${price.price.toFixed(2)}`)
-                  .join(' · ') || 'Sem preço validado'}
-              </Text>
-              {station.partnerBenefit && (
-                <Text style={{ color: theme.colors.success }}>
-                  Parceiro: {station.partnerBenefit.description}
-                </Text>
-              )}
-              <Button
-                compact
-                secondary
-                icon={station.favorite ? 'heart' : 'heart-outline'}
-                title={station.favorite ? 'Remover favorito' : 'Favoritar posto'}
-                onPress={async () => {
-                  if (station.favorite)
-                    await api.secureDelete(`/api/platform/stations/${station.id}/favorite`);
-                  else await api.securePost(`/api/platform/stations/${station.id}/favorite`);
-                  await load();
-                }}
-              />
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            title="Nenhum posto cadastrado"
-            message="A busca de POIs do mapa continua disponível."
+
+      {tab === 'stations' && (
+        <>
+          <SectionHeading
+            icon="gas-station"
+            title="Postos em até 3 km"
+            subtitle={
+              cheapest && cheapest.prices?.length
+                ? `Menor preço: ${cheapest.name}`
+                : 'Preços informados pela comunidade; nada é estimado.'
+            }
+            onReload={loadStations}
           />
-        ))}
+          {stationsLoading ? (
+            <LoadingState label="Buscando postos próximos…" />
+          ) : (
+            <PlaceCarousel
+              places={stations}
+              emptyTitle="Nenhum posto por perto"
+              emptyMessage="Não encontramos postos em 3 km. Toque em atualizar após mudar de lugar."
+            />
+          )}
+          <Card>
+            <Text style={[styles.caption, { color: theme.colors.muted }]}>
+              Deslize para ver mais postos. Toque em um posto para ver a lista completa de preços,
+              confirmar valores e ler ou deixar comentários.
+            </Text>
+          </Card>
+        </>
+      )}
+
+      {tab === 'places' && (
+        <>
+          <SectionHeading
+            icon="map-search-outline"
+            title="Perto de você"
+            subtitle="Padarias, mercados, farmácias e mais, com comentários da comunidade."
+            onReload={() => loadPlaces(placeCategory)}
+          />
+          <CategoryChips
+            value={placeCategory}
+            categories={PLACE_CATEGORIES.filter(item => item.key !== 'fuel')}
+            onChange={setPlaceCategory}
+          />
+          {placesLoading ? (
+            <LoadingState label="Buscando locais próximos…" />
+          ) : (
+            <PlaceCarousel
+              places={places}
+              emptyTitle="Nada encontrado nesta categoria"
+              emptyMessage="Tente outra categoria ou atualize depois de se deslocar."
+            />
+          )}
+        </>
+      )}
+
       {tab === 'reports' && (
         <>
           <Card>
@@ -217,7 +327,7 @@ export default function Community() {
                         await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
                           vote: 'CONFIRM'
                         });
-                        await load();
+                        await loadFeed();
                       }}
                     />
                   </View>
@@ -230,7 +340,7 @@ export default function Community() {
                         await api.securePut(`/api/platform/road-reports/${item.id}/vote`, {
                           vote: 'RESOLVED'
                         });
-                        await load();
+                        await loadFeed();
                       }}
                     />
                   </View>
@@ -245,6 +355,7 @@ export default function Community() {
           )}
         </>
       )}
+
       {tab === 'px' && (
         <>
           <Card>
@@ -272,5 +383,48 @@ export default function Community() {
         </>
       )}
     </Screen>
+  );
+}
+
+function SectionHeading({
+  icon,
+  title,
+  subtitle,
+  onReload
+}: {
+  icon: React.ComponentProps<typeof Icon>['name'];
+  title: string;
+  subtitle: string;
+  onReload: () => void;
+}) {
+  const { theme } = useApp();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <Icon name={icon} size={20} color={theme.colors.primaryBright} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '900' }}>{title}</Text>
+        <Text numberOfLines={2} style={[styles.caption, { color: theme.colors.muted }]}>
+          {subtitle}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Atualizar"
+        onPress={onReload}
+        style={({ pressed }) => ({
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.card,
+          opacity: pressed ? 0.7 : 1
+        })}
+      >
+        <Icon name="refresh" size={18} color={theme.colors.text} />
+      </Pressable>
+    </View>
   );
 }

@@ -7,6 +7,12 @@ export type MapPoint = {
   longitude: number;
   kind?: string;
   label?: string;
+  /** Categoria do local (fuel, hospital, bakery…) quando kind === 'poi'. */
+  category?: string;
+  /** Nome exibido ao lado do pino quando kind === 'poi'. */
+  name?: string;
+  /** Carga útil do ponto (por exemplo, o Place completo) devolvida em onPointPress. */
+  data?: unknown;
 };
 
 export type RastreonMapProps = {
@@ -19,6 +25,7 @@ export type RastreonMapProps = {
   perspective?: boolean;
   follow?: boolean;
   onUserInteraction?: () => void;
+  onPointPress?: (point: MapPoint) => void;
   showUserLocation?: boolean;
   onMapReady?: () => void;
   onMapError?: () => void;

@@ -158,44 +158,26 @@
   }
   window.addEventListener('rastreon:map-style-restored', updateCommunityMap);
   async function submitFuelPrice(station) {
-    const fuelType = (
-      prompt('Tipo: GASOLINE, ADDITIVE_GASOLINE, ETHANOL, DIESEL, DIESEL_S10 ou CNG', 'GASOLINE') ||
-      ''
-    )
-      .trim()
-      .toUpperCase();
-    if (!fuelType) return;
-    const price = Number(
-      (prompt(`Preço observado em ${station.name}:`, '') || '').replace(',', '.')
-    );
-    if (!Number.isFinite(price)) return notice('Informe um preço válido.');
-    try {
-      await api(`/api/platform/stations/${station.id}/prices`, {
-        method: 'POST',
-        body: { fuelType, price, observedAt: Date.now() },
-        csrf: true
-      });
-      notice('Preço enviado para validação da comunidade.');
-      loadStations();
-    } catch (error) {
-      notice(error.message);
-    }
+    return openPriceSheet(station);
   }
   async function confirmFuelPrice(station, fuelType = '') {
+    const stationId = station.stationId || station.id;
     const price = (station.prices || []).find(
       value => !fuelType || String(value.fuelType).toUpperCase() === fuelType
     );
-    if (!price) return notice('Não há preço informado para confirmar.');
+    if (!price || !stationId) return notice('Não há preço informado para confirmar.');
     try {
-      const result = await api(`/api/platform/stations/${station.id}/prices/${price.id}/confirm`, {
+      const result = await api(`/api/platform/stations/${stationId}/prices/${price.id}/confirm`, {
         method: 'PUT',
         body: {},
         csrf: true
       });
       notice(`Preço confirmado por ${result.confirmations} pessoa(s).`);
       loadStations(state.stationRadius);
+      return result;
     } catch (error) {
       notice(error.message);
+      return null;
     }
   }
   async function uploadPhoto(entityType, entityId) {
@@ -230,33 +212,524 @@
     });
     input.click();
   }
-  async function comments(entityType, entityId) {
-    try {
-      const [data, gallery] = await Promise.all([
-        api(`/api/platform/comments/${entityType}/${entityId}`),
-        api(
-          `/api/platform/photos?entityType=${entityType}&entityId=${encodeURIComponent(entityId)}`
-        )
-      ]);
-      const current =
-        data.comments.map(value => `${value.author.displayName}: ${value.body}`).join('\n') ||
-        'Ainda não há comentários.';
-      const body = prompt(
-        `${current}\n\n${gallery.photos.length} foto(s) disponível(is). Escreva um novo comentário (Cancelar apenas fecha):`,
-        ''
-      );
-      if (!body?.trim()) return;
-      await api(`/api/platform/comments/${entityType}/${entityId}`, {
-        method: 'POST',
-        body: { body },
-        csrf: true
-      });
-      notice('Comentário publicado.');
-    } catch (error) {
-      notice(error.message);
-    }
+  async function comments(entityType, entityId, place = null) {
+    return openCommentsSheet(
+      place || { entityType, entityId, name: 'Comentários', categoryLabel: '' }
+    );
   }
 
+  // ---------------------------------------------------------------------------
+  // Locais próximos (postos, padarias, mercados…): carrossel, preços e comentários
+  // ---------------------------------------------------------------------------
+  const PLACE_CATEGORIES = [
+    ['fuel', 'Postos', 'fuel'],
+    ['bakery', 'Padarias', 'food'],
+    ['restaurant', 'Restaurantes', 'food'],
+    ['cafe', 'Cafeterias', 'food'],
+    ['supermarket', 'Mercados', 'shopping'],
+    ['pharmacy', 'Farmácias', 'hospital'],
+    ['hospital', 'Hospitais', 'hospital'],
+    ['mechanic', 'Oficinas', 'mechanic'],
+    ['charge', 'Recarga elétrica', 'fuel']
+  ];
+  const FUEL_LABELS = new Map(FUEL_TYPES);
+  state.placeCategory = 'bakery';
+  state.places = [];
+  function placeIcon(category) {
+    const found = PLACE_CATEGORIES.find(([key]) => key === category);
+    if (found) return found[2];
+    if (['bar'].includes(category)) return 'food';
+    if (['dentist', 'veterinary'].includes(category)) return 'hospital';
+    if (['parking', 'airport', 'hotel'].includes(category)) return 'parking';
+    if (['police', 'fire_station'].includes(category)) return 'police';
+    return 'pin';
+  }
+  function money(value) {
+    return `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
+  }
+  function bestPrice(place) {
+    const prices = (place.prices || []).filter(price => Number.isFinite(Number(price.price)));
+    if (!prices.length) return null;
+    return prices.reduce((best, price) =>
+      Number(price.price) < Number(best.price) ? price : best
+    );
+  }
+  function svgIcon(id) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `/images/map-icons.svg#${id}`);
+    svg.append(use);
+    return svg;
+  }
+  function placeEntity(place) {
+    return {
+      entityType: place.entityType || (place.stationId ? 'FUEL_STATION' : 'POI'),
+      entityId: place.entityId || place.stationId || place.placeKey || place.id
+    };
+  }
+  function focusPlaceOnMap(place) {
+    window.dispatchEvent(new CustomEvent('rastreon:focus-place', { detail: place }));
+    document.querySelector('[data-view="tracking"]')?.click();
+  }
+  function placeCard(place, { kind = 'place' } = {}) {
+    const icon = placeIcon(place.category);
+    const article = node('article', `place-card place-card--${icon}`);
+    article.dataset.placeKey = place.placeKey || place.id;
+    const head = node('div', 'place-card__head');
+    const badge = node('span', 'place-card__icon');
+    badge.append(svgIcon(icon));
+    const copy = node('div', 'place-card__copy');
+    copy.append(node('strong', '', place.name));
+    copy.append(
+      node(
+        'small',
+        '',
+        [place.brand || place.categoryLabel, distanceLabel(place.distanceMeters)]
+          .filter(Boolean)
+          .join(' · ')
+      )
+    );
+    head.append(badge, copy);
+    if (place.registered && (place.stationId || kind === 'station')) {
+      const favorite = node(
+        'button',
+        `place-card__fav${place.favorite ? ' is-active' : ''}`,
+        place.favorite ? '♥' : '♡'
+      );
+      favorite.type = 'button';
+      favorite.setAttribute(
+        'aria-label',
+        place.favorite ? 'Remover dos favoritos' : 'Favoritar posto'
+      );
+      favorite.addEventListener('click', async () => {
+        try {
+          await api(`/api/platform/stations/${place.stationId || place.id}/favorite`, {
+            method: place.favorite ? 'DELETE' : 'POST',
+            csrf: true
+          });
+          place.favorite = !place.favorite;
+          favorite.textContent = place.favorite ? '♥' : '♡';
+          favorite.classList.toggle('is-active', place.favorite);
+        } catch (error) {
+          notice(error.message);
+        }
+      });
+      head.append(favorite);
+    }
+    article.append(head);
+    if (place.category === 'fuel') {
+      const price = bestPrice(place);
+      const block = node('div', `place-card__price${price ? '' : ' is-empty'}`);
+      if (price) {
+        block.append(node('b', '', money(price.price)));
+        block.append(
+          node(
+            'small',
+            '',
+            `${FUEL_LABELS.get(String(price.fuelType).toUpperCase()) || price.fuelType} · ${price.confirmations || 0} confirmação(ões)`
+          )
+        );
+      } else {
+        block.append(node('b', '', 'Sem preço'));
+        block.append(node('small', '', 'Seja o primeiro a informar'));
+      }
+      article.append(block);
+    } else if (place.address) {
+      article.append(node('p', 'place-card__address', place.address));
+    }
+    const meta = node('div', 'place-card__meta');
+    const rating = place.rating?.count
+      ? `★ ${Number(place.rating.average).toFixed(1).replace('.', ',')} (${place.rating.count})`
+      : '';
+    if (rating) meta.append(node('span', 'place-card__rating', rating));
+    meta.append(
+      node(
+        'span',
+        '',
+        place.commentCount ? `${place.commentCount} comentário(s)` : 'Nenhum comentário ainda'
+      )
+    );
+    if (place.partnerBenefit)
+      meta.append(
+        node('span', 'place-card__benefit', `Parceiro: ${place.partnerBenefit.description}`)
+      );
+    article.append(meta);
+    const buttons = [];
+    if (place.category === 'fuel')
+      buttons.push({ label: 'Preços', action: () => openPriceSheet(place) });
+    buttons.push({
+      label: 'Comentários',
+      secondary: place.category === 'fuel',
+      action: () => openCommentsSheet(place)
+    });
+    buttons.push({ label: 'Ver no mapa', secondary: true, action: () => focusPlaceOnMap(place) });
+    actions(article, buttons);
+    return article;
+  }
+  function renderCarousel(host, places, options = {}) {
+    host.replaceChildren();
+    host.classList.add('has-carousel');
+    const carousel = node('div', 'place-carousel');
+    const track = node('div', 'place-carousel__track');
+    track.setAttribute('role', 'list');
+    for (const place of places) {
+      const card = placeCard(place, options);
+      card.setAttribute('role', 'listitem');
+      track.append(card);
+    }
+    const previous = node('button', 'place-carousel__nav place-carousel__nav--prev', '‹');
+    previous.type = 'button';
+    previous.setAttribute('aria-label', 'Anterior');
+    const next = node('button', 'place-carousel__nav place-carousel__nav--next', '›');
+    next.type = 'button';
+    next.setAttribute('aria-label', 'Próximo');
+    const step = () => Math.max(220, track.clientWidth * 0.8);
+    previous.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+    next.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+    const syncNav = () => {
+      previous.disabled = track.scrollLeft <= 4;
+      next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+    };
+    track.addEventListener('scroll', syncNav, { passive: true });
+    carousel.append(previous, track, next);
+    host.append(carousel);
+    requestAnimationFrame(syncNav);
+    return carousel;
+  }
+  async function loadNearbyPlaces(category = state.placeCategory) {
+    state.placeCategory = category;
+    const host = byId('communityPlaceCarousel');
+    if (!host) return;
+    document
+      .querySelectorAll('#communityPlaceChips [data-place-category]')
+      .forEach(chip =>
+        chip.setAttribute('aria-pressed', String(chip.dataset.placeCategory === category))
+      );
+    const label = PLACE_CATEGORIES.find(([key]) => key === category)?.[1] || 'Locais';
+    empty(host, `Buscando ${label.toLowerCase()} em até 3 km…`);
+    let position;
+    try {
+      position = await locate();
+    } catch {
+      return empty(host, 'Autorize a localização para ver locais próximos.');
+    }
+    try {
+      const data = await api(
+        `/api/places/nearby?lat=${position.latitude}&lng=${position.longitude}&categories=${category}&radiusMeters=3000&limit=24`
+      );
+      if (state.placeCategory !== category) return;
+      state.places = data.places || [];
+      if (!state.places.length)
+        return empty(host, `Nenhum local de “${label}” encontrado em 3 km.`);
+      renderCarousel(host, state.places);
+    } catch (error) {
+      empty(host, error.message || 'Locais indisponíveis no momento.');
+    }
+  }
+  function setupNearbyPlaces() {
+    const chips = byId('communityPlaceChips');
+    if (!chips) return;
+    chips.replaceChildren();
+    for (const [key, label, icon] of PLACE_CATEGORIES) {
+      if (key === 'fuel') continue;
+      const chip = node('button', 'place-chip');
+      chip.type = 'button';
+      chip.dataset.placeCategory = key;
+      chip.setAttribute('aria-pressed', String(key === state.placeCategory));
+      chip.append(svgIcon(icon), node('span', '', label));
+      chip.addEventListener('click', () => loadNearbyPlaces(key));
+      chips.append(chip);
+    }
+    byId('reloadPlaces')?.addEventListener('click', () => loadNearbyPlaces());
+  }
+
+  function sheet(className) {
+    let dialog = document.querySelector(`dialog.${className}`);
+    if (dialog) {
+      dialog.replaceChildren();
+      return dialog;
+    }
+    dialog = node('dialog', `place-sheet ${className}`);
+    dialog.addEventListener('click', event => {
+      if (event.target === dialog) dialog.close();
+    });
+    document.body.append(dialog);
+    return dialog;
+  }
+  function sheetHeader(dialog, place, eyebrow) {
+    const header = node('header', 'place-sheet__header');
+    const copy = node('div');
+    copy.append(node('span', 'place-sheet__eyebrow', eyebrow));
+    copy.append(node('h3', '', place.name || 'Local'));
+    copy.append(
+      node(
+        'p',
+        '',
+        [place.address, distanceLabel(place.distanceMeters)].filter(Boolean).join(' · ') ||
+          place.categoryLabel ||
+          ''
+      )
+    );
+    const close = node('button', 'place-sheet__close', '×');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Fechar');
+    close.addEventListener('click', () => dialog.close());
+    header.append(copy, close);
+    dialog.append(header);
+    return header;
+  }
+  async function refreshPlacePrices(place) {
+    try {
+      const data = await api(
+        `/api/places/nearby?lat=${place.latitude}&lng=${place.longitude}&categories=fuel&radiusMeters=300&limit=10`
+      );
+      const match = (data.places || []).find(
+        item =>
+          item.placeKey === place.placeKey ||
+          (place.stationId && item.stationId === place.stationId) ||
+          distanceMeters(item, place) <= 40
+      );
+      if (match) {
+        Object.assign(place, {
+          stationId: match.stationId,
+          registered: match.registered,
+          prices: match.prices,
+          entityType: match.entityType,
+          entityId: match.entityId,
+          commentCount: match.commentCount,
+          rating: match.rating
+        });
+      }
+    } catch {}
+    return place;
+  }
+  async function openPriceSheet(place) {
+    const dialog = sheet('place-sheet--prices');
+    sheetHeader(dialog, place, 'Preços informados pela comunidade');
+    const body = node('div', 'place-sheet__body');
+    dialog.append(body);
+    if (!dialog.open) dialog.showModal();
+    body.append(node('div', 'empty-state', 'Carregando preços…'));
+    await refreshPlacePrices(place);
+    const render = () => {
+      body.replaceChildren();
+      const grid = node('dl', 'station-price-grid station-price-grid--sheet');
+      const pricesByType = new Map(
+        (place.prices || []).map(price => [String(price.fuelType).toUpperCase(), price])
+      );
+      for (const [fuelType, label] of FUEL_TYPES) {
+        const price = pricesByType.get(fuelType);
+        const row = node('div', price ? 'has-price' : 'no-price');
+        row.append(node('dt', '', label));
+        row.append(node('dd', '', price ? money(price.price) : 'Não informado'));
+        if (price) {
+          row.append(
+            node(
+              'small',
+              '',
+              `${price.status === 'CONFIRMED' ? 'Confirmado' : 'Aguardando confirmação'} · ${price.confirmations || 0} confirmação(ões) · ${formatDate(price.observedAt)}`
+            )
+          );
+          const confirm = node('button', 'secondary', 'Confirmar');
+          confirm.type = 'button';
+          confirm.addEventListener('click', async () => {
+            confirm.disabled = true;
+            const result = await confirmFuelPrice(place, fuelType);
+            if (result) {
+              price.confirmations = result.confirmations;
+              price.status = result.status;
+              render();
+            } else confirm.disabled = false;
+          });
+          row.append(confirm);
+        }
+        grid.append(row);
+      }
+      body.append(grid);
+      const form = node('form', 'place-sheet__form');
+      form.append(node('h4', '', 'Informar preço observado'));
+      const select = node('select');
+      select.setAttribute('aria-label', 'Tipo de combustível');
+      for (const [fuelType, label] of FUEL_TYPES) {
+        const option = node('option', '', label);
+        option.value = fuelType;
+        select.append(option);
+      }
+      const input = node('input');
+      input.type = 'number';
+      input.step = '0.01';
+      input.min = '0.5';
+      input.max = '100';
+      input.placeholder = 'Ex.: 5,89';
+      input.required = true;
+      input.setAttribute('aria-label', 'Preço por litro');
+      const submit = node('button', '', 'Enviar preço');
+      submit.type = 'submit';
+      const fields = node('div', 'place-sheet__fields');
+      fields.append(select, input, submit);
+      form.append(fields);
+      form.append(
+        node(
+          'small',
+          '',
+          'O preço fica pendente até ser confirmado por outras pessoas. Nunca informe dados pessoais.'
+        )
+      );
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const price = Number(String(input.value).replace(',', '.'));
+        if (!Number.isFinite(price) || price <= 0) return notice('Informe um preço válido.');
+        submit.disabled = true;
+        try {
+          const payload = { fuelType: select.value, price, observedAt: Date.now() };
+          const result = place.stationId
+            ? await api(`/api/platform/stations/${place.stationId}/prices`, {
+                method: 'POST',
+                body: payload,
+                csrf: true
+              })
+            : await api(`/api/platform/places/${encodeURIComponent(place.placeKey)}/prices`, {
+                method: 'POST',
+                body: {
+                  ...payload,
+                  place: {
+                    name: place.name,
+                    brand: place.brand,
+                    address: place.address,
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    phone: place.phone,
+                    source: 'OpenStreetMap'
+                  }
+                },
+                csrf: true
+              });
+          if (result.station) {
+            place.stationId = result.station.id;
+            place.registered = true;
+            place.prices = result.station.prices;
+            place.entityType = 'FUEL_STATION';
+            place.entityId = result.station.id;
+          }
+          notice('Preço enviado para validação da comunidade.');
+          input.value = '';
+          render();
+          loadStations(state.stationRadius);
+        } catch (error) {
+          notice(error.message);
+        } finally {
+          submit.disabled = false;
+        }
+      });
+      body.append(form);
+    };
+    render();
+  }
+  async function openCommentsSheet(place) {
+    const dialog = sheet('place-sheet--comments');
+    sheetHeader(dialog, place, place.categoryLabel || 'Comentários da comunidade');
+    const body = node('div', 'place-sheet__body');
+    dialog.append(body);
+    if (!dialog.open) dialog.showModal();
+    body.append(node('div', 'empty-state', 'Carregando comentários…'));
+    if (place.category === 'fuel' && !place.entityType) await refreshPlacePrices(place);
+    const { entityType, entityId } = placeEntity(place);
+    const list = node('div', 'place-comments');
+    const load = async () => {
+      try {
+        const data = await api(
+          `/api/platform/comments/${entityType}/${encodeURIComponent(entityId)}`
+        );
+        list.replaceChildren();
+        if (!data.comments.length)
+          list.append(
+            node('div', 'empty-state', 'Ainda não há comentários. Compartilhe sua experiência.')
+          );
+        for (const comment of data.comments) {
+          const item = node('article', 'place-comment');
+          const head = node('header');
+          head.append(node('strong', '', comment.author?.displayName || 'Usuário'));
+          head.append(node('small', '', formatDate(comment.createdAt)));
+          item.append(head, node('p', '', comment.body));
+          const footer = node('div', 'place-comment__actions');
+          const like = node('button', 'text-btn', `Útil (${comment.likes || 0})`);
+          like.type = 'button';
+          like.addEventListener('click', async () => {
+            try {
+              await api(`/api/platform/comments/${comment.id}/reaction`, {
+                method: 'PUT',
+                body: { reaction: 'LIKE' },
+                csrf: true
+              });
+              load();
+            } catch (error) {
+              notice(error.message);
+            }
+          });
+          footer.append(like);
+          if (!comment.mine) {
+            const report = node('button', 'text-btn', 'Denunciar');
+            report.type = 'button';
+            report.addEventListener('click', () => reportContent('COMMENT', comment.id));
+            footer.append(report);
+          }
+          item.append(footer);
+          list.append(item);
+        }
+      } catch (error) {
+        list.replaceChildren(node('div', 'empty-state', error.message));
+      }
+    };
+    body.replaceChildren(list);
+    const form = node('form', 'place-sheet__form');
+    const textarea = node('textarea');
+    textarea.maxLength = 1000;
+    textarea.rows = 3;
+    textarea.placeholder = 'Como foi sua experiência? Sem telefone, e-mail ou dados de terceiros.';
+    textarea.setAttribute('aria-label', 'Novo comentário');
+    const submit = node('button', '', 'Publicar comentário');
+    submit.type = 'submit';
+    form.append(textarea, submit);
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const value = textarea.value.trim();
+      if (value.length < 2) return notice('Escreva um comentário com pelo menos 2 caracteres.');
+      submit.disabled = true;
+      try {
+        await api(`/api/platform/comments/${entityType}/${encodeURIComponent(entityId)}`, {
+          method: 'POST',
+          body: { body: value },
+          csrf: true
+        });
+        textarea.value = '';
+        place.commentCount = (place.commentCount || 0) + 1;
+        notice('Comentário publicado.');
+        await load();
+      } catch (error) {
+        notice(error.message);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    body.append(form);
+    if (window.RastreonCommunity?.isEnabled?.() && place.placeKey && place.latitude != null) {
+      const review = node('button', 'secondary place-sheet__review', 'Avaliar com nota (1 a 5)');
+      review.type = 'button';
+      review.addEventListener('click', () =>
+        window.RastreonCommunity.openPlace({
+          placeKey: place.placeKey,
+          provider: place.placeKey.split(':')[0],
+          name: place.name,
+          address: place.address || '',
+          latitude: place.latitude,
+          longitude: place.longitude
+        })
+      );
+      body.append(review);
+    }
+    await load();
+  }
   function showTab(name) {
     document
       .querySelectorAll('[data-platform-tab]')
@@ -296,53 +769,31 @@
       updateCommunityMap();
       return empty(host, 'Autorize a localização para consultar postos em até 3 km.');
     }
-    const query = `latitude=${position.latitude}&longitude=${position.longitude}&radiusMeters=${state.stationRadius}`;
-    const [registeredResult, nearbyResult] = await Promise.allSettled([
-      api(`/api/platform/stations?${query}`),
-      api(
-        `/api/pois?lat=${position.latitude}&lng=${position.longitude}&categories=fuel&radiusMeters=${state.stationRadius}`
-      )
-    ]);
-    const registered =
-      registeredResult.status === 'fulfilled' ? registeredResult.value.stations || [] : [];
-    const nearby = nearbyResult.status === 'fulfilled' ? nearbyResult.value.places || [] : [];
-    if (!registered.length && !nearby.length && nearbyResult.status === 'rejected') {
+    let data;
+    try {
+      data = await api(
+        `/api/places/nearby?lat=${position.latitude}&lng=${position.longitude}&categories=fuel&radiusMeters=${state.stationRadius}&limit=40`
+      );
+    } catch {
       notice('A busca de postos está temporariamente indisponível. Tente atualizar.');
       return empty(
         host,
         'Não foi possível consultar os postos agora. Use “Atualizar” para tentar novamente.'
       );
     }
-
-    const matchedIds = new Set();
-    const stations = nearby.map(place => {
-      const match = registered.find(station => {
-        if (station.providerPlaceId && station.providerPlaceId === place.id) return true;
-        return distanceMeters(station, place) <= 80;
-      });
-      if (match) matchedIds.add(match.id);
-      return {
+    state.stations = (data.places || [])
+      .map(place => ({
         ...place,
-        ...(match || {}),
-        id: match?.id || `osm:${place.id}`,
-        providerPlaceId: place.id,
-        distanceMeters: place.distanceMeters,
-        prices: match?.prices || [],
-        registered: Boolean(match),
-        source: match?.source || place.source || 'OpenStreetMap'
-      };
-    });
-    for (const station of registered)
-      if (!matchedIds.has(station.id)) stations.push({ ...station, registered: true });
-    state.stations = stations
-      .map(station => ({
-        ...station,
-        distanceMeters: station.distanceMeters ?? Math.round(distanceMeters(position, station))
+        // Compatibilidade com o restante do módulo: `id` continua sendo o
+        // identificador do posto cadastrado quando existir.
+        id: place.stationId || place.placeKey,
+        providerPlaceId: place.placeKey,
+        source: place.registered ? 'Comunidade RASTREON' : 'OpenStreetMap',
+        distanceMeters: place.distanceMeters ?? Math.round(distanceMeters(position, place))
       }))
       .filter(station => station.distanceMeters <= state.stationRadius)
       .sort((a, b) => a.distanceMeters - b.distanceMeters);
     updateCommunityMap();
-    host.replaceChildren();
     if (!state.stations.length) {
       renderStationTab();
       return empty(
@@ -350,77 +801,7 @@
         `Nenhum posto encontrado em ${state.stationRadius / 1000} km. Amplie o raio para 5, 10 ou 20 km.`
       );
     }
-    for (const station of state.stations) {
-      const article = item(
-        station.name,
-        [
-          station.brand,
-          station.address,
-          station.distanceMeters != null ? `${(station.distanceMeters / 1000).toFixed(1)} km` : ''
-        ]
-          .filter(Boolean)
-          .join(' · ')
-      );
-      article.classList.add('nearby-station');
-      article.append(
-        node(
-          'span',
-          'platform-confidence',
-          station.registered ? 'Preços da comunidade' : 'Localização: OpenStreetMap'
-        )
-      );
-      const prices = node('dl', 'station-price-grid');
-      const pricesByType = new Map(
-        (station.prices || []).map(price => [String(price.fuelType).toUpperCase(), price])
-      );
-      for (const [fuelType, label] of FUEL_TYPES) {
-        const price = pricesByType.get(fuelType);
-        const row = node('div', price ? 'has-price' : 'no-price');
-        row.append(node('dt', '', label));
-        row.append(
-          node(
-            'dd',
-            '',
-            price ? `R$ ${Number(price.price).toFixed(2).replace('.', ',')}` : 'Não informado'
-          )
-        );
-        if (price)
-          row.title = `Fonte: ${price.source || 'Comunidade RASTREON'} · situação: ${price.status} · ${price.confirmations || 0} confirmação(ões)`;
-        prices.append(row);
-      }
-      article.append(prices);
-      if (station.partnerBenefit)
-        article.append(
-          node('span', 'platform-price', `Parceiro: ${station.partnerBenefit.description}`)
-        );
-      if (station.registered)
-        actions(article, [
-          {
-            label: station.favorite ? 'Favoritado' : 'Favoritar',
-            secondary: true,
-            action: async event => {
-              try {
-                await api(`/api/platform/stations/${station.id}/favorite`, {
-                  method: 'POST',
-                  csrf: true
-                });
-                event.currentTarget.textContent = 'Favoritado';
-              } catch (error) {
-                notice(error.message);
-              }
-            }
-          },
-          { label: 'Informar preço', action: () => submitFuelPrice(station) },
-          { label: 'Confirmar preço', secondary: true, action: () => confirmFuelPrice(station) },
-          {
-            label: 'Comentar',
-            secondary: true,
-            action: () => comments('FUEL_STATION', station.id)
-          }
-        ]);
-      else actions(article, [{ label: 'Ir até o posto', action: () => navigateTo(station) }]);
-      host.append(article);
-    }
+    renderCarousel(host, state.stations, { kind: 'station' });
     renderStationTab();
   }
 
@@ -1224,6 +1605,9 @@
       if (event.target.value) showTab(event.target.value);
     });
     restoreDiscoverBlocks();
+    setupNearbyPlaces();
+    window.addEventListener('rastreon:place-prices', event => openPriceSheet(event.detail));
+    window.addEventListener('rastreon:place-comments', event => openCommentsSheet(event.detail));
     byId('chatEnabled').addEventListener('change', async event => {
       try {
         await api('/api/platform/chat/settings', {
@@ -1246,7 +1630,7 @@
     });
     await Promise.allSettled([loadStatus()]);
     await loadStations().catch(error => notice(error.message));
-    await Promise.allSettled([loadReports(), loadPx(), loadChat()]);
+    await Promise.allSettled([loadNearbyPlaces(), loadReports(), loadPx(), loadChat()]);
   }
   document.querySelector('[data-view="community"]')?.addEventListener('click', initialize);
   window.RastreonPlatform = { initialize, requestConversation, reportContent };

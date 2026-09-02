@@ -2,7 +2,8 @@ import type mapboxgl from 'mapbox-gl';
 import React, { forwardRef, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { api } from '../services/api';
-import type { RastreonMapProps } from './RastreonMap';
+import { placeVisual } from './places';
+import type { MapPoint, RastreonMapProps } from './RastreonMap';
 
 export type { MapPoint, RastreonMapProps } from './RastreonMap';
 type MapConfig = { styleUrl: string; mapboxAccessToken?: string };
@@ -18,6 +19,7 @@ export const RastreonMap = forwardRef<unknown, RastreonMapProps>(function Rastre
     perspective = true,
     follow = true,
     onUserInteraction,
+    onPointPress,
     onMapReady,
     onMapError
   },
@@ -122,9 +124,36 @@ export const RastreonMap = forwardRef<unknown, RastreonMapProps>(function Rastre
           .addTo(map)
       );
     };
+    // Pino de local: âncora inferior (ponta) exatamente na coordenada, com
+    // rótulo ao lado, no mesmo desenho do app nativo e da web.
+    const addPlace = (point: MapPoint) => {
+      const visual = placeVisual(point.category);
+      const element = document.createElement('div');
+      element.style.cssText = 'position:relative;width:0;height:0;overflow:visible;cursor:pointer';
+      const pin = document.createElement('span');
+      pin.style.cssText = `position:absolute;left:-17px;top:-42px;display:grid;place-items:center;width:34px;height:34px;box-sizing:border-box;border:2.5px solid #fff;border-radius:50%;background:${visual.color};color:#fff;font:900 15px system-ui;box-shadow:0 8px 18px rgba(4,22,38,.32)`;
+      pin.textContent = visual.glyph;
+      const tip = document.createElement('span');
+      tip.style.cssText = `position:absolute;left:-6px;top:-12px;width:12px;height:12px;box-sizing:border-box;border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;background:${visual.color};transform:rotate(45deg);clip-path:polygon(100% 0,100% 100%,0 100%)`;
+      element.append(pin, tip);
+      if (point.name) {
+        const label = document.createElement('span');
+        label.textContent = point.name;
+        label.style.cssText =
+          'position:absolute;left:19px;top:-36px;max-width:160px;padding:3px 8px;border:1px solid rgba(16,40,59,.14);border-radius:999px;background:rgba(255,255,255,.96);color:#142b40;font:800 11px system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none';
+        element.append(label);
+      }
+      element.addEventListener('click', () => onPointPress?.(point));
+      markersRef.current.push(
+        new mapboxgl.Marker({ element, anchor: 'center' })
+          .setLngLat([point.longitude, point.latitude])
+          .addTo(map)
+      );
+    };
     if (phonePosition) add(phonePosition.longitude, phonePosition.latitude, '#1478C9');
     if (vehiclePosition) add(vehiclePosition.longitude, vehiclePosition.latitude, '#FF5A0A');
     points.forEach(point => {
+      if (point.kind === 'poi') return addPlace(point);
       const color =
         point.kind === 'convoy' ? '#35D07F' : point.kind === 'radar' ? '#F04444' : '#FF9F1C';
       add(

@@ -3626,20 +3626,29 @@ window.RastroMap.ready
     const renderCommunityMap = event => {
       layers.community.clearLayers();
       const payload = event.detail || {},
-        icon = symbol =>
-          L.divIcon({
-            className: 'map-symbol-marker-host',
-            html: `<span class="map-symbol-marker map-symbol-marker--${symbol}"><svg aria-hidden="true"><use href="/images/map-icons.svg#${symbol}"></use></svg></span>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 28],
-            popupAnchor: [0, -26]
-          });
+        poiLayerActive = Number(document.body.dataset.poiCount || 0) > 0,
+        icon = (symbol, label) =>
+          window.rastreonPoiMarkerIcon
+            ? window.rastreonPoiMarkerIcon(
+                { L },
+                { iconId: symbol, tone: symbol, label, count: 1, showLabel: Boolean(label) }
+              )
+            : L.divIcon({
+                className: 'map-symbol-marker-host',
+                html: `<span class="map-symbol-marker map-symbol-marker--${symbol}"><svg aria-hidden="true"><use href="/images/map-icons.svg#${symbol}"></use></svg></span>`,
+                iconSize: [34, 34],
+                iconAnchor: [17, 28],
+                popupAnchor: [0, -26]
+              });
       for (const station of payload.stations || []) {
         if (
           !Number.isFinite(Number(station.latitude)) ||
           !Number.isFinite(Number(station.longitude))
         )
           continue;
+        // Postos vindos do OpenStreetMap já são desenhados pela camada de locais
+        // (na coordenada exata). Evita pino duplicado deslocado sobre o mesmo posto.
+        if (poiLayerActive && station.providerPlaceId) continue;
         L.marker([station.latitude, station.longitude], { icon: icon('fuel') })
           .bindPopup(
             `<strong>${escapeHtml(station.name)}</strong><br>${escapeHtml(station.address || 'Posto cadastrado')}<br><small>Fonte: ${escapeHtml(station.source || 'RASTREON')}</small>`
