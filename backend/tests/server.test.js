@@ -837,6 +837,45 @@ test('Mapbox normaliza busca direta e reversa usando Geocoding v6', async () => 
   assert.ok(requested.every(url => url.includes('access_token=pk.test-token')));
 });
 
+test('Mapbox busca locais por categoria e preserva coordenadas e metadados reais', async () => {
+  let requestedUrl = '';
+  const geocoder = new MapboxGeocodingProvider({
+    accessToken: 'pk.test-token',
+    fetchImpl: async url => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        json: async () => ({
+          features: [
+            {
+              id: 'poi.123',
+              geometry: { coordinates: [-42.6401, -19.5801] },
+              properties: {
+                mapbox_id: 'poi.123',
+                name: 'Padaria Central',
+                full_address: 'Rua Principal, 10',
+                metadata: { open_hours: 'Mo-Sa 06:00-20:00', phone: '+553100000000' }
+              }
+            }
+          ]
+        })
+      };
+    }
+  });
+
+  const places = await geocoder.nearbyPlaces('bakery', -19.58, -42.64, 3000);
+  assert.equal(places.length, 1);
+  assert.equal(places[0].placeKey, 'mapbox:poi.123');
+  assert.equal(places[0].category, 'bakery');
+  assert.equal(places[0].name, 'Padaria Central');
+  assert.equal(places[0].latitude, -19.5801);
+  assert.equal(places[0].longitude, -42.6401);
+  assert.equal(places[0].openingHours, 'Mo-Sa 06:00-20:00');
+  assert.match(requestedUrl, /search\/searchbox\/v1\/category\/bakery/);
+  assert.match(requestedUrl, /proximity=-42\.64%2C-19\.58/);
+  assert.match(requestedUrl, /access_token=pk\.test-token/);
+});
+
 test('consulta por placa normaliza somente dados públicos do veículo', async () => {
   let requestOptions;
   const provider = new PlateLookupProvider({

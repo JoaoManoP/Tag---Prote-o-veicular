@@ -1,0 +1,382 @@
+/* ---------------------------------------------------------------------------
+   Redesenho da Comunidade (03/09/2026): grade, cartões, carrossel de locais,
+   chips de categoria e opção gráfica do perfil.
+
+   Para voltar à aparência anterior, remova o <link> deste arquivo no
+   index.html ou siga frontend/web/backup-aparencia-2026-09-02/README.md.
+   Carregado depois de reference-screens.css, por isso usa #communityView
+   para vencer as regras antigas de .reference-partners.
+   --------------------------------------------------------------------------- */
+:root {
+  --cr-orange: #f45a19;
+  --cr-orange-2: #ff7a22;
+  --cr-ink: #132a40;
+  --cr-muted: #64788c;
+  --cr-line: #e3e9ef;
+  --cr-surface: #ffffff;
+  --cr-soft: #f6f8fa;
+  --cr-green: #0f8f55;
+  --cr-green-soft: #e7f7ee;
+  --cr-shadow: 0 10px 30px rgba(12, 38, 60, 0.07);
+}
+
+/* Grade: colunas não podem esticar além da célula (evita sobreposição). */
+#communityView .community-reference-grid {
+  grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1fr);
+  gap: 14px;
+}
+#communityView .community-main-column,
+#communityView .community-side-column {
+  min-width: 0;
+  gap: 14px;
+}
+#communityView .community-reference-grid .card {
+  min-width: 0;
+  padding: 16px !important;
+  border: 1px solid var(--cr-line);
+  border-radius: 18px !important;
+  background: var(--cr-surface);
+  box-shadow: var(--cr-shadow);
+}
+#communityView .reference-card-title {
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+#communityView .reference-card-title h2 {
+  gap: 10px;
+  color: var(--cr-ink);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+#communityView .reference-card-title h2 svg {
+  width: 32px;
+  height: 32px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--cr-orange), var(--cr-orange-2));
+  color: #fff;
+  flex: none;
+}
+#communityView .community-partners .reference-card-title > div > small {
+  display: block;
+  margin-top: 3px;
+  color: var(--cr-muted);
+  font-size: 11px;
+}
+#communityView .reference-card-title button,
+#communityView .reference-card-title .text-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--cr-line);
+  border-radius: 999px;
+  background: var(--cr-soft);
+  color: var(--cr-ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+#communityView .reference-card-title button:hover {
+  border-color: var(--cr-orange);
+  color: var(--cr-orange);
+}
+#communityView .empty-state {
+  padding: 26px 16px;
+  border: 1px dashed var(--cr-line);
+  border-radius: 14px;
+  background: var(--cr-soft);
+  color: var(--cr-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Carrossel */
+#communityView .reference-partners.has-carousel {
+  display: block;
+  min-width: 0;
+  margin-top: 10px;
+}
+#communityView .place-carousel {
+  position: relative;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 8px;
+  min-width: 0;
+}
+#communityView .place-carousel__track {
+  gap: 12px;
+  padding: 6px 2px 10px;
+  scroll-padding-inline: 2px;
+}
+#communityView .place-carousel__nav {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--cr-line);
+  background: var(--cr-surface);
+  color: var(--cr-ink);
+  box-shadow: 0 6px 16px rgba(12, 38, 60, 0.12);
+  font-size: 22px;
+  transition:
+    transform 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+#communityView .place-carousel__nav:not(:disabled):hover {
+  transform: scale(1.06);
+  border-color: var(--cr-orange);
+  color: var(--cr-orange);
+}
+#communityView .place-carousel__nav:disabled {
+  opacity: 0.25;
+  box-shadow: none;
+}
+
+/* Cartão de local: anula a grade antiga de .reference-partners article */
+#communityView .reference-partners .place-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 0 0 min(272px, 84vw);
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--cr-line);
+  border-radius: 16px;
+  background: var(--cr-surface);
+  box-shadow: 0 6px 18px rgba(12, 38, 60, 0.06);
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    border-color 0.18s;
+}
+#communityView .reference-partners .place-card:hover {
+  transform: translateY(-2px);
+  border-color: #d7e0e8;
+  box-shadow: 0 16px 34px rgba(12, 38, 60, 0.13);
+}
+#communityView .reference-partners .place-card__head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+#communityView .reference-partners .place-card__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--pin) 14%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pin) 22%, transparent);
+  color: var(--pin);
+}
+#communityView .reference-partners .place-card__icon svg {
+  width: 21px;
+  height: 21px;
+}
+#communityView .reference-partners .place-card__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+#communityView .reference-partners .place-card__copy strong {
+  color: var(--cr-ink);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+#communityView .reference-partners .place-card__copy small,
+#communityView .reference-partners .place-card__meta,
+#communityView .reference-partners .place-card__address {
+  color: var(--cr-muted);
+  font-size: 11.5px;
+  white-space: normal;
+}
+#communityView .reference-partners .place-card__copy small {
+  white-space: nowrap;
+}
+#communityView .reference-partners .place-card__fav {
+  width: 32px;
+  height: 32px;
+  border-color: var(--cr-line);
+  color: #b7c3cf;
+  font-size: 16px;
+}
+#communityView .reference-partners .place-card__fav.is-active {
+  border-color: #f6b9c6;
+  background: #fff1f4;
+  color: #e5254d;
+}
+#communityView .reference-partners .place-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--cr-green);
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--cr-green-soft), #f3fbf6);
+}
+#communityView .reference-partners .place-card__price b {
+  color: var(--cr-green);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+#communityView .reference-partners .place-card__price small {
+  color: #3f7a5b;
+  font-size: 11px;
+  white-space: normal;
+}
+#communityView .reference-partners .place-card__price.is-empty {
+  border-left-color: #c9d3dd;
+  background: var(--cr-soft);
+}
+#communityView .reference-partners .place-card__price.is-empty b {
+  color: #55697d;
+  font-size: 13px;
+}
+#communityView .reference-partners .place-card__price.is-empty small {
+  color: var(--cr-muted);
+}
+#communityView .reference-partners .place-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#communityView .reference-partners .place-card__meta > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--cr-soft);
+  color: var(--cr-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+#communityView .reference-partners .place-card__rating {
+  background: #fff7e6 !important;
+  color: #a86a00 !important;
+}
+#communityView .reference-partners .place-card__benefit {
+  background: var(--cr-green-soft) !important;
+  color: var(--cr-green) !important;
+}
+#communityView .reference-partners .place-card .platform-item__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+#communityView .reference-partners .place-card .platform-item__actions button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+/* !important: navigation-redesign.css pinta todos os botões das views com
+   fundo translúcido e cor fixa; aqui o botão principal precisa se destacar. */
+body
+  .view.active#communityView
+  .reference-partners
+  .place-card
+  .platform-item__actions
+  button:not(.secondary) {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--cr-orange), var(--cr-orange-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(244, 90, 25, 0.28) !important;
+}
+body
+  .view.active#communityView
+  .reference-partners
+  .place-card
+  .platform-item__actions
+  button.secondary {
+  border: 1px solid var(--cr-line) !important;
+  background: var(--cr-surface) !important;
+  color: var(--cr-ink) !important;
+}
+body
+  .view.active#communityView
+  .reference-partners
+  .place-card
+  .platform-item__actions
+  button:hover {
+  filter: brightness(1.04);
+}
+body .view.active#communityView .place-chip[aria-pressed='true'] {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--cr-orange), var(--cr-orange-2)) !important;
+  color: #fff !important;
+}
+body .view.active#communityView .place-chip:not([aria-pressed='true']) {
+  background: var(--cr-surface) !important;
+  color: var(--cr-ink) !important;
+}
+
+/* Chips de categoria */
+#communityView .place-chips {
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+#communityView .place-chip {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--cr-line);
+  background: var(--cr-surface);
+  color: var(--cr-ink);
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+}
+#communityView .place-chip:hover {
+  border-color: var(--cr-orange);
+  color: var(--cr-orange);
+}
+#communityView .place-chip[aria-pressed='true'] {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--cr-orange), var(--cr-orange-2));
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(244, 90, 25, 0.3);
+}
+
+/* Opção gráfica no perfil */
+.profile-graphics-settings {
+  grid-template-columns: 1fr;
+}
+.profile-graphics-settings label {
+  min-height: 48px;
+}
+.profile-graphics-settings label span {
+  display: grid;
+  gap: 1px;
+}
+.profile-graphics-settings label small {
+  color: var(--cr-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+.profile-graphics-status {
+  display: block;
+  margin-top: 10px;
+  color: var(--cr-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@media (max-width: 960px) {
+  #communityView .community-reference-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  #communityView .place-carousel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #communityView .reference-partners .place-card {
+    flex-basis: 82vw;
+  }
+}

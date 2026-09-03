@@ -165,6 +165,9 @@ window.RastroMap.ready
     };
     if (mapProvider === 'maplibre' || mapProvider === 'mapbox')
       map.ready?.then(async () => {
+        // No modo gráfico leve, o modelo 3D do veículo não é carregado
+        // (o marcador padrão é mantido), poupando GPU e memória.
+        if (document.body.dataset.graphics === 'lite' || graphicsPreference() === 'lite') return;
         try {
           const module = await vehicle3DModulePromise;
           vehicle3DLayer = module.installVehicle3DLayer({
@@ -309,12 +312,25 @@ window.RastroMap.ready
       };
       host.appendChild(controls);
     }
+    function graphicsPreference() {
+      try {
+        return localStorage.getItem('rastreon:graphics') || 'auto';
+      } catch {
+        return 'auto';
+      }
+    }
     function supportsComfortable3D() {
       const memory = Number(navigator.deviceMemory || 4),
-        connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection,
+        preference = graphicsPreference(),
+        hasPitch = Boolean(mapProvider === 'google' ? map.setTilt : map.getNativeMap?.()?.getPitch);
+      // Preferência gráfica do perfil: "Leve" força 2D; "Alta" respeita a escolha.
+      if (preference === 'lite' || document.body.dataset.graphics === 'lite') return false;
+      if (preference === 'high') return hasPitch;
       return (
         !connection?.saveData &&
         memory > 2 &&
+        Number(navigator.hardwareConcurrency || 4) > 2 &&
         !/2g/.test(connection?.effectiveType || '') &&
         Boolean(mapProvider === 'google' ? map.setTilt : map.getNativeMap?.()?.getPitch)
       );

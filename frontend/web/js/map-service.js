@@ -590,16 +590,27 @@
         this._shapes = new Set();
         this._trafficEnabled = false;
         this._styleUrl = config.mapStyleUrl || 'https://tiles.openfreemap.org/styles/liberty';
+        // Preferência gráfica do perfil (rastreon:graphics): "lite" reduz
+        // antialias, densidade de pixels e transições para aparelhos fracos.
+        let graphics = 'auto';
+        try {
+          graphics = localStorage.getItem('rastreon:graphics') || 'auto';
+        } catch {}
+        const lowEnd =
+          Number(navigator.deviceMemory || 8) <= 4 ||
+          Number(navigator.hardwareConcurrency || 8) <= 4 ||
+          Boolean(navigator.connection?.saveData);
+        const lite = graphics === 'lite' || (graphics === 'auto' && lowEnd);
         this._map = new maplibregl.Map({
           container: id,
           style: this._styleUrl,
           center: [-42.54, -19.47],
           zoom: 10,
           pitch: 0,
-          maxPitch: 70,
-          antialias: true,
-          pixelRatio: Math.min(1.75, window.devicePixelRatio || 1),
-          fadeDuration: 180,
+          maxPitch: lite ? 0 : 70,
+          antialias: !lite,
+          pixelRatio: lite ? 1 : Math.min(1.75, window.devicePixelRatio || 1),
+          fadeDuration: lite ? 0 : 180,
           attributionControl: true
         });
         this._map.on('style.load', () => {

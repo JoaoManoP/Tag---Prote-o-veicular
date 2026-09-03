@@ -656,6 +656,98 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Preferência gráfica (perfil > Desempenho e gráficos): auto | high | lite.
+  // "lite" desliga 3D, reduz marcadores e efeitos. "auto" detecta o aparelho e
+  // mede a fluidez do mapa nos primeiros segundos.
+  // ---------------------------------------------------------------------------
+  const GRAPHICS_KEY = 'rastreon:graphics';
+  function graphicsPreference() {
+    try {
+      const value = localStorage.getItem(GRAPHICS_KEY) || 'auto';
+      return ['auto', 'high', 'lite'].includes(value) ? value : 'auto';
+    } catch {
+      return 'auto';
+    }
+  }
+  function lowEndDevice() {
+    const connection =
+      navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return (
+      Number(navigator.deviceMemory || 8) <= 4 ||
+      Number(navigator.hardwareConcurrency || 8) <= 4 ||
+      Boolean(connection?.saveData) ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+  function effectiveGraphics() {
+    const preference = graphicsPreference();
+    if (preference !== 'auto') return preference;
+    return document.body.dataset.graphicsProbe === 'slow' || lowEndDevice() ? 'lite' : 'high';
+  }
+  function applyGraphics() {
+    const effective = effectiveGraphics();
+    document.body.dataset.graphics = effective;
+    const status = byId('profileGraphicsStatus');
+    if (status)
+      status.textContent =
+        graphicsPreference() === 'auto'
+          ? `Automático: usando modo ${effective === 'lite' ? 'leve' : 'de alta qualidade'} neste aparelho.`
+          : effective === 'lite'
+            ? 'Modo leve ativo: mapa 2D, sem modelo 3D e com menos marcadores.'
+            : 'Alta qualidade ativa: 3D, relevo e todos os marcadores.';
+    return effective;
+  }
+  function probeFrameRate() {
+    if (graphicsPreference() !== 'auto' || document.body.dataset.graphicsProbe) return;
+    let frames = 0,
+      start = 0;
+    const tick = now => {
+      if (!start) start = now;
+      frames += 1;
+      if (now - start < 2500) return requestAnimationFrame(tick);
+      const fps = (frames * 1000) / (now - start);
+      document.body.dataset.graphicsProbe = fps < 28 ? 'slow' : 'ok';
+      if (fps < 28 && applyGraphics() === 'lite') {
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Mapa em modo leve para manter a fluidez. Ajuste em Perfil > Desempenho.'
+          })
+        );
+        schedulePoiLoad(50);
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+  function setupGraphicsPreferences() {
+    const inputs = document.querySelectorAll('[name="graphicsMode"]');
+    if (!inputs.length) return;
+    const current = graphicsPreference();
+    inputs.forEach(input => {
+      input.checked = input.value === current;
+      input.onchange = () => {
+        if (!input.checked) return;
+        try {
+          localStorage.setItem(GRAPHICS_KEY, input.value);
+        } catch {}
+        delete document.body.dataset.graphicsProbe;
+        applyGraphics();
+        schedulePoiLoad(50);
+        byId('applyGraphicsReload')?.classList.remove('hidden');
+        document.dispatchEvent(
+          new CustomEvent('rastreon:notice', {
+            detail: 'Preferência gráfica salva. Recarregue para aplicar tudo no mapa.'
+          })
+        );
+      };
+    });
+    const reload = byId('applyGraphicsReload');
+    if (reload) reload.onclick = () => location.reload();
+    applyGraphics();
+  }
+  window.rastreonGraphics = { preference: graphicsPreference, effective: effectiveGraphics };
+  applyGraphics();
+
   function poiIconId(category) {
     const value = String(category || '').toLowerCase();
     if (value === 'fuel' || value.includes('posto')) return 'fuel';
@@ -759,14 +851,43 @@
     if (!api) return;
     if (!api.layers.pois) api.layers.pois = api.L.layerGroup().addTo(api.map);
     api.layers.pois.clearLayers();
-    document.body.dataset.poiCount = String(places.length);
     const zoom = api.map.getZoom(),
-      // Agrupa apenas quando o mapa está afastado; próximo ao nível de rua cada
-      // local fica na própria coordenada, sem deslocamento por média.
-      cell = zoom >= 16.5 ? 0 : zoom >= 15 ? 0.0006 : zoom >= 13 ? 0.006 : 0.02,
-      showLabel = zoom >= 14.5;
+      lite = effectiveGraphics() === 'lite',
+      center = api.map.getCenter?.(),
+      nativeBounds = api.map.getNativeMap?.()?.getBounds?.();
+    // Só desenha o que está na área visível (com margem) e limita a quantidade
+    // de marcadores DOM: é o que mais pesa no mapa em aparelhos fracos.
+    let visible = places;
+    if (nativeBounds?.getWest) {
+      const west = nativeBounds.getWest(),
+        east = nativeBounds.getEast(),
+        south = nativeBounds.getSouth(),
+        north = nativeBounds.getNorth(),
+        padLng = (east - west) * 0.12,
+        padLat = (north - south) * 0.12;
+      visible = places.filter(
+        place =>
+          place.longitude >= west - padLng &&
+          place.longitude <= east + padLng &&
+          place.latitude >= south - padLat &&
+          place.latitude <= north + padLat
+      );
+    }
+    if (center && Number.isFinite(center.lat)) {
+      const distance = place =>
+        (place.latitude - center.lat) ** 2 +
+        ((place.longitude - center.lng) * Math.cos((center.lat * Math.PI) / 180)) ** 2;
+      visible = visible.map(place => [distance(place), place]).sort((a, b) => a[0] - b[0]);
+      visible = visible.map(entry => entry[1]);
+    }
+    const limit = lite ? 40 : 120;
+    visible = visible.slice(0, limit);
+    document.body.dataset.poiCount = String(visible.length);
+    const cell = zoom >= 16.5 ? 0 : zoom >= 15 ? 0.0006 : zoom >= 13 ? 0.006 : 0.02,
+      // Rótulos com nome: só perto do nível de rua e quando há poucos locais.
+      showLabel = lite ? zoom >= 16 && visible.length <= 30 : zoom >= 14.5 && visible.length <= 70;
     const groups = new Map();
-    for (const place of places) {
+    for (const place of visible) {
       const key = cell
         ? `${Math.round(place.latitude / cell)}:${Math.round(place.longitude / cell)}`
         : place.placeKey || `${place.category}-${place.id}`;
@@ -802,6 +923,9 @@
           .map(value => `<br><small>${escapeHtml(value)}</small>`)
           .join(''),
         placeKey = place.placeKey || `osm:${place.id}`,
+        sourceLabel = Array.isArray(place.sources)
+          ? place.sources.join(' + ')
+          : place.source || 'OpenStreetMap',
         payload = encodeURIComponent(
           JSON.stringify({
             id: place.id,
@@ -827,7 +951,7 @@
           : '',
         stopButton = `<button type="button" class="secondary" data-poi-stop="true" data-latitude="${place.latitude}" data-longitude="${place.longitude}" data-name="${encodeURIComponent(place.name)}">Traçar rota</button>`;
       marker.bindPopup(
-        `<div class="poi-popup"><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.categoryLabel || category)}${place.brand ? ` · ${escapeHtml(place.brand)}` : ''} · OpenStreetMap</small>${details}<div class="poi-popup__actions">${pricesButton}${commentsButton}${reviewButton}${stopButton}</div></div>`
+        `<div class="poi-popup"><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.categoryLabel || category)}${place.brand ? ` · ${escapeHtml(place.brand)}` : ''} · ${escapeHtml(sourceLabel)}</small>${details}<div class="poi-popup__actions">${pricesButton}${commentsButton}${reviewButton}${stopButton}</div></div>`
       );
     }
   }
@@ -1207,6 +1331,10 @@
     window.rastreonMap?.map.ready?.then(() => schedulePoiLoad(0));
     schedulePoiLoad(0);
     setupPoiPreferences();
+    setupGraphicsPreferences();
+    window.addEventListener('rastreon:map-ready', () => setTimeout(probeFrameRate, 1200), {
+      once: true
+    });
     new MutationObserver(syncSummary).observe(document.body, {
       subtree: true,
       childList: true,

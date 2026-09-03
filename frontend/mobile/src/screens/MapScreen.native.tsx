@@ -62,7 +62,10 @@ class MapErrorBoundary extends Component<
 }
 
 export default function MapScreen() {
-  const { session, setConnection, connection, selectedVehicle, theme, user } = useApp();
+  const { session, setConnection, connection, selectedVehicle, theme, user, graphicsPreference } =
+    useApp();
+  // Modo leve: mapa 2D, pinos sem rótulo e menos locais carregados.
+  const liteGraphics = graphicsPreference === 'lite';
   const cameraRef = useRef<CameraRef | null>(null);
   const [vehiclePosition, setVehiclePosition] = useState<Position | undefined>(
     session?.positions?.at(-1)
@@ -75,11 +78,15 @@ export default function MapScreen() {
   const [selectedPlace, setSelectedPlace] = useState<Place>();
   const [convoyState, setConvoyState] = useState<ConvoyState>();
   const [follow, setFollow] = useState(true);
-  const [perspective, setPerspective] = useState(true);
+  const [perspective, setPerspective] = useState(graphicsPreference !== 'lite');
   const [roadLayers, setRoadLayers] = useState(false);
   const [message, setMessage] = useState('Aguardando o rastreador do veículo');
   const [mapFailed, setMapFailed] = useState(false);
   const [mapResetKey, setMapResetKey] = useState(0);
+
+  useEffect(() => {
+    if (liteGraphics) setPerspective(false);
+  }, [liteGraphics]);
 
   useEffect(() => {
     const socket = socketService.connect(position => {
@@ -175,7 +182,7 @@ export default function MapScreen() {
     let active = true;
     api
       .get<{ places: Place[] }>(
-        `/api/places/nearby?lat=${liveFocusPosition.latitude}&lng=${liveFocusPosition.longitude}&categories=${MAP_PLACE_CATEGORIES.join(',')}&radiusMeters=2500&limit=60`
+        `/api/places/nearby?lat=${liveFocusPosition.latitude}&lng=${liveFocusPosition.longitude}&categories=${MAP_PLACE_CATEGORIES.join(',')}&radiusMeters=${liteGraphics ? 1500 : 2500}&limit=${liteGraphics ? 30 : 60}`
       )
       .then(data => {
         if (active) setPlaces(data.places);
@@ -186,19 +193,19 @@ export default function MapScreen() {
     return () => {
       active = false;
     };
-  }, [placesKey]);
+  }, [placesKey, liteGraphics]);
   const placePoints = useMemo<MapPoint[]>(
     () =>
       places.map(place => ({
         id: `place-${place.placeKey}`,
         kind: 'poi',
         category: place.category,
-        name: place.name,
+        name: liteGraphics ? undefined : place.name,
         latitude: place.latitude,
         longitude: place.longitude,
         data: place
       })),
-    [places]
+    [places, liteGraphics]
   );
   const visibleMapPoints = useMemo(
     () => [...mapPoints, ...placePoints, ...convoyMapPoints(convoyState)],
@@ -389,12 +396,14 @@ export default function MapScreen() {
             onPress={recenter}
             active={follow}
           />
-          <IconButton
-            name={perspective ? 'video-3d' : 'map-outline'}
-            label="Alternar 2D e 3D"
-            onPress={() => setPerspective(value => !value)}
-            active={perspective}
-          />
+          {!liteGraphics && (
+            <IconButton
+              name={perspective ? 'video-3d' : 'map-outline'}
+              label="Alternar 2D e 3D"
+              onPress={() => setPerspective(value => !value)}
+              active={perspective}
+            />
+          )}
           <IconButton
             name="traffic-light"
             label="Radares e ocorrências"

@@ -15,6 +15,7 @@ type Context = {
   session: TrackingSession | null;
   connection: string;
   themePreference: ThemePreference;
+  graphicsPreference: GraphicsPreference;
   theme: ReturnType<typeof makeTheme>;
   login: (email: string, password: string) => Promise<void>;
   register: (input: any) => Promise<void>;
@@ -24,7 +25,10 @@ type Context = {
   setSession: (s: TrackingSession | null) => void;
   setConnection: (s: string) => void;
   setThemePreference: (v: ThemePreference) => Promise<void>;
+  setGraphicsPreference: (v: GraphicsPreference) => Promise<void>;
 };
+/** Qualidade gráfica do mapa: "lite" desliga 3D, rótulos e limita marcadores. */
+export type GraphicsPreference = 'auto' | 'high' | 'lite';
 const AppContext = createContext<Context | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const scheme = useColorScheme(),
@@ -36,7 +40,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [alerts, setAlerts] = useState<Alert[]>([]),
     [session, setSession] = useState<TrackingSession | null>(null),
     [connection, setConnection] = useState('OFFLINE'),
-    [themePreference, setThemeState] = useState<ThemePreference>('dark');
+    [themePreference, setThemeState] = useState<ThemePreference>('dark'),
+    [graphicsPreference, setGraphicsState] = useState<GraphicsPreference>('auto');
   const theme = useMemo(
     () =>
       makeTheme(themePreference === 'dark' || (themePreference === 'system' && scheme === 'dark')),
@@ -76,9 +81,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAlerts(notifications.alerts);
   };
   useEffect(() => {
-    Promise.all([AsyncStorage.getItem('rastreon:theme'), api.get<{ user: User }>('/api/auth/me')])
-      .then(async ([pref]) => {
+    Promise.all([
+      AsyncStorage.getItem('rastreon:theme'),
+      AsyncStorage.getItem('rastreon:graphics'),
+      api.get<{ user: User }>('/api/auth/me')
+    ])
+      .then(async ([pref, graphics]) => {
         if (pref) setThemeState(pref as ThemePreference);
+        if (graphics === 'auto' || graphics === 'high' || graphics === 'lite')
+          setGraphicsState(graphics);
         await refresh();
       })
       .catch(error => {
@@ -105,6 +116,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setThemeState(value);
     await AsyncStorage.setItem('rastreon:theme', value);
   };
+  const setGraphicsPreference = async (value: GraphicsPreference) => {
+    setGraphicsState(value);
+    await AsyncStorage.setItem('rastreon:graphics', value);
+  };
   return (
     <AppContext.Provider
       value={{
@@ -117,6 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         session,
         connection,
         themePreference,
+        graphicsPreference,
         theme,
         login,
         register,
@@ -125,7 +141,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSelected,
         setSession,
         setConnection,
-        setThemePreference
+        setThemePreference,
+        setGraphicsPreference
       }}
     >
       {children}

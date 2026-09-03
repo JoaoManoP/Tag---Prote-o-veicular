@@ -628,6 +628,35 @@ class FallbackGeocodingProvider {
   }
 }
 
+// Categorias do Mapbox Search Box correspondentes às categorias de locais do app.
+const MAPBOX_PLACE_CATEGORIES = Object.freeze({
+  fuel: 'gas_station',
+  hospital: 'hospital',
+  pharmacy: 'pharmacy',
+  restaurant: 'restaurant',
+  cafe: 'cafe',
+  bakery: 'bakery',
+  bar: 'bar',
+  supermarket: 'grocery',
+  mechanic: 'auto_repair',
+  charge: 'charging_station',
+  parking: 'parking_lot',
+  hotel: 'hotel',
+  school: 'school',
+  university: 'university',
+  library: 'library',
+  culture: 'museum',
+  leisure: 'park',
+  tourism: 'tourist_attraction',
+  camping: 'campground',
+  worship: 'place_of_worship',
+  police: 'police_station',
+  fire_station: 'fire_station',
+  airport: 'airport',
+  dentist: 'dentist',
+  veterinary: 'veterinarian'
+});
+
 class MapboxGeocodingProvider {
   constructor({
     accessToken,
@@ -687,8 +716,17 @@ class MapboxGeocodingProvider {
         place => place.label && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)
       );
   }
+  static categoryId(category) {
+    return MAPBOX_PLACE_CATEGORIES[category] || null;
+  }
   async nearbyFuelStations(latitude, longitude, radiusMeters = 3000) {
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+    return this.nearbyPlaces('fuel', latitude, longitude, radiusMeters);
+  }
+  // Busca por categoria no Mapbox Search Box (mesma API usada pelo site) para
+  // complementar o OpenStreetMap com nomes, endereços, horários e telefones.
+  async nearbyPlaces(category, latitude, longitude, radiusMeters = 3000) {
+    const categoryId = MapboxGeocodingProvider.categoryId(category);
+    if (!categoryId || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
     const radius = Math.min(6000, Math.max(100, Number(radiusMeters) || 3000));
     const params = new URLSearchParams({
       access_token: this.accessToken,
@@ -700,11 +738,11 @@ class MapboxGeocodingProvider {
     });
     const data = await requestJson(
       this.fetch,
-      `${this.searchBoxBaseUrl}/category/gas_station?${params}`,
+      `${this.searchBoxBaseUrl}/category/${categoryId}?${params}`,
       {},
       this.timeoutMs
     );
-    if (!Array.isArray(data?.features)) throw new Error('Resposta de postos Mapbox inválida');
+    if (!Array.isArray(data?.features)) throw new Error('Resposta de locais Mapbox inválida');
     const radians = value => (value * Math.PI) / 180;
     const distance = place => {
       const dLat = radians(place.latitude - latitude);
@@ -719,17 +757,25 @@ class MapboxGeocodingProvider {
         const properties = feature.properties || {};
         const metadata = properties.metadata || {};
         const coordinates = feature.geometry?.coordinates || [];
+        const id = `mapbox-${properties.mapbox_id || feature.id || coordinates.join('-')}`;
         const place = {
-          id: `mapbox-${properties.mapbox_id || feature.id || coordinates.join('-')}`,
-          name: String(properties.name || 'Posto próximo').slice(0, 100),
+          id,
+          placeKey: `mapbox:${String(properties.mapbox_id || feature.id || coordinates.join('-'))
+            .replace(/[^A-Za-z0-9._~-]/g, '')
+            .slice(0, 180)}`,
+          name: String(properties.name || '').slice(0, 100) || null,
           brand: String(properties.brand || '').slice(0, 100) || null,
           address: String(
             properties.full_address || properties.place_formatted || properties.address || ''
           ).slice(0, 180),
-          category: 'fuel',
+          category,
           latitude: Number(coordinates[1]),
           longitude: Number(coordinates[0]),
-          openingHours: metadata.open_hours || null,
+          openingHours: metadata.open_hours
+            ? typeof metadata.open_hours === 'string'
+              ? metadata.open_hours
+              : null
+            : null,
           phone: metadata.phone || null,
           website: metadata.website || null,
           source: 'Mapbox Search'

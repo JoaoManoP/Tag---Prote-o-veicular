@@ -56,7 +56,6 @@
     <link rel="stylesheet" href="/css/profile-reference.css?v=20260831-settings-header-1" />
     <link rel="stylesheet" href="/css/reference-tabs.css?v=20260831-restore-1" />
     <link rel="stylesheet" href="/css/reference-screens.css?v=20260831-nearby-fuel-1" />
-    <link rel="stylesheet" href="/css/community-redesign.css?v=20260903-redesign-2" />
     <main class="app-shell">
       <section id="trackingView" class="view active">
         <div class="workspace">
@@ -699,7 +698,7 @@
                   <div class="reference-card-title">
                     <div>
                       <h2>
-                        <svg aria-hidden="true"><use href="/images/map-icons.svg#fuel"></use></svg
+                        <svg aria-hidden="true"><use href="/images/ui-icons.svg#fuel"></use></svg
                         >Postos em até 3 km
                       </h2>
                       <small
@@ -1395,37 +1394,6 @@
                 Restaurar padrão
               </button>
             </section>
-            <section class="card profile-poi-card profile-graphics-card">
-              <h2>Desempenho e gráficos</h2>
-              <p>
-                Ajuste o mapa ao seu aparelho. No modo leve o mapa fica em 2D, sem o modelo 3D do
-                veículo e com menos marcadores, o que deixa tudo mais fluido.
-              </p>
-              <div
-                id="profileGraphicsSettings"
-                class="profile-poi-settings profile-graphics-settings"
-                role="radiogroup"
-                aria-label="Qualidade gráfica do mapa"
-              >
-                <label
-                  ><input type="radio" name="graphicsMode" value="auto" checked /><span
-                    >Automático <small>Detecta a capacidade do aparelho</small></span
-                  ></label
-                ><label
-                  ><input type="radio" name="graphicsMode" value="high" /><span
-                    >Alta qualidade <small>3D, relevo e todos os marcadores</small></span
-                  ></label
-                ><label
-                  ><input type="radio" name="graphicsMode" value="lite" /><span
-                    >Leve <small>2D, menos efeitos e marcadores</small></span
-                  ></label
-                >
-              </div>
-              <small id="profileGraphicsStatus" class="profile-graphics-status"></small>
-              <button type="button" id="applyGraphicsReload" class="poi-restore-defaults hidden">
-                Recarregar para aplicar
-              </button>
-            </section>
             <section class="card privacy-card">
               <h2>Controle da conta</h2>
               <div class="password-change">
@@ -1609,7 +1577,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/map-config.js"></script>
     <script src="/js/maplibre-loader.js?v=4"></script>
-    <script src="/js/map-service.js?v=20260903-perf-1"></script>
+    <script src="/js/map-service.js?v=20260902-places-1"></script>
     <script src="/js/navigation-state.js?v=20260826-navigation-clean-1"></script>
     <script src="/js/vehicle-images.js?v=3"></script>
     <script src="/js/vehicle-3d-config.js?v=20260825-3d-1"></script>
@@ -1617,8 +1585,8 @@
     <script src="/js/platform-features.js?v=20260902-places-1"></script>
     <script src="/vendor/zxing/zxing-browser.min.js"></script>
     <script src="/js/convoy.js?v=20260901-convoy-map-2"></script>
-    <script src="/js/dashboard.js?v=20260903-perf-1"></script>
-    <script src="/js/ux.js?v=20260903-perf-1"></script>
+    <script src="/js/dashboard.js?v=20260902-places-1"></script>
+    <script src="/js/ux.js?v=20260902-places-1"></script>
     <script src="/js/navigation-redesign.js?v=20260827-map-controls-1"></script>
     <script src="/js/reference-screens.js?v=20260831-faithful-2"></script>
   </body>

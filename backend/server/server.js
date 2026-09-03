@@ -158,6 +158,57 @@ const POI_LABELS = Object.freeze({
   dentist: 'Dentistas',
   veterinary: 'Veterinários'
 });
+const POI_SINGULAR = Object.freeze({
+  fuel: 'Posto',
+  hospital: 'Hospital',
+  pharmacy: 'Farmácia',
+  restaurant: 'Restaurante',
+  cafe: 'Cafeteria',
+  bakery: 'Padaria',
+  bar: 'Bar',
+  supermarket: 'Mercado',
+  mechanic: 'Oficina',
+  charge: 'Recarga elétrica',
+  parking: 'Estacionamento',
+  hotel: 'Hospedagem',
+  school: 'Escola',
+  university: 'Universidade',
+  library: 'Biblioteca',
+  culture: 'Museu',
+  leisure: 'Parque',
+  tourism: 'Atração',
+  camping: 'Camping',
+  worship: 'Templo',
+  police: 'Polícia',
+  fire_station: 'Bombeiros',
+  airport: 'Aeroporto',
+  dentist: 'Dentista',
+  veterinary: 'Veterinário'
+});
+// Une locais de fontes diferentes (OSM + Mapbox) que apontam para o mesmo
+// estabelecimento: mesma categoria a até 45 m. O registro sem nome recebe o
+// nome e os dados de contato do outro.
+function mergePlaceSources(base, extras) {
+  const result = base.map(item => ({ ...item }));
+  for (const extra of extras) {
+    if (!Number.isFinite(extra.latitude) || !Number.isFinite(extra.longitude)) continue;
+    const match = result.find(
+      item => item.category === extra.category && distanceBetween(item, extra) <= 45
+    );
+    if (!match) {
+      result.push({ ...extra, unnamed: !extra.name });
+      continue;
+    }
+    if (match.unnamed && extra.name) {
+      match.name = extra.name;
+      match.unnamed = false;
+    }
+    for (const field of ['brand', 'address', 'openingHours', 'phone', 'website'])
+      if (!match[field] && extra[field]) match[field] = extra[field];
+    match.sources = [...new Set([...(match.sources || ['OpenStreetMap']), 'Mapbox Search'])];
+  }
+  return result;
+}
 const serviceCache = new Map();
 const serviceInflight = new Map();
 async function cachedServiceCall(key, producer, ttl = 120000) {
@@ -1141,7 +1192,7 @@ function createApplication(options = {}) {
       clauses = categories
         .map(category => `nwr[${POI_DEFINITIONS[category].filter}]${area};`)
         .join(''),
-      query = `[out:json][timeout:14];(${clauses});out center 240;`,
+      query = `[out:json][timeout:14];(${clauses});out center 400;`,
       configuredOverpassUrls = String(
         process.env.OVERPASS_API_URLS || process.env.OVERPASS_API_URL || ''
       ).split(','),
@@ -1194,15 +1245,17 @@ function createApplication(options = {}) {
         scope
       };
     let places = (Array.isArray(data?.elements) ? data.elements : [])
-      .slice(0, 240)
+      .slice(0, 400)
       .map(item => {
         const tags = item.tags || {},
           category = categories.find(value => POI_DEFINITIONS[value].match(tags)),
-          id = `${item.type}-${item.id}`;
+          id = `${item.type}-${item.id}`,
+          rawName = String(tags.name || tags.brand || tags.operator || '').slice(0, 100);
         return {
           id,
           placeKey: `osm:${id}`,
-          name: String(tags.name || tags.brand || 'Local próximo').slice(0, 100),
+          name: rawName || POI_SINGULAR[category] || 'Local',
+          unnamed: !rawName,
           brand: String(tags.brand || tags.operator || '').slice(0, 100) || null,
           address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
             .filter(Boolean)
@@ -1222,6 +1275,39 @@ function createApplication(options = {}) {
       );
     places = withDistance(places).filter(item => route.length || item.distanceMeters <= radius);
     let source = 'openstreetmap-overpass';
+    // Busca aprofundada: complementa o OpenStreetMap com o Mapbox Search
+    // (mesma API do site) para nomes, endereços, horários e telefones.
+    if (!route.length && mapboxGeocoder?.nearbyPlaces) {
+      const lookups = await Promise.allSettled(
+        categories
+          .slice(0, 12)
+          .map(category =>
+            cachedServiceCall(
+              `mapbox-places:${category}:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${radius}`,
+              () => mapboxGeocoder.nearbyPlaces(category, latitude, longitude, radius),
+              600000
+            )
+          )
+      );
+      const extras = lookups.flatMap(result =>
+        result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : []
+      );
+      if (extras.length) {
+        places = withDistance(
+          mergePlaceSources(
+            places,
+            extras.map(item => ({
+              ...item,
+              categoryLabel: POI_LABELS[item.category] || item.category
+            }))
+          ).map(item => ({
+            ...item,
+            name: item.name || POI_SINGULAR[item.category] || 'Local'
+          }))
+        ).filter(item => item.distanceMeters <= radius);
+        source = 'openstreetmap-overpass+mapbox-search';
+      }
+    }
     if (!places.length && !route.length && categories.includes('fuel')) {
       const fallbackProviders = [
         ['mapbox-search-fallback', mapboxGeocoder],
