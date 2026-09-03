@@ -996,6 +996,14 @@ function createApplication(options = {}) {
     '/vendor/three',
     express.static(path.join(projectRoot, 'node_modules', 'three'), staticAssetOptions)
   );
+  // anime.js (animações da interface): /vendor/animejs/anime.esm.min.js e anime.umd.min.js
+  app.use(
+    '/vendor/animejs',
+    express.static(
+      path.join(projectRoot, 'node_modules', 'animejs', 'dist', 'bundles'),
+      staticAssetOptions
+    )
+  );
   app.use(
     '/vendor/zxing',
     express.static(
