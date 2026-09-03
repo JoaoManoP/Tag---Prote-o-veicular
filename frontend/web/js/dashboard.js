@@ -157,7 +157,7 @@ window.RastroMap.ready
       map,
       container: document.querySelector('.smart-map')
     });
-    const vehicle3DModulePromise = import('/js/vehicle-3d-layer.bundle.js?v=20260826-vehicle-3d-3');
+    const vehicle3DModulePromise = import('/js/vehicle-3d-layer.bundle.js?v=20260903-perf-1');
     const syncVehicleMarkerFallback = () => {
       const active = Boolean(vehicle3DLayer?.ready),
         vehicleElement = vehicleMarker?.getElement?.();

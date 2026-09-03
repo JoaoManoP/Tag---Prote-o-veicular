@@ -1,0 +1,69 @@
+/* ---------------------------------------------------------------------------
+   Desempenho (03/09/2026). Reduz o custo de composição sobre o mapa WebGL:
+   - desfoque (backdrop-filter) é a operação mais cara sobre um mapa vivo;
+   - painéis flutuantes isolados com `contain` para não repintar o resto;
+   - no modo gráfico leve (body[data-graphics="lite"]) todo desfoque, sombra
+     animada e transição são desligados.
+   --------------------------------------------------------------------------- */
+
+/* Barra superior: desfoque menor sobre o mapa (16px → 8px). */
+.topbar {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Painéis flutuantes (Histórico, Garagem, Comunidade, Perfil): isolam pintura. */
+.view.active:not(#trackingView) {
+  contain: layout paint;
+  will-change: transform;
+}
+.view.active:not(#trackingView) .card,
+.view.active:not(#trackingView) .place-card {
+  contain: layout paint;
+}
+
+/* Rótulos e pinos do mapa: sem transições de filtro (custosas em massa). */
+.map-symbol__pin {
+  transition: transform 0.16s;
+}
+
+/* Modo leve: sem desfoque, sem sombras pesadas e sem animações decorativas. */
+body[data-graphics='lite'] .topbar,
+body[data-graphics='lite'] .view.active:not(#trackingView),
+body[data-graphics='lite'] .vehicle-hud,
+body[data-graphics='lite'] .weather-card,
+body[data-graphics='lite'] .profile-live-card,
+body[data-graphics='lite'] .profile-weather-card,
+body[data-graphics='lite'] .map-control-rail,
+body[data-graphics='lite'] #mapControls,
+body[data-graphics='lite'] .place-sheet::backdrop,
+body[data-graphics='lite'] #profileView .profile-reference-grid {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body[data-graphics='lite'] .topbar {
+  background: #080a0d !important;
+}
+body[data-graphics='lite'] .view.active:not(#trackingView) {
+  animation: none !important;
+  box-shadow: 0 12px 30px rgba(2, 10, 18, 0.35) !important;
+}
+body[data-graphics='lite'] .place-card,
+body[data-graphics='lite'] .place-chip,
+body[data-graphics='lite'] .place-carousel__nav,
+body[data-graphics='lite'] .map-symbol__pin,
+body[data-graphics='lite'] .nav-pill {
+  transition: none !important;
+}
+body[data-graphics='lite'] .place-card:hover {
+  transform: none !important;
+}
+body[data-graphics='lite'] .map-3d-active .maplibregl-canvas {
+  filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view.active:not(#trackingView) {
+    animation: none !important;
+  }
+}

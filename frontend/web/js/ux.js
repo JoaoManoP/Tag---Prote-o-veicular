@@ -1335,7 +1335,16 @@
     window.addEventListener('rastreon:map-ready', () => setTimeout(probeFrameRate, 1200), {
       once: true
     });
-    new MutationObserver(syncSummary).observe(document.body, {
+    // Desempenho: o resumo do veículo é sincronizado no máximo uma vez por
+    // quadro, em vez de a cada mutação do DOM (marcadores, textos, classes).
+    let summaryFrame = 0;
+    new MutationObserver(() => {
+      if (summaryFrame) return;
+      summaryFrame = requestAnimationFrame(() => {
+        summaryFrame = 0;
+        syncSummary();
+      });
+    }).observe(document.body, {
       subtree: true,
       childList: true,
       characterData: true,

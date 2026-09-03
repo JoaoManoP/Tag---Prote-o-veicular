@@ -609,8 +609,8 @@
           pitch: 0,
           maxPitch: lite ? 0 : 70,
           antialias: !lite,
-          pixelRatio: lite ? 1 : Math.min(1.75, window.devicePixelRatio || 1),
-          fadeDuration: lite ? 0 : 180,
+          pixelRatio: lite ? 1 : Math.min(1.5, window.devicePixelRatio || 1),
+          fadeDuration: lite ? 0 : 120,
           attributionControl: true
         });
         this._map.on('style.load', () => {

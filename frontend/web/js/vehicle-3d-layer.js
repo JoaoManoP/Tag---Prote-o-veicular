@@ -445,25 +445,47 @@ export async function installVehicle3DPreview({
   const resize = () => {
     const width = Math.max(1, canvas.clientWidth || canvas.width || 300),
       height = Math.max(1, canvas.clientHeight || canvas.height || 160),
-      ratio = Math.min(2, window.devicePixelRatio || 1);
+      ratio = Math.min(liteGraphics ? 1 : 1.5, window.devicePixelRatio || 1);
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     fitModelToCanvas();
     camera.updateProjectionMatrix();
+    needsRender = true;
   };
   const setBodyColor = value => {
     const hex = normalizeColorToHex(value, config.bodyColor || '#F5F5F5');
     for (const mesh of bodyMeshes) mesh.material?.color?.set(hex);
+    needsRender = true;
   };
-  const render = () => {
-    if (disposed) return;
-    if (visible) {
-      if (autoRotate && !dragging) angle += 0.0025;
-      if (model) model.rotation.y = angle;
-      renderer.render(scene, camera);
+  // Desempenho: as prévias 3D (HUD, perfil, garagem) rodavam a 60 fps o tempo
+  // todo. Agora renderizam a 30 fps (12 fps no modo gráfico leve, sem giro
+  // automático), só quando visíveis, com a aba em foco e quando algo mudou.
+  const liteGraphics = (() => {
+    try {
+      return (
+        localStorage.getItem('rastreon:graphics') === 'lite' ||
+        document.body?.dataset.graphics === 'lite'
+      );
+    } catch {
+      return false;
     }
+  })();
+  const frameInterval = liteGraphics ? 1000 / 12 : 1000 / 30;
+  let lastFrame = 0,
+    needsRender = true;
+  const render = now => {
+    if (disposed) return;
     frame = requestAnimationFrame(render);
+    if (!visible || document.hidden) return;
+    if (now - lastFrame < frameInterval) return;
+    const rotating = autoRotate && !liteGraphics && !dragging;
+    if (!rotating && !dragging && !needsRender) return;
+    lastFrame = now;
+    needsRender = false;
+    if (rotating) angle += 0.005;
+    if (model) model.rotation.y = angle;
+    renderer.render(scene, camera);
   };
   let model;
   try {
@@ -538,6 +560,7 @@ export async function installVehicle3DPreview({
       if (!dragging) return;
       angle += (event.clientX - lastX) * 0.012;
       lastX = event.clientX;
+      needsRender = true;
     });
     const release = () => {
       dragging = false;
